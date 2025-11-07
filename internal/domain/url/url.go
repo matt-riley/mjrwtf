@@ -18,7 +18,7 @@ type URL struct {
 }
 
 var (
-	// shortCodeRegex validates short codes: alphanumeric, 3-20 characters
+	// shortCodeRegex validates short codes: alphanumeric characters, underscores, hyphens, 3-20 characters
 	shortCodeRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,20}$`)
 )
 
