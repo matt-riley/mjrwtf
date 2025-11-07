@@ -106,8 +106,20 @@ CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
 
 -- Consider table partitioning for clicks table with high volume
 -- Example: partition by month
--- CREATE TABLE clicks_2024_01 PARTITION OF clicks
---   FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
+-- 
+-- To use partitioning, first create the clicks table as a partitioned table:
+--   CREATE TABLE clicks (
+--     id SERIAL PRIMARY KEY,
+--     url_id INTEGER NOT NULL REFERENCES urls(id),
+--     clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--     referrer TEXT,
+--     country VARCHAR(2),
+--     user_agent TEXT
+--   ) PARTITION BY RANGE (clicked_at);
+--
+-- Then create partitions, e.g.:
+--   CREATE TABLE clicks_2024_01 PARTITION OF clicks
+--     FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
 
 
 -- ============================================================================
