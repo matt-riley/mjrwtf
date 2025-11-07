@@ -26,7 +26,7 @@ Stores shortened URLs with their original destinations.
 - NOT NULL on `short_code`, `original_url`, `created_at`, `created_by`
 
 **Indexes:**
-- `idx_urls_short_code` on `short_code` - Critical for redirect performance
+- `short_code` is automatically indexed via its UNIQUE constraint - Critical for redirect performance
 - `idx_urls_created_by` on `created_by` - For filtering by creator
 - `idx_urls_created_at` on `created_at` - For sorting/filtering by creation time
 
@@ -47,8 +47,7 @@ Stores analytics data for each click on a shortened URL.
 - NOT NULL on `url_id`, `clicked_at`
 
 **Indexes:**
-- `idx_clicks_url_id` on `url_id` - For looking up clicks by URL
-- `idx_clicks_url_id_clicked_at` on `(url_id, clicked_at)` - Composite index for time-based analytics
+- `idx_clicks_url_id_clicked_at` on `(url_id, clicked_at)` - Composite index for time-based analytics (also serves queries filtering only on `url_id`)
 - `idx_clicks_clicked_at` on `clicked_at` - For time-based filtering and sorting
 - `idx_clicks_country` on `country` - For country-based analytics
 
@@ -133,8 +132,8 @@ ORDER BY date DESC;
 
 ### Indexes
 All critical indexes are included in the schema:
-- `short_code` lookup is indexed via its unique constraint for fast redirects (most common operation); no additional index is required
-- `url_id` and composite `(url_id, clicked_at)` indexes support efficient analytics queries
+- `short_code` lookup is automatically indexed via its UNIQUE constraint for fast redirects (most common operation)
+- Composite `(url_id, clicked_at)` index supports efficient analytics queries and also serves queries filtering only on `url_id`
 - `clicked_at` index enables time-based filtering
 - `country` index supports geographic analytics
 
@@ -152,26 +151,26 @@ The PostgreSQL schema includes:
 
 ## Database Compatibility
 
-The base `schema.sql` file is designed to work with both databases with minimal changes:
+The base `schema.sql` file serves as a template for both databases, but requires manual modification to be compatible with either SQLite or PostgreSQL:
 - Uses SQL standard types where possible
 - Includes comments for database-specific syntax
-- Provides separate files for each database to avoid manual edits
+- For direct compatibility, use the provided `schema.sqlite.sql` or `schema.postgres.sql` files to avoid manual edits
 
 ## Integration with sqlc
 
 These schemas are designed to work with [sqlc](https://github.com/sqlc-dev/sqlc) for type-safe SQL code generation.
 
-Example `sqlc.yaml` configuration:
+Example `sqlc.yaml` configuration (adjust paths to match your project structure):
 ```yaml
 version: "2"
 sql:
   - engine: "postgresql"  # or "sqlite"
-    queries: "queries/"
+    queries: "queries/"   # Adjust to your queries directory
     schema: "docs/schema.postgres.sql"  # or schema.sqlite.sql
     gen:
       go:
         package: "db"
-        out: "internal/infrastructure/db"
+        out: "internal/infrastructure/db"  # Adjust to your output directory
 ```
 
 ## Future Enhancements
