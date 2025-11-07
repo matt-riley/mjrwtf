@@ -6,92 +6,112 @@ import (
 
 func TestNewClick(t *testing.T) {
 	tests := []struct {
-		name      string
-		urlID     int64
-		referrer  string
-		country   string
-		userAgent string
-		wantErr   error
+		name            string
+		urlID           int64
+		referrer        string
+		country         string
+		userAgent       string
+		wantErr         error
+		expectedCountry string // Expected country after normalization
 	}{
 		{
-			name:      "valid click with all fields",
-			urlID:     1,
-			referrer:  "https://google.com",
-			country:   "US",
-			userAgent: "Mozilla/5.0",
-			wantErr:   nil,
+			name:            "valid click with all fields",
+			urlID:           1,
+			referrer:        "https://google.com",
+			country:         "US",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         nil,
+			expectedCountry: "US",
 		},
 		{
-			name:      "valid click without referrer",
-			urlID:     1,
-			referrer:  "",
-			country:   "GB",
-			userAgent: "Mozilla/5.0",
-			wantErr:   nil,
+			name:            "valid click without referrer",
+			urlID:           1,
+			referrer:        "",
+			country:         "GB",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         nil,
+			expectedCountry: "GB",
 		},
 		{
-			name:      "valid click without country",
-			urlID:     1,
-			referrer:  "https://google.com",
-			country:   "",
-			userAgent: "Mozilla/5.0",
-			wantErr:   nil,
+			name:            "valid click without country",
+			urlID:           1,
+			referrer:        "https://google.com",
+			country:         "",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         nil,
+			expectedCountry: "",
 		},
 		{
-			name:      "valid click without user agent",
-			urlID:     1,
-			referrer:  "https://google.com",
-			country:   "CA",
-			userAgent: "",
-			wantErr:   nil,
+			name:            "valid click without user agent",
+			urlID:           1,
+			referrer:        "https://google.com",
+			country:         "CA",
+			userAgent:       "",
+			wantErr:         nil,
+			expectedCountry: "CA",
 		},
 		{
-			name:      "valid click with minimum fields",
-			urlID:     1,
-			referrer:  "",
-			country:   "",
-			userAgent: "",
-			wantErr:   nil,
+			name:            "valid click with minimum fields",
+			urlID:           1,
+			referrer:        "",
+			country:         "",
+			userAgent:       "",
+			wantErr:         nil,
+			expectedCountry: "",
 		},
 		{
-			name:      "invalid URL ID zero",
-			urlID:     0,
-			referrer:  "https://google.com",
-			country:   "US",
-			userAgent: "Mozilla/5.0",
-			wantErr:   ErrInvalidURLID,
+			name:            "invalid URL ID zero",
+			urlID:           0,
+			referrer:        "https://google.com",
+			country:         "US",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         ErrInvalidURLID,
+			expectedCountry: "",
 		},
 		{
-			name:      "invalid URL ID negative",
-			urlID:     -1,
-			referrer:  "https://google.com",
-			country:   "US",
-			userAgent: "Mozilla/5.0",
-			wantErr:   ErrInvalidURLID,
+			name:            "invalid URL ID negative",
+			urlID:           -1,
+			referrer:        "https://google.com",
+			country:         "US",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         ErrInvalidURLID,
+			expectedCountry: "",
 		},
 		{
-			name:      "invalid country code too short",
-			urlID:     1,
-			referrer:  "https://google.com",
-			country:   "U",
-			userAgent: "Mozilla/5.0",
-			wantErr:   ErrInvalidCountryCode,
+			name:            "invalid country code too short",
+			urlID:           1,
+			referrer:        "https://google.com",
+			country:         "U",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         ErrInvalidCountryCode,
+			expectedCountry: "",
 		},
 		{
-			name:      "invalid country code too long",
-			urlID:     1,
-			referrer:  "https://google.com",
-			country:   "USA",
-			userAgent: "Mozilla/5.0",
-			wantErr:   ErrInvalidCountryCode,
+			name:            "invalid country code too long",
+			urlID:           1,
+			referrer:        "https://google.com",
+			country:         "USA",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         ErrInvalidCountryCode,
+			expectedCountry: "",
 		},
 		{
-			name:      "invalid country code with spaces",
-			urlID:     1,
-			referrer:  "https://google.com",
-			country:   "U ",
-			userAgent: "Mozilla/5.0",
-			wantErr:   ErrInvalidCountryCode,
+			name:            "invalid country code with spaces",
+			urlID:           1,
+			referrer:        "https://google.com",
+			country:         "U ",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         ErrInvalidCountryCode,
+			expectedCountry: "",
+		},
+		{
+			name:            "country code with leading and trailing spaces gets normalized",
+			urlID:           1,
+			referrer:        "https://google.com",
+			country:         " US ",
+			userAgent:       "Mozilla/5.0",
+			wantErr:         nil,
+			expectedCountry: "US",
 		},
 	}
 
@@ -119,8 +139,8 @@ func TestNewClick(t *testing.T) {
 				t.Errorf("NewClick() Referrer = %v, want %v", click.Referrer, tt.referrer)
 			}
 
-			if click.Country != tt.country {
-				t.Errorf("NewClick() Country = %v, want %v", click.Country, tt.country)
+			if click.Country != tt.expectedCountry {
+				t.Errorf("NewClick() Country = %v, want %v", click.Country, tt.expectedCountry)
 			}
 
 			if click.UserAgent != tt.userAgent {

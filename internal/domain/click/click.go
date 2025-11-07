@@ -17,6 +17,9 @@ type Click struct {
 
 // NewClick creates a new Click with validation
 func NewClick(urlID int64, referrer, country, userAgent string) (*Click, error) {
+	// Normalize country code by trimming spaces
+	country = strings.TrimSpace(country)
+
 	c := &Click{
 		URLID:     urlID,
 		ClickedAt: time.Now(),
@@ -39,7 +42,7 @@ func (c *Click) Validate() error {
 	}
 
 	// Country code must be empty or exactly 2 characters (ISO 3166-1 alpha-2)
-	if c.Country != "" && len(strings.TrimSpace(c.Country)) != 2 {
+	if c.Country != "" && len(c.Country) != 2 {
 		return ErrInvalidCountryCode
 	}
 
