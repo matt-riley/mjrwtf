@@ -1,4 +1,4 @@
-.PHONY: help test lint fmt vet build clean
+.PHONY: help test lint fmt vet build clean migrate-up migrate-down migrate-status migrate-create migrate-reset
 
 # Default target
 help:
@@ -9,6 +9,13 @@ help:
 	@echo "  vet               - Run go vet"
 	@echo "  build             - Build the binary"
 	@echo "  clean             - Clean build artifacts and coverage files"
+	@echo ""
+	@echo "Migration targets:"
+	@echo "  migrate-up        - Apply all pending migrations"
+	@echo "  migrate-down      - Rollback the most recent migration"
+	@echo "  migrate-status    - Show migration status"
+	@echo "  migrate-create NAME=<name> - Create a new migration"
+	@echo "  migrate-reset     - Rollback all migrations"
 
 # Run all tests
 test:
@@ -36,9 +43,33 @@ vet:
 build:
 	go build -o bin/mjrwtf ./cmd/mjrwtf
 
+# Build migrate tool
+build-migrate:
+	go build -o bin/migrate ./cmd/migrate
+
 # Clean build artifacts and coverage files
 clean:
 	rm -rf bin/
+
+# Migration commands
+migrate-up: build-migrate
+	./bin/migrate up
+
+migrate-down: build-migrate
+	./bin/migrate down
+
+migrate-status: build-migrate
+	./bin/migrate status
+
+migrate-create: build-migrate
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME is required. Usage: make migrate-create NAME=my_migration"; \
+		exit 1; \
+	fi
+	./bin/migrate create $(NAME)
+
+migrate-reset: build-migrate
+	./bin/migrate reset
 
 # Run all checks (fmt, vet, lint, test)
 check: fmt vet lint test
