@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS clicks (
     -- Timestamp when the click occurred
     clicked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
-    -- HTTP Referer header (where the user came from)
+    -- HTTP "Referer" header (where the user came from)
+    -- Note: "Referer" is the correct spelling of the HTTP header name per RFC 2616
     -- NULL if no referer or direct access
     referrer TEXT,
     
