@@ -132,20 +132,21 @@ func main() {
 
 		// Create migration needs direct filesystem access, not embedded
 		// Store original filesystem state to restore after create
-		var originalFS embed.FS
 		needsRestore := false
 		if useEmbeddedFS {
-			originalFS = migrationsFS
+			originalFS := migrationsFS
 			needsRestore = true
 			goose.SetBaseFS(nil)
+
+			// Defer restoration to ensure it happens even on error
+			defer func() {
+				if needsRestore {
+					goose.SetBaseFS(originalFS)
+				}
+			}()
 		}
 
 		err := goose.Create(db, createDir, name, migrationType)
-
-		// Restore original filesystem for consistency, but only if it was set
-		if needsRestore {
-			goose.SetBaseFS(originalFS)
-		}
 
 		if err != nil {
 			log.Fatalf("Failed to create migration: %v", err)
