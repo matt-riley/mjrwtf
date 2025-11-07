@@ -10,9 +10,9 @@ import (
 
 // MockRepository is a mock implementation of Repository for testing
 type MockRepository struct {
-	urls       map[string]*URL
-	createErr  error
-	findErr    error
+	urls      map[string]*URL
+	createErr error
+	findErr   error
 }
 
 func NewMockRepository() *MockRepository {
@@ -282,7 +282,10 @@ func TestGenerator_GenerateUniqueShortCode(t *testing.T) {
 		// Pre-populate repository with some codes to simulate collisions
 		existingCodes := []string{"abc", "def", "ghi", "jkl", "mno"}
 		for _, code := range existingCodes {
-			url, _ := NewURL(code, "https://example.com", "system")
+			url, err := NewURL(code, "https://example.com", "system")
+			if err != nil {
+				t.Fatalf("NewURL() error = %v", err)
+			}
 			repo.Create(url)
 		}
 
@@ -592,7 +595,10 @@ func BenchmarkGenerator_GenerateUniqueShortCode(b *testing.B) {
 			b.Fatalf("GenerateUniqueShortCode() error = %v", err)
 		}
 		// Add to repository to simulate real usage
-		url, _ := NewURL(code, fmt.Sprintf("https://example.com/%d", i), "benchmark")
+		url, err := NewURL(code, fmt.Sprintf("https://example.com/%d", i), "benchmark")
+		if err != nil {
+			b.Fatalf("NewURL() error = %v", err)
+		}
 		repo.Create(url)
 	}
 }
