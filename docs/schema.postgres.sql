@@ -33,9 +33,8 @@ CREATE TABLE IF NOT EXISTS urls (
     created_by VARCHAR(255) NOT NULL
 );
 
--- Index for fast lookups by short_code (most common query pattern)
--- This is critical for redirect performance
-CREATE INDEX IF NOT EXISTS idx_urls_short_code ON urls(short_code);
+-- Note: The UNIQUE constraint on short_code automatically creates an index
+-- No additional index needed for short_code lookups
 
 -- Index for filtering by creator
 CREATE INDEX IF NOT EXISTS idx_urls_created_by ON urls(created_by);
@@ -77,10 +76,9 @@ CREATE TABLE IF NOT EXISTS clicks (
     FOREIGN KEY (url_id) REFERENCES urls(id) ON DELETE CASCADE
 );
 
--- Index for fast lookups of clicks by URL (most common analytics query)
-CREATE INDEX IF NOT EXISTS idx_clicks_url_id ON clicks(url_id);
-
 -- Composite index for time-based analytics queries
+-- Note: This composite index with url_id as the leading column also efficiently
+-- serves queries filtering only on url_id, making a separate single-column index unnecessary
 -- Supports queries like "clicks per day" or "clicks in date range"
 CREATE INDEX IF NOT EXISTS idx_clicks_url_id_clicked_at ON clicks(url_id, clicked_at);
 
