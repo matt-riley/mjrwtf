@@ -13,7 +13,6 @@ type MockRepository struct {
 	urls       map[string]*URL
 	createErr  error
 	findErr    error
-	shouldFail bool
 }
 
 func NewMockRepository() *MockRepository {
