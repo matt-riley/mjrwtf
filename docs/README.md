@@ -110,11 +110,22 @@ ORDER BY click_count DESC;
 ```
 
 ### Daily Click Analytics
+
+**SQLite:**
 ```sql
 SELECT DATE(clicked_at) as date, COUNT(*) as clicks
 FROM clicks
 WHERE url_id = 1
 GROUP BY DATE(clicked_at)
+ORDER BY date DESC;
+```
+
+**PostgreSQL:**
+```sql
+SELECT DATE_TRUNC('day', clicked_at) as date, COUNT(*) as clicks
+FROM clicks
+WHERE url_id = 1
+GROUP BY DATE_TRUNC('day', clicked_at)
 ORDER BY date DESC;
 ```
 

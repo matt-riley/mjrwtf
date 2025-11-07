@@ -132,10 +132,10 @@ CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
 --   ORDER BY click_count DESC;
 --
 -- Get daily click analytics:
---   SELECT DATE(clicked_at) as date, COUNT(*) as clicks
+--   SELECT DATE_TRUNC('day', clicked_at) as date, COUNT(*) as clicks
 --   FROM clicks
 --   WHERE url_id = 1
---   GROUP BY DATE(clicked_at)
+--   GROUP BY DATE_TRUNC('day', clicked_at)
 --   ORDER BY date DESC;
 --
 -- Get click trends over time with timezone:

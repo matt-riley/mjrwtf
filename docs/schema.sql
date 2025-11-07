@@ -148,9 +148,16 @@ CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
 --   GROUP BY country
 --   ORDER BY click_count DESC;
 --
--- Get daily click analytics:
+-- Get daily click analytics (SQLite):
 --   SELECT DATE(clicked_at) as date, COUNT(*) as clicks
 --   FROM clicks
 --   WHERE url_id = 1
 --   GROUP BY DATE(clicked_at)
+--   ORDER BY date DESC;
+--
+-- Get daily click analytics (PostgreSQL):
+--   SELECT DATE_TRUNC('day', clicked_at) as date, COUNT(*) as clicks
+--   FROM clicks
+--   WHERE url_id = 1
+--   GROUP BY DATE_TRUNC('day', clicked_at)
 --   ORDER BY date DESC;
