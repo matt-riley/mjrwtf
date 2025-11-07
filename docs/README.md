@@ -133,7 +133,7 @@ ORDER BY date DESC;
 
 ### Indexes
 All critical indexes are included in the schema:
-- `short_code` lookup is indexed for fast redirects (most common operation)
+- `short_code` lookup is indexed via its unique constraint for fast redirects (most common operation); no additional index is required
 - `url_id` and composite `(url_id, clicked_at)` indexes support efficient analytics queries
 - `clicked_at` index enables time-based filtering
 - `country` index supports geographic analytics
