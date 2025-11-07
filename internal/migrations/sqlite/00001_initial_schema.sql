@@ -1,12 +1,12 @@
 -- +goose Up
 -- +goose StatementBegin
--- Enable foreign key support (must be set for each connection)
-PRAGMA foreign_keys = ON;
-
 -- ============================================================================
 -- URLs Table
 -- ============================================================================
 -- Stores shortened URLs with their original destinations
+--
+-- Note: Foreign key support must be enabled in application code when establishing
+-- database connections using: PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS urls (
     -- Primary key: auto-incrementing integer
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +80,9 @@ CREATE INDEX IF NOT EXISTS idx_clicks_url_id_clicked_at ON clicks(url_id, clicke
 CREATE INDEX IF NOT EXISTS idx_clicks_clicked_at ON clicks(clicked_at);
 
 -- Index for country-based analytics
-CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
+-- Note: This index may be inefficient if country data is sparse (many NULL values).
+-- Consider whether country-based filtering is a common query pattern before enabling.
+-- CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
 -- +goose StatementEnd
 
 -- +goose Down

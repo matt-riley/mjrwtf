@@ -48,6 +48,9 @@ func main() {
 	// Auto-detect driver from URL if not provided
 	if *dbDriver == "" {
 		*dbDriver = detectDriver(*dbURL)
+		if *dbDriver == "" {
+			log.Fatal("Could not auto-detect database driver from URL. Please specify -driver flag explicitly (supported: sqlite3, postgres)")
+		}
 	}
 
 	// Validate driver
@@ -57,7 +60,10 @@ func main() {
 
 	// Set up migrations based on driver
 	var migrationsFS embed.FS
+	var useEmbeddedFS bool
 	if *dir == "" {
+		// Use embedded migrations
+		useEmbeddedFS = true
 		if *dbDriver == "sqlite3" {
 			*dir = migrations.SQLiteDir
 			migrationsFS = migrations.SQLiteMigrations
@@ -74,8 +80,10 @@ func main() {
 	}
 	defer db.Close()
 
-	// Set up goose
-	goose.SetBaseFS(migrationsFS)
+	// Set up goose with embedded filesystem if applicable
+	if useEmbeddedFS {
+		goose.SetBaseFS(migrationsFS)
+	}
 	if err := goose.SetDialect(*dbDriver); err != nil {
 		log.Fatalf("Failed to set dialect: %v", err)
 	}
@@ -123,14 +131,21 @@ func main() {
 		}
 
 		// Create migration needs direct filesystem access, not embedded
-		// Store original filesystem to restore after create
-		originalFS := migrationsFS
-		goose.SetBaseFS(nil)
+		// Store original filesystem state to restore after create
+		var originalFS embed.FS
+		needsRestore := false
+		if useEmbeddedFS {
+			originalFS = migrationsFS
+			needsRestore = true
+			goose.SetBaseFS(nil)
+		}
 
 		err := goose.Create(db, createDir, name, migrationType)
 
-		// Restore original filesystem for consistency
-		goose.SetBaseFS(originalFS)
+		// Restore original filesystem for consistency, but only if it was set
+		if needsRestore {
+			goose.SetBaseFS(originalFS)
+		}
 
 		if err != nil {
 			log.Fatalf("Failed to create migration: %v", err)
