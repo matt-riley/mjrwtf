@@ -84,7 +84,7 @@ func (g *Generator) GenerateUniqueShortCode() (string, error) {
 
 		// Check for collision by attempting to find existing URL with this code
 		_, err = g.repository.FindByShortCode(code)
-		if err == ErrURLNotFound {
+		if errors.Is(err, ErrURLNotFound) {
 			// No collision, code is unique
 			return code, nil
 		}
