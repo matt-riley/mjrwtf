@@ -122,9 +122,17 @@ func main() {
 			createDir = "internal/migrations/postgres"
 		}
 
-		// Use local filesystem for creation (not embedded)
+		// Create migration needs direct filesystem access, not embedded
+		// Store original filesystem to restore after create
+		originalFS := migrationsFS
 		goose.SetBaseFS(nil)
-		if err := goose.Create(db, createDir, name, migrationType); err != nil {
+
+		err := goose.Create(db, createDir, name, migrationType)
+
+		// Restore original filesystem for consistency
+		goose.SetBaseFS(originalFS)
+
+		if err != nil {
 			log.Fatalf("Failed to create migration: %v", err)
 		}
 		fmt.Printf("Created migration in %s\n", createDir)
@@ -142,14 +150,23 @@ func main() {
 
 // detectDriver attempts to detect the database driver from the connection string
 func detectDriver(url string) string {
-	switch {
-	case strings.HasPrefix(url, "postgres://"), strings.HasPrefix(url, "postgresql://"):
+	// PostgreSQL patterns
+	if strings.HasPrefix(url, "postgres://") || strings.HasPrefix(url, "postgresql://") {
 		return "postgres"
-	case strings.HasSuffix(url, ".db") || strings.Contains(url, "sqlite"):
-		return "sqlite3"
-	default:
-		return ""
 	}
+	// Check for PostgreSQL key-value format
+	if strings.Contains(url, "host=") && (strings.Contains(url, "dbname=") || strings.Contains(url, "database=")) {
+		return "postgres"
+	}
+	// SQLite patterns - file path with .db extension or explicit sqlite scheme
+	if strings.HasPrefix(url, "file:") || strings.HasSuffix(url, ".db") {
+		return "sqlite3"
+	}
+	// If it looks like a file path (starts with ./ or / or contains no ://)
+	if !strings.Contains(url, "://") && (strings.HasPrefix(url, "./") || strings.HasPrefix(url, "/") || !strings.Contains(url, "=")) {
+		return "sqlite3"
+	}
+	return ""
 }
 
 func usage() {
