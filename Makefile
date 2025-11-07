@@ -1,4 +1,4 @@
-.PHONY: help test test-short test-coverage test-coverage-html coverage-check lint fmt vet build clean
+.PHONY: help test lint fmt vet build clean
 
 # Default target
 help:
