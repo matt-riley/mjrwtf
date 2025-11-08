@@ -34,7 +34,7 @@ func NewDeleteURLUseCase(urlRepo url.Repository) *DeleteURLUseCase {
 func (uc *DeleteURLUseCase) Execute(ctx context.Context, req DeleteURLRequest) (*DeleteURLResponse, error) {
 	// Validate short code
 	if err := url.ValidateShortCode(req.ShortCode); err != nil {
-		return nil, fmt.Errorf("invalid short code: %w", err)
+		return nil, err
 	}
 
 	// Validate requested by
