@@ -1,4 +1,4 @@
-.PHONY: help test lint fmt vet build clean migrate-up migrate-down migrate-status migrate-create migrate-reset
+.PHONY: help test lint fmt vet build build-server build-migrate clean migrate-up migrate-down migrate-status migrate-create migrate-reset
 
 # Default target
 help:
@@ -7,7 +7,9 @@ help:
 	@echo "  lint              - Run golangci-lint"
 	@echo "  fmt               - Format code with gofmt"
 	@echo "  vet               - Run go vet"
-	@echo "  build             - Build the binary"
+	@echo "  build             - Build all binaries"
+	@echo "  build-server      - Build the HTTP server binary"
+	@echo "  build-migrate     - Build the migration tool"
 	@echo "  clean             - Clean build artifacts and coverage files"
 	@echo ""
 	@echo "Migration targets:"
@@ -39,9 +41,12 @@ fmt:
 vet:
 	go vet ./...
 
-# Build binary
-build:
-	go build -o bin/mjrwtf ./cmd/mjrwtf
+# Build all binaries
+build: build-server build-migrate
+
+# Build server binary
+build-server:
+	go build -o bin/server ./cmd/server
 
 # Build migrate tool
 build-migrate:
