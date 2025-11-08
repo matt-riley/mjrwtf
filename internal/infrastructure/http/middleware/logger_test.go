@@ -9,7 +9,7 @@ import (
 func TestLogger_LogsRequest(t *testing.T) {
 	handler := Logger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("test response"))
+		_, _ = w.Write([]byte("test response"))
 	}))
 
 	req := httptest.NewRequest(http.MethodGet, "/test-path", nil)

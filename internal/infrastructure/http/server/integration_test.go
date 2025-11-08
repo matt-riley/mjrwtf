@@ -29,7 +29,7 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 	srv.router.Get("/test-order", func(w http.ResponseWriter, r *http.Request) {
 		executionOrder = append(executionOrder, "handler")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	// Capture log output to verify logging middleware executed
@@ -219,7 +219,7 @@ func BenchmarkServer_WithMiddleware(b *testing.B) {
 
 	srv.router.Get("/bench", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"result":"ok"}`))
+		_, _ = w.Write([]byte(`{"result":"ok"}`))
 	})
 
 	b.ResetTimer()

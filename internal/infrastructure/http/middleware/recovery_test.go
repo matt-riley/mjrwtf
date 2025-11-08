@@ -29,7 +29,7 @@ func TestRecovery_RecoverFromPanic(t *testing.T) {
 func TestRecovery_NoPanic(t *testing.T) {
 	handler := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	}))
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
