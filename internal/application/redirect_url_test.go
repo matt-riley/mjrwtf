@@ -124,14 +124,19 @@ func TestRedirectURLUseCase_Execute_Success(t *testing.T) {
 	}
 	urlRepo.urls["test123"] = testURL
 
-	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+	// Use WaitGroup for synchronization
+	var wg sync.WaitGroup
+	wg.Add(1)
+	
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
+		wg.Done()
+	})
 
 	// Execute
 	req := RedirectRequest{
 		ShortCode: "test123",
 		Referrer:  "https://google.com",
 		UserAgent: "Mozilla/5.0",
-		IPAddress: "192.168.1.1",
 		Country:   "US",
 	}
 
@@ -151,7 +156,7 @@ func TestRedirectURLUseCase_Execute_Success(t *testing.T) {
 	}
 
 	// Wait for async click recording to complete
-	time.Sleep(50 * time.Millisecond)
+	wg.Wait()
 
 	if clickRepo.getRecordedClicksCount() != 1 {
 		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
@@ -170,7 +175,6 @@ func TestRedirectURLUseCase_Execute_URLNotFound(t *testing.T) {
 		ShortCode: "nonexistent",
 		Referrer:  "https://google.com",
 		UserAgent: "Mozilla/5.0",
-		IPAddress: "192.168.1.1",
 		Country:   "US",
 	}
 
@@ -189,9 +193,7 @@ func TestRedirectURLUseCase_Execute_URLNotFound(t *testing.T) {
 		t.Errorf("Expected nil response, got %v", resp)
 	}
 
-	// Wait a bit to ensure no click was recorded
-	time.Sleep(50 * time.Millisecond)
-
+	// No click should be recorded since URL was not found
 	if clickRepo.getRecordedClicksCount() != 0 {
 		t.Errorf("Expected 0 clicks to be recorded, got %d", clickRepo.getRecordedClicksCount())
 	}
@@ -211,14 +213,19 @@ func TestRedirectURLUseCase_Execute_AsyncClickRecording(t *testing.T) {
 	}
 	urlRepo.urls["async123"] = testURL
 
-	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+	// Use WaitGroup for synchronization
+	var wg sync.WaitGroup
+	wg.Add(1)
+	
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
+		wg.Done()
+	})
 
 	// Execute
 	req := RedirectRequest{
 		ShortCode: "async123",
 		Referrer:  "https://twitter.com",
 		UserAgent: "Chrome/96.0",
-		IPAddress: "10.0.0.1",
 		Country:   "GB",
 	}
 
@@ -237,7 +244,7 @@ func TestRedirectURLUseCase_Execute_AsyncClickRecording(t *testing.T) {
 	initialCount := clickRepo.getRecordedClicksCount()
 
 	// Wait for async operation to complete
-	time.Sleep(50 * time.Millisecond)
+	wg.Wait()
 
 	finalCount := clickRepo.getRecordedClicksCount()
 
@@ -264,14 +271,19 @@ func TestRedirectURLUseCase_Execute_ClickRecordingFailsButRedirectSucceeds(t *te
 	}
 	urlRepo.urls["resilient"] = testURL
 
-	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+	// Use WaitGroup for synchronization
+	var wg sync.WaitGroup
+	wg.Add(1)
+	
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
+		wg.Done()
+	})
 
 	// Execute
 	req := RedirectRequest{
 		ShortCode: "resilient",
 		Referrer:  "https://reddit.com",
 		UserAgent: "Safari/15.0",
-		IPAddress: "172.16.0.1",
 		Country:   "CA",
 	}
 
@@ -291,7 +303,7 @@ func TestRedirectURLUseCase_Execute_ClickRecordingFailsButRedirectSucceeds(t *te
 	}
 
 	// Wait for async operation to attempt (and fail)
-	time.Sleep(50 * time.Millisecond)
+	wg.Wait()
 
 	// No clicks should be recorded due to the error
 	if clickRepo.getRecordedClicksCount() != 0 {
@@ -313,14 +325,19 @@ func TestRedirectURLUseCase_Execute_EmptyCountry(t *testing.T) {
 	}
 	urlRepo.urls["nocountry"] = testURL
 
-	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+	// Use WaitGroup for synchronization
+	var wg sync.WaitGroup
+	wg.Add(1)
+	
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
+		wg.Done()
+	})
 
 	// Execute with empty country
 	req := RedirectRequest{
 		ShortCode: "nocountry",
 		Referrer:  "",
 		UserAgent: "Mozilla/5.0",
-		IPAddress: "192.168.1.100",
 		Country:   "", // Empty country is valid
 	}
 
@@ -336,7 +353,7 @@ func TestRedirectURLUseCase_Execute_EmptyCountry(t *testing.T) {
 	}
 
 	// Wait for async click recording
-	time.Sleep(50 * time.Millisecond)
+	wg.Wait()
 
 	if clickRepo.getRecordedClicksCount() != 1 {
 		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
@@ -357,7 +374,13 @@ func TestRedirectURLUseCase_Execute_MultipleClicks(t *testing.T) {
 	}
 	urlRepo.urls["popular"] = testURL
 
-	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+	// Use WaitGroup for synchronization
+	var wg sync.WaitGroup
+	wg.Add(5)
+	
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
+		wg.Done()
+	})
 
 	// Execute multiple redirects
 	for i := 0; i < 5; i++ {
@@ -365,7 +388,6 @@ func TestRedirectURLUseCase_Execute_MultipleClicks(t *testing.T) {
 			ShortCode: "popular",
 			Referrer:  "https://google.com",
 			UserAgent: "Mozilla/5.0",
-			IPAddress: "192.168.1.1",
 			Country:   "US",
 		}
 
@@ -381,7 +403,7 @@ func TestRedirectURLUseCase_Execute_MultipleClicks(t *testing.T) {
 	}
 
 	// Wait for all async operations to complete
-	time.Sleep(100 * time.Millisecond)
+	wg.Wait()
 
 	if clickRepo.getRecordedClicksCount() != 5 {
 		t.Errorf("Expected 5 clicks to be recorded, got %d", clickRepo.getRecordedClicksCount())
