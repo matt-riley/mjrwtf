@@ -1,0 +1,389 @@
+package application
+
+import (
+	"context"
+	"errors"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/matt-riley/mjrwtf/internal/domain/click"
+	"github.com/matt-riley/mjrwtf/internal/domain/url"
+)
+
+// Mock URL Repository
+type mockURLRepository struct {
+	urls      map[string]*url.URL
+	mu        sync.RWMutex
+	findError error
+}
+
+func newMockURLRepository() *mockURLRepository {
+	return &mockURLRepository{
+		urls: make(map[string]*url.URL),
+	}
+}
+
+func (m *mockURLRepository) Create(ctx context.Context, u *url.URL) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, exists := m.urls[u.ShortCode]; exists {
+		return url.ErrDuplicateShortCode
+	}
+	m.urls[u.ShortCode] = u
+	return nil
+}
+
+func (m *mockURLRepository) FindByShortCode(ctx context.Context, shortCode string) (*url.URL, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.findError != nil {
+		return nil, m.findError
+	}
+	u, exists := m.urls[shortCode]
+	if !exists {
+		return nil, url.ErrURLNotFound
+	}
+	return u, nil
+}
+
+func (m *mockURLRepository) Delete(ctx context.Context, shortCode string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, exists := m.urls[shortCode]; !exists {
+		return url.ErrURLNotFound
+	}
+	delete(m.urls, shortCode)
+	return nil
+}
+
+func (m *mockURLRepository) List(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error) {
+	return nil, nil
+}
+
+func (m *mockURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*url.URL, error) {
+	return nil, nil
+}
+
+// Mock Click Repository
+type mockClickRepository struct {
+	clicks      []*click.Click
+	mu          sync.Mutex
+	recordError error
+}
+
+func newMockClickRepository() *mockClickRepository {
+	return &mockClickRepository{
+		clicks: make([]*click.Click, 0),
+	}
+}
+
+func (m *mockClickRepository) Record(ctx context.Context, c *click.Click) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.recordError != nil {
+		return m.recordError
+	}
+	m.clicks = append(m.clicks, c)
+	return nil
+}
+
+func (m *mockClickRepository) GetStatsByURL(ctx context.Context, urlID int64) (*click.Stats, error) {
+	return nil, nil
+}
+
+func (m *mockClickRepository) GetStatsByURLAndTimeRange(ctx context.Context, urlID int64, startTime, endTime time.Time) (*click.TimeRangeStats, error) {
+	return nil, nil
+}
+
+func (m *mockClickRepository) GetTotalClickCount(ctx context.Context, urlID int64) (int64, error) {
+	return 0, nil
+}
+
+func (m *mockClickRepository) GetClicksByCountry(ctx context.Context, urlID int64) (map[string]int64, error) {
+	return nil, nil
+}
+
+func (m *mockClickRepository) getRecordedClicksCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.clicks)
+}
+
+func TestRedirectURLUseCase_Execute_Success(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	testURL := &url.URL{
+		ID:          1,
+		ShortCode:   "test123",
+		OriginalURL: "https://example.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user1",
+	}
+	urlRepo.urls["test123"] = testURL
+
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+
+	// Execute
+	req := RedirectRequest{
+		ShortCode: "test123",
+		Referrer:  "https://google.com",
+		UserAgent: "Mozilla/5.0",
+		IPAddress: "192.168.1.1",
+		Country:   "US",
+	}
+
+	resp, err := useCase.Execute(context.Background(), req)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+
+	if resp.OriginalURL != "https://example.com" {
+		t.Errorf("Expected OriginalURL 'https://example.com', got '%s'", resp.OriginalURL)
+	}
+
+	// Wait for async click recording to complete
+	time.Sleep(50 * time.Millisecond)
+
+	if clickRepo.getRecordedClicksCount() != 1 {
+		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
+	}
+}
+
+func TestRedirectURLUseCase_Execute_URLNotFound(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+
+	// Execute
+	req := RedirectRequest{
+		ShortCode: "nonexistent",
+		Referrer:  "https://google.com",
+		UserAgent: "Mozilla/5.0",
+		IPAddress: "192.168.1.1",
+		Country:   "US",
+	}
+
+	resp, err := useCase.Execute(context.Background(), req)
+
+	// Assert
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if !errors.Is(err, url.ErrURLNotFound) {
+		t.Errorf("Expected ErrURLNotFound, got %v", err)
+	}
+
+	if resp != nil {
+		t.Errorf("Expected nil response, got %v", resp)
+	}
+
+	// Wait a bit to ensure no click was recorded
+	time.Sleep(50 * time.Millisecond)
+
+	if clickRepo.getRecordedClicksCount() != 0 {
+		t.Errorf("Expected 0 clicks to be recorded, got %d", clickRepo.getRecordedClicksCount())
+	}
+}
+
+func TestRedirectURLUseCase_Execute_AsyncClickRecording(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	testURL := &url.URL{
+		ID:          2,
+		ShortCode:   "async123",
+		OriginalURL: "https://test.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user2",
+	}
+	urlRepo.urls["async123"] = testURL
+
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+
+	// Execute
+	req := RedirectRequest{
+		ShortCode: "async123",
+		Referrer:  "https://twitter.com",
+		UserAgent: "Chrome/96.0",
+		IPAddress: "10.0.0.1",
+		Country:   "GB",
+	}
+
+	resp, err := useCase.Execute(context.Background(), req)
+
+	// Assert immediate response
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+
+	// Initially, click may not be recorded yet (async operation)
+	initialCount := clickRepo.getRecordedClicksCount()
+
+	// Wait for async operation to complete
+	time.Sleep(50 * time.Millisecond)
+
+	finalCount := clickRepo.getRecordedClicksCount()
+
+	// The click should be recorded eventually
+	if finalCount != 1 {
+		t.Errorf("Expected 1 click to be recorded after async operation, got %d (initial: %d)", finalCount, initialCount)
+	}
+}
+
+func TestRedirectURLUseCase_Execute_ClickRecordingFailsButRedirectSucceeds(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	// Configure click repo to fail
+	clickRepo.recordError = errors.New("database connection failed")
+
+	testURL := &url.URL{
+		ID:          3,
+		ShortCode:   "resilient",
+		OriginalURL: "https://resilient.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user3",
+	}
+	urlRepo.urls["resilient"] = testURL
+
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+
+	// Execute
+	req := RedirectRequest{
+		ShortCode: "resilient",
+		Referrer:  "https://reddit.com",
+		UserAgent: "Safari/15.0",
+		IPAddress: "172.16.0.1",
+		Country:   "CA",
+	}
+
+	resp, err := useCase.Execute(context.Background(), req)
+
+	// Assert - redirect should still succeed even though click recording fails
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+
+	if resp.OriginalURL != "https://resilient.com" {
+		t.Errorf("Expected OriginalURL 'https://resilient.com', got '%s'", resp.OriginalURL)
+	}
+
+	// Wait for async operation to attempt (and fail)
+	time.Sleep(50 * time.Millisecond)
+
+	// No clicks should be recorded due to the error
+	if clickRepo.getRecordedClicksCount() != 0 {
+		t.Errorf("Expected 0 clicks to be recorded (due to error), got %d", clickRepo.getRecordedClicksCount())
+	}
+}
+
+func TestRedirectURLUseCase_Execute_EmptyCountry(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	testURL := &url.URL{
+		ID:          4,
+		ShortCode:   "nocountry",
+		OriginalURL: "https://nocountry.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user4",
+	}
+	urlRepo.urls["nocountry"] = testURL
+
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+
+	// Execute with empty country
+	req := RedirectRequest{
+		ShortCode: "nocountry",
+		Referrer:  "",
+		UserAgent: "Mozilla/5.0",
+		IPAddress: "192.168.1.100",
+		Country:   "", // Empty country is valid
+	}
+
+	resp, err := useCase.Execute(context.Background(), req)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+
+	// Wait for async click recording
+	time.Sleep(50 * time.Millisecond)
+
+	if clickRepo.getRecordedClicksCount() != 1 {
+		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
+	}
+}
+
+func TestRedirectURLUseCase_Execute_MultipleClicks(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	testURL := &url.URL{
+		ID:          5,
+		ShortCode:   "popular",
+		OriginalURL: "https://popular.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user5",
+	}
+	urlRepo.urls["popular"] = testURL
+
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+
+	// Execute multiple redirects
+	for i := 0; i < 5; i++ {
+		req := RedirectRequest{
+			ShortCode: "popular",
+			Referrer:  "https://google.com",
+			UserAgent: "Mozilla/5.0",
+			IPAddress: "192.168.1.1",
+			Country:   "US",
+		}
+
+		resp, err := useCase.Execute(context.Background(), req)
+
+		if err != nil {
+			t.Fatalf("Redirect %d: Expected no error, got %v", i+1, err)
+		}
+
+		if resp == nil {
+			t.Fatalf("Redirect %d: Expected response, got nil", i+1)
+		}
+	}
+
+	// Wait for all async operations to complete
+	time.Sleep(100 * time.Millisecond)
+
+	if clickRepo.getRecordedClicksCount() != 5 {
+		t.Errorf("Expected 5 clicks to be recorded, got %d", clickRepo.getRecordedClicksCount())
+	}
+}
