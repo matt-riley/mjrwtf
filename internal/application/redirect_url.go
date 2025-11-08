@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"log"
+	"sync"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
@@ -13,7 +14,6 @@ type RedirectRequest struct {
 	ShortCode string
 	Referrer  string
 	UserAgent string
-	IPAddress string
 	Country   string
 }
 
@@ -26,6 +26,8 @@ type RedirectResponse struct {
 type RedirectURLUseCase struct {
 	urlRepo   url.Repository
 	clickRepo click.Repository
+	// Optional callback for testing synchronization
+	onClickRecorded func()
 }
 
 // NewRedirectURLUseCase creates a new RedirectURLUseCase
@@ -36,7 +38,15 @@ func NewRedirectURLUseCase(urlRepo url.Repository, clickRepo click.Repository) *
 	}
 }
 
+// WithClickCallback sets an optional callback to be invoked after click recording (for testing)
+func (uc *RedirectURLUseCase) WithClickCallback(callback func()) *RedirectURLUseCase {
+	uc.onClickRecorded = callback
+	return uc
+}
+
 // Execute performs the redirect lookup and records analytics asynchronously
+// Note: This spawns a goroutine for each redirect. In production, consider using
+// a worker pool or bounded semaphore to limit concurrent goroutines under high load.
 func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) (*RedirectResponse, error) {
 	// Look up URL by short code
 	foundURL, err := uc.urlRepo.FindByShortCode(ctx, req.ShortCode)
@@ -53,11 +63,19 @@ func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) 
 		newClick, err := click.NewClick(foundURL.ID, req.Referrer, req.Country, req.UserAgent)
 		if err != nil {
 			log.Printf("Failed to create click entity for URL %s: %v", req.ShortCode, err)
+			if uc.onClickRecorded != nil {
+				uc.onClickRecorded()
+			}
 			return
 		}
 
 		if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
 			log.Printf("Failed to record click for URL %s: %v", req.ShortCode, err)
+		}
+		
+		// Notify callback if present (for testing)
+		if uc.onClickRecorded != nil {
+			uc.onClickRecorded()
 		}
 	}()
 
