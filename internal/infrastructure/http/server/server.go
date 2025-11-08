@@ -38,7 +38,9 @@ func New(cfg *config.Config) *Server {
 	r.Use(middleware.Recovery) // Recover from panics
 	r.Use(middleware.Logger)   // Log all requests
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		// Note: Using "*" for allowed origins is a security risk in production.
+		// Configure ALLOWED_ORIGINS environment variable to restrict access to known domains.
+		AllowedOrigins:   []string{cfg.AllowedOrigins},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		ExposedHeaders:   []string{"Link"},
