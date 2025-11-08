@@ -45,6 +45,7 @@ type RedirectURLUseCase struct {
 	clickTaskChan   chan clickRecordTask
 	done            chan struct{}
 	workersWg       sync.WaitGroup
+	callbackMu      sync.RWMutex
 	maxWorkers      int
 	onClickRecorded func()
 }
@@ -62,8 +63,9 @@ func NewRedirectURLUseCaseWithWorkers(urlRepo url.Repository, clickRepo click.Re
 	}
 	
 	uc := &RedirectURLUseCase{
-		urlRepo:       urlRepo,
-		clickRepo:     clickRepo,
+		urlRepo:   urlRepo,
+		clickRepo: clickRepo,
+		// Buffer size allows one pending task per worker plus headroom to reduce blocking
 		clickTaskChan: make(chan clickRecordTask, maxWorkers*2),
 		done:          make(chan struct{}),
 		maxWorkers:    maxWorkers,
@@ -80,15 +82,17 @@ func NewRedirectURLUseCaseWithWorkers(urlRepo url.Repository, clickRepo click.Re
 
 // WithClickCallback sets an optional callback to be invoked after click recording (for testing)
 func (uc *RedirectURLUseCase) WithClickCallback(callback func()) *RedirectURLUseCase {
+	uc.callbackMu.Lock()
 	uc.onClickRecorded = callback
+	uc.callbackMu.Unlock()
 	return uc
 }
 
 // Shutdown gracefully shuts down the worker pool, waiting for in-flight tasks to complete
 func (uc *RedirectURLUseCase) Shutdown() {
 	close(uc.done)
-	uc.workersWg.Wait()
 	close(uc.clickTaskChan)
+	uc.workersWg.Wait()
 }
 
 // clickRecordWorker processes click recording tasks from the channel
@@ -104,29 +108,29 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 				return
 			}
 			
-			// Process task and ensure callback is called once per task
-			func() {
-				// Call callback once per task, regardless of success/failure
-				if uc.onClickRecorded != nil {
-					defer uc.onClickRecorded()
-				}
-				
-				// Use background context to prevent cancellation from affecting analytics.
-				// This is intentional: we want click recording to complete even if the
-				// original request context is cancelled, as analytics should not impact
-				// the redirect response.
-				bgCtx := context.Background()
-				
-				newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
-				if err != nil {
-					log.Printf("Failed to create click entity for URL %s: %v", task.shortCode, err)
-					return
-				}
+			// Call callback once per task, regardless of success/failure
+			uc.callbackMu.RLock()
+			cb := uc.onClickRecorded
+			uc.callbackMu.RUnlock()
+			if cb != nil {
+				defer cb()
+			}
+			
+			// Use background context to prevent cancellation from affecting analytics.
+			// This is intentional: we want click recording to complete even if the
+			// original request context is cancelled, as analytics should not impact
+			// the redirect response.
+			bgCtx := context.Background()
+			
+			newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
+			if err != nil {
+				log.Printf("Failed to create click entity for URL %s: %v", task.shortCode, err)
+				return
+			}
 
-				if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
-					log.Printf("Failed to record click for URL %s: %v", task.shortCode, err)
-				}
-			}()
+			if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
+				log.Printf("Failed to record click for URL %s: %v", task.shortCode, err)
+			}
 		}
 	}
 }

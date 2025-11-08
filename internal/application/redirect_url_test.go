@@ -172,6 +172,7 @@ func TestRedirectURLUseCase_Execute_URLNotFound(t *testing.T) {
 	clickRepo := newMockClickRepository()
 
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+	defer useCase.Shutdown()
 
 	// Execute
 	req := RedirectRequest{
