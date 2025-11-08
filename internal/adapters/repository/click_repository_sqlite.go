@@ -24,9 +24,7 @@ func NewSQLiteClickRepository(db *sql.DB) *SQLiteClickRepository {
 }
 
 // Record records a new click event
-func (r *SQLiteClickRepository) Record(c *click.Click) error {
-	ctx := context.Background()
-
+func (r *SQLiteClickRepository) Record(ctx context.Context, c *click.Click) error {
 	result, err := r.queries.RecordClick(ctx, sqliterepo.RecordClickParams{
 		UrlID:     c.URLID,
 		ClickedAt: c.ClickedAt,
@@ -44,9 +42,7 @@ func (r *SQLiteClickRepository) Record(c *click.Click) error {
 }
 
 // GetStatsByURL retrieves aggregate statistics for a specific URL
-func (r *SQLiteClickRepository) GetStatsByURL(urlID int64) (*click.Stats, error) {
-	ctx := context.Background()
-
+func (r *SQLiteClickRepository) GetStatsByURL(ctx context.Context, urlID int64) (*click.Stats, error) {
 	// Get total count
 	totalCount, err := r.queries.GetTotalClickCount(ctx, urlID)
 	if err != nil {
@@ -105,9 +101,7 @@ func (r *SQLiteClickRepository) GetStatsByURL(urlID int64) (*click.Stats, error)
 }
 
 // GetStatsByURLAndTimeRange retrieves statistics for a URL within a time range
-func (r *SQLiteClickRepository) GetStatsByURLAndTimeRange(urlID int64, startTime, endTime time.Time) (*click.TimeRangeStats, error) {
-	ctx := context.Background()
-
+func (r *SQLiteClickRepository) GetStatsByURLAndTimeRange(ctx context.Context, urlID int64, startTime, endTime time.Time) (*click.TimeRangeStats, error) {
 	// Get total count in time range
 	totalCount, err := r.queries.GetTotalClickCountInTimeRange(ctx, sqliterepo.GetTotalClickCountInTimeRangeParams{
 		UrlID:       urlID,
@@ -163,9 +157,7 @@ func (r *SQLiteClickRepository) GetStatsByURLAndTimeRange(urlID int64, startTime
 }
 
 // GetTotalClickCount returns the total number of clicks for a URL
-func (r *SQLiteClickRepository) GetTotalClickCount(urlID int64) (int64, error) {
-	ctx := context.Background()
-
+func (r *SQLiteClickRepository) GetTotalClickCount(ctx context.Context, urlID int64) (int64, error) {
 	count, err := r.queries.GetTotalClickCount(ctx, urlID)
 	if err != nil {
 		return 0, mapClickSQLError(err)
@@ -175,9 +167,7 @@ func (r *SQLiteClickRepository) GetTotalClickCount(urlID int64) (int64, error) {
 }
 
 // GetClicksByCountry returns click counts grouped by country for a URL
-func (r *SQLiteClickRepository) GetClicksByCountry(urlID int64) (map[string]int64, error) {
-	ctx := context.Background()
-
+func (r *SQLiteClickRepository) GetClicksByCountry(ctx context.Context, urlID int64) (map[string]int64, error) {
 	rows, err := r.queries.GetClicksByCountry(ctx, urlID)
 	if err != nil {
 		return nil, mapClickSQLError(err)

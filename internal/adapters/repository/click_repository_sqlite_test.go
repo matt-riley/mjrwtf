@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ func TestSQLiteClickRepository_Record(t *testing.T) {
 
 	// Create a URL to associate clicks with
 	u, _ := url.NewURL("test", "https://example.com", "testuser")
-	if err := urlRepo.Create(u); err != nil {
+	if err := urlRepo.Create(context.Background(), u); err != nil {
 		t.Fatalf("failed to create URL: %v", err)
 	}
 
@@ -27,7 +28,7 @@ func TestSQLiteClickRepository_Record(t *testing.T) {
 			t.Fatalf("failed to create click: %v", err)
 		}
 
-		err = clickRepo.Record(c)
+		err = clickRepo.Record(context.Background(), c)
 		if err != nil {
 			t.Fatalf("Record() error = %v", err)
 		}
@@ -43,7 +44,7 @@ func TestSQLiteClickRepository_Record(t *testing.T) {
 			t.Fatalf("failed to create click: %v", err)
 		}
 
-		err = clickRepo.Record(c)
+		err = clickRepo.Record(context.Background(), c)
 		if err != nil {
 			t.Fatalf("Record() error = %v", err)
 		}
@@ -63,10 +64,10 @@ func TestSQLiteClickRepository_GetTotalClickCount(t *testing.T) {
 
 	// Create a URL
 	u, _ := url.NewURL("test", "https://example.com", "testuser")
-	urlRepo.Create(u)
+	urlRepo.Create(context.Background(), u)
 
 	t.Run("no clicks returns 0", func(t *testing.T) {
-		count, err := clickRepo.GetTotalClickCount(u.ID)
+		count, err := clickRepo.GetTotalClickCount(context.Background(), u.ID)
 		if err != nil {
 			t.Fatalf("GetTotalClickCount() error = %v", err)
 		}
@@ -80,10 +81,10 @@ func TestSQLiteClickRepository_GetTotalClickCount(t *testing.T) {
 		// Record 3 clicks
 		for i := 0; i < 3; i++ {
 			c, _ := click.NewClick(u.ID, "", "", "")
-			clickRepo.Record(c)
+			clickRepo.Record(context.Background(), c)
 		}
 
-		count, err := clickRepo.GetTotalClickCount(u.ID)
+		count, err := clickRepo.GetTotalClickCount(context.Background(), u.ID)
 		if err != nil {
 			t.Fatalf("GetTotalClickCount() error = %v", err)
 		}
@@ -103,21 +104,21 @@ func TestSQLiteClickRepository_GetClicksByCountry(t *testing.T) {
 
 	// Create a URL
 	u, _ := url.NewURL("test", "https://example.com", "testuser")
-	urlRepo.Create(u)
+	urlRepo.Create(context.Background(), u)
 
 	// Record clicks from different countries
 	countries := []string{"US", "US", "GB", "US", "CA", "GB"}
 	for _, country := range countries {
 		c, _ := click.NewClick(u.ID, "", country, "")
-		clickRepo.Record(c)
+		clickRepo.Record(context.Background(), c)
 	}
 
 	// Record a click with no country
 	c, _ := click.NewClick(u.ID, "", "", "")
-	clickRepo.Record(c)
+	clickRepo.Record(context.Background(), c)
 
 	t.Run("get clicks by country", func(t *testing.T) {
-		results, err := clickRepo.GetClicksByCountry(u.ID)
+		results, err := clickRepo.GetClicksByCountry(context.Background(), u.ID)
 		if err != nil {
 			t.Fatalf("GetClicksByCountry() error = %v", err)
 		}
@@ -147,7 +148,7 @@ func TestSQLiteClickRepository_GetStatsByURL(t *testing.T) {
 
 	// Create a URL
 	u, _ := url.NewURL("test", "https://example.com", "testuser")
-	urlRepo.Create(u)
+	urlRepo.Create(context.Background(), u)
 
 	// Record clicks with various attributes
 	clicks := []struct {
@@ -163,11 +164,11 @@ func TestSQLiteClickRepository_GetStatsByURL(t *testing.T) {
 
 	for _, c := range clicks {
 		click, _ := click.NewClick(u.ID, c.referrer, c.country, "Mozilla/5.0")
-		clickRepo.Record(click)
+		clickRepo.Record(context.Background(), click)
 	}
 
 	t.Run("get aggregate stats", func(t *testing.T) {
-		stats, err := clickRepo.GetStatsByURL(u.ID)
+		stats, err := clickRepo.GetStatsByURL(context.Background(), u.ID)
 		if err != nil {
 			t.Fatalf("GetStatsByURL() error = %v", err)
 		}
@@ -215,28 +216,28 @@ func TestSQLiteClickRepository_GetStatsByURLAndTimeRange(t *testing.T) {
 
 	// Create a URL
 	u, _ := url.NewURL("test", "https://example.com", "testuser")
-	urlRepo.Create(u)
+	urlRepo.Create(context.Background(), u)
 
 	now := time.Now()
 
 	// Record clicks at different times
 	c1, _ := click.NewClick(u.ID, "https://google.com", "US", "")
 	c1.ClickedAt = now.Add(-2 * time.Hour)
-	clickRepo.Record(c1)
+	clickRepo.Record(context.Background(), c1)
 
 	c2, _ := click.NewClick(u.ID, "https://google.com", "GB", "")
 	c2.ClickedAt = now.Add(-1 * time.Hour)
-	clickRepo.Record(c2)
+	clickRepo.Record(context.Background(), c2)
 
 	c3, _ := click.NewClick(u.ID, "https://facebook.com", "US", "")
 	c3.ClickedAt = now.Add(-30 * time.Minute)
-	clickRepo.Record(c3)
+	clickRepo.Record(context.Background(), c3)
 
 	t.Run("get stats in time range", func(t *testing.T) {
 		startTime := now.Add(-90 * time.Minute)
 		endTime := now
 
-		stats, err := clickRepo.GetStatsByURLAndTimeRange(u.ID, startTime, endTime)
+		stats, err := clickRepo.GetStatsByURLAndTimeRange(context.Background(), u.ID, startTime, endTime)
 		if err != nil {
 			t.Fatalf("GetStatsByURLAndTimeRange() error = %v", err)
 		}
@@ -269,7 +270,7 @@ func TestSQLiteClickRepository_GetStatsByURLAndTimeRange(t *testing.T) {
 		startTime := now.Add(1 * time.Hour)
 		endTime := now.Add(2 * time.Hour)
 
-		stats, err := clickRepo.GetStatsByURLAndTimeRange(u.ID, startTime, endTime)
+		stats, err := clickRepo.GetStatsByURLAndTimeRange(context.Background(), u.ID, startTime, endTime)
 		if err != nil {
 			t.Fatalf("GetStatsByURLAndTimeRange() error = %v", err)
 		}

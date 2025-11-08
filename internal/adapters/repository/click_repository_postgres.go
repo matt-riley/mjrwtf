@@ -24,9 +24,7 @@ func NewPostgresClickRepository(db *sql.DB) *PostgresClickRepository {
 }
 
 // Record records a new click event
-func (r *PostgresClickRepository) Record(c *click.Click) error {
-	ctx := context.Background()
-
+func (r *PostgresClickRepository) Record(ctx context.Context, c *click.Click) error {
 	result, err := r.queries.RecordClick(ctx, postgresrepo.RecordClickParams{
 		UrlID:     int32(c.URLID),
 		ClickedAt: c.ClickedAt,
@@ -44,9 +42,7 @@ func (r *PostgresClickRepository) Record(c *click.Click) error {
 }
 
 // GetStatsByURL retrieves aggregate statistics for a specific URL
-func (r *PostgresClickRepository) GetStatsByURL(urlID int64) (*click.Stats, error) {
-	ctx := context.Background()
-
+func (r *PostgresClickRepository) GetStatsByURL(ctx context.Context, urlID int64) (*click.Stats, error) {
 	// Get total count
 	totalCount, err := r.queries.GetTotalClickCount(ctx, int32(urlID))
 	if err != nil {
@@ -101,9 +97,7 @@ func (r *PostgresClickRepository) GetStatsByURL(urlID int64) (*click.Stats, erro
 }
 
 // GetStatsByURLAndTimeRange retrieves statistics for a URL within a time range
-func (r *PostgresClickRepository) GetStatsByURLAndTimeRange(urlID int64, startTime, endTime time.Time) (*click.TimeRangeStats, error) {
-	ctx := context.Background()
-
+func (r *PostgresClickRepository) GetStatsByURLAndTimeRange(ctx context.Context, urlID int64, startTime, endTime time.Time) (*click.TimeRangeStats, error) {
 	// Get total count in time range
 	totalCount, err := r.queries.GetTotalClickCountInTimeRange(ctx, postgresrepo.GetTotalClickCountInTimeRangeParams{
 		UrlID:       int32(urlID),
@@ -159,9 +153,7 @@ func (r *PostgresClickRepository) GetStatsByURLAndTimeRange(urlID int64, startTi
 }
 
 // GetTotalClickCount returns the total number of clicks for a URL
-func (r *PostgresClickRepository) GetTotalClickCount(urlID int64) (int64, error) {
-	ctx := context.Background()
-
+func (r *PostgresClickRepository) GetTotalClickCount(ctx context.Context, urlID int64) (int64, error) {
 	count, err := r.queries.GetTotalClickCount(ctx, int32(urlID))
 	if err != nil {
 		return 0, mapClickSQLError(err)
@@ -171,9 +163,7 @@ func (r *PostgresClickRepository) GetTotalClickCount(urlID int64) (int64, error)
 }
 
 // GetClicksByCountry returns click counts grouped by country for a URL
-func (r *PostgresClickRepository) GetClicksByCountry(urlID int64) (map[string]int64, error) {
-	ctx := context.Background()
-
+func (r *PostgresClickRepository) GetClicksByCountry(ctx context.Context, urlID int64) (map[string]int64, error) {
 	rows, err := r.queries.GetClicksByCountry(ctx, int32(urlID))
 	if err != nil {
 		return nil, mapClickSQLError(err)

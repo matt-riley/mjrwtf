@@ -1,6 +1,7 @@
 package url
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -21,7 +22,7 @@ func NewMockRepository() *MockRepository {
 	}
 }
 
-func (m *MockRepository) Create(url *URL) error {
+func (m *MockRepository) Create(ctx context.Context, url *URL) error {
 	if m.createErr != nil {
 		return m.createErr
 	}
@@ -32,7 +33,7 @@ func (m *MockRepository) Create(url *URL) error {
 	return nil
 }
 
-func (m *MockRepository) FindByShortCode(shortCode string) (*URL, error) {
+func (m *MockRepository) FindByShortCode(ctx context.Context, shortCode string) (*URL, error) {
 	if m.findErr != nil {
 		return nil, m.findErr
 	}
@@ -42,16 +43,16 @@ func (m *MockRepository) FindByShortCode(shortCode string) (*URL, error) {
 	return nil, ErrURLNotFound
 }
 
-func (m *MockRepository) Delete(shortCode string) error {
+func (m *MockRepository) Delete(ctx context.Context, shortCode string) error {
 	delete(m.urls, shortCode)
 	return nil
 }
 
-func (m *MockRepository) List(createdBy string, limit, offset int) ([]*URL, error) {
+func (m *MockRepository) List(ctx context.Context, createdBy string, limit, offset int) ([]*URL, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (m *MockRepository) ListByCreatedByAndTimeRange(createdBy string, startTime, endTime time.Time) ([]*URL, error) {
+func (m *MockRepository) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*URL, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -258,7 +259,7 @@ func TestGenerator_GenerateUniqueShortCode(t *testing.T) {
 			t.Fatalf("NewGenerator() error = %v", err)
 		}
 
-		code, err := gen.GenerateUniqueShortCode()
+		code, err := gen.GenerateUniqueShortCode(context.Background())
 		if err != nil {
 			t.Errorf("GenerateUniqueShortCode() error = %v", err)
 			return
@@ -286,11 +287,11 @@ func TestGenerator_GenerateUniqueShortCode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewURL() error = %v", err)
 			}
-			repo.Create(url)
+			repo.Create(context.Background(), url)
 		}
 
 		// Try to generate unique code - should succeed after some retries
-		code, err := gen.GenerateUniqueShortCode()
+		code, err := gen.GenerateUniqueShortCode(context.Background())
 		if err != nil {
 			t.Errorf("GenerateUniqueShortCode() error = %v", err)
 			return
@@ -329,7 +330,7 @@ func TestGenerator_GenerateUniqueShortCode(t *testing.T) {
 			repository: &mockAlwaysCollisionRepo{wrapped: repo, attempts: &attempts},
 		}
 
-		_, err = testGen.GenerateUniqueShortCode()
+		_, err = testGen.GenerateUniqueShortCode(context.Background())
 		if err != ErrMaxRetriesExceeded {
 			t.Errorf("GenerateUniqueShortCode() error = %v, want %v", err, ErrMaxRetriesExceeded)
 		}
@@ -348,7 +349,7 @@ func TestGenerator_GenerateUniqueShortCode(t *testing.T) {
 			t.Fatalf("NewGenerator() error = %v", err)
 		}
 
-		_, err = gen.GenerateUniqueShortCode()
+		_, err = gen.GenerateUniqueShortCode(context.Background())
 		if err == nil {
 			t.Error("GenerateUniqueShortCode() expected error, got nil")
 		}
@@ -364,11 +365,11 @@ type mockAlwaysCollisionRepo struct {
 	attempts *int
 }
 
-func (m *mockAlwaysCollisionRepo) Create(url *URL) error {
-	return m.wrapped.Create(url)
+func (m *mockAlwaysCollisionRepo) Create(ctx context.Context, url *URL) error {
+	return m.wrapped.Create(ctx, url)
 }
 
-func (m *mockAlwaysCollisionRepo) FindByShortCode(shortCode string) (*URL, error) {
+func (m *mockAlwaysCollisionRepo) FindByShortCode(ctx context.Context, shortCode string) (*URL, error) {
 	*m.attempts++
 	// Always return a URL to simulate collision
 	return &URL{
@@ -380,16 +381,16 @@ func (m *mockAlwaysCollisionRepo) FindByShortCode(shortCode string) (*URL, error
 	}, nil
 }
 
-func (m *mockAlwaysCollisionRepo) Delete(shortCode string) error {
-	return m.wrapped.Delete(shortCode)
+func (m *mockAlwaysCollisionRepo) Delete(ctx context.Context, shortCode string) error {
+	return m.wrapped.Delete(ctx, shortCode)
 }
 
-func (m *mockAlwaysCollisionRepo) List(createdBy string, limit, offset int) ([]*URL, error) {
-	return m.wrapped.List(createdBy, limit, offset)
+func (m *mockAlwaysCollisionRepo) List(ctx context.Context, createdBy string, limit, offset int) ([]*URL, error) {
+	return m.wrapped.List(ctx, createdBy, limit, offset)
 }
 
-func (m *mockAlwaysCollisionRepo) ListByCreatedByAndTimeRange(createdBy string, startTime, endTime time.Time) ([]*URL, error) {
-	return m.wrapped.ListByCreatedByAndTimeRange(createdBy, startTime, endTime)
+func (m *mockAlwaysCollisionRepo) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*URL, error) {
+	return m.wrapped.ListByCreatedByAndTimeRange(ctx, createdBy, startTime, endTime)
 }
 
 func TestGenerator_ShortenURL(t *testing.T) {
@@ -451,7 +452,7 @@ func TestGenerator_ShortenURL(t *testing.T) {
 				t.Fatalf("NewGenerator() error = %v", err)
 			}
 
-			url, err := gen.ShortenURL(tt.originalURL, tt.createdBy)
+			url, err := gen.ShortenURL(context.Background(), tt.originalURL, tt.createdBy)
 
 			if tt.wantErr != nil {
 				if err == nil {
@@ -489,7 +490,7 @@ func TestGenerator_ShortenURL(t *testing.T) {
 			}
 
 			// Verify URL is in repository
-			found, err := repo.FindByShortCode(url.ShortCode)
+			found, err := repo.FindByShortCode(context.Background(), url.ShortCode)
 			if err != nil {
 				t.Errorf("ShortenURL() URL not found in repository: %v", err)
 				return
@@ -510,13 +511,13 @@ func TestGenerator_ShortenURL_DuplicateDetection(t *testing.T) {
 	}
 
 	// Create first URL
-	url1, err := gen.ShortenURL("https://example.com", "user1")
+	url1, err := gen.ShortenURL(context.Background(), "https://example.com", "user1")
 	if err != nil {
 		t.Fatalf("ShortenURL() error = %v", err)
 	}
 
 	// Create second URL - should get different short code
-	url2, err := gen.ShortenURL("https://example.com", "user1")
+	url2, err := gen.ShortenURL(context.Background(), "https://example.com", "user1")
 	if err != nil {
 		t.Fatalf("ShortenURL() error = %v", err)
 	}
@@ -540,7 +541,7 @@ func TestGenerator_ShortenURL_MaxRetriesExceeded(t *testing.T) {
 	attempts := 0
 	gen.repository = &mockAlwaysCollisionRepo{wrapped: repo, attempts: &attempts}
 
-	_, err = gen.ShortenURL("https://example.com", "user1")
+	_, err = gen.ShortenURL(context.Background(), "https://example.com", "user1")
 	if err != ErrMaxRetriesExceeded {
 		t.Errorf("ShortenURL() error = %v, want %v", err, ErrMaxRetriesExceeded)
 	}
@@ -555,7 +556,7 @@ func TestGenerator_ShortenURL_CreateError(t *testing.T) {
 		t.Fatalf("NewGenerator() error = %v", err)
 	}
 
-	_, err = gen.ShortenURL("https://example.com", "user1")
+	_, err = gen.ShortenURL(context.Background(), "https://example.com", "user1")
 	if err == nil {
 		t.Error("ShortenURL() expected error, got nil")
 	}
@@ -590,7 +591,7 @@ func BenchmarkGenerator_GenerateUniqueShortCode(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		code, err := gen.GenerateUniqueShortCode()
+		code, err := gen.GenerateUniqueShortCode(context.Background())
 		if err != nil {
 			b.Fatalf("GenerateUniqueShortCode() error = %v", err)
 		}
@@ -599,7 +600,7 @@ func BenchmarkGenerator_GenerateUniqueShortCode(b *testing.B) {
 		if err != nil {
 			b.Fatalf("NewURL() error = %v", err)
 		}
-		repo.Create(url)
+		repo.Create(context.Background(), url)
 	}
 }
 
@@ -612,7 +613,7 @@ func BenchmarkGenerator_ShortenURL(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := gen.ShortenURL(fmt.Sprintf("https://example.com/%d", i), "benchmark")
+		_, err := gen.ShortenURL(context.Background(), fmt.Sprintf("https://example.com/%d", i), "benchmark")
 		if err != nil {
 			b.Fatalf("ShortenURL() error = %v", err)
 		}
