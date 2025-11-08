@@ -127,7 +127,7 @@ func TestRedirectURLUseCase_Execute_Success(t *testing.T) {
 	// Use WaitGroup for synchronization
 	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
 		wg.Done()
 	})
@@ -161,7 +161,7 @@ func TestRedirectURLUseCase_Execute_Success(t *testing.T) {
 	if clickRepo.getRecordedClicksCount() != 1 {
 		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
 	}
-	
+
 	// Clean up
 	useCase.Shutdown()
 }
@@ -220,7 +220,7 @@ func TestRedirectURLUseCase_Execute_AsyncClickRecording(t *testing.T) {
 	// Use WaitGroup for synchronization
 	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
 		wg.Done()
 	})
@@ -256,7 +256,7 @@ func TestRedirectURLUseCase_Execute_AsyncClickRecording(t *testing.T) {
 	if finalCount != 1 {
 		t.Errorf("Expected 1 click to be recorded after async operation, got %d (initial: %d)", finalCount, initialCount)
 	}
-	
+
 	// Clean up
 	useCase.Shutdown()
 }
@@ -281,7 +281,7 @@ func TestRedirectURLUseCase_Execute_ClickRecordingFailsButRedirectSucceeds(t *te
 	// Use WaitGroup for synchronization
 	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
 		wg.Done()
 	})
@@ -316,7 +316,7 @@ func TestRedirectURLUseCase_Execute_ClickRecordingFailsButRedirectSucceeds(t *te
 	if clickRepo.getRecordedClicksCount() != 0 {
 		t.Errorf("Expected 0 clicks to be recorded (due to error), got %d", clickRepo.getRecordedClicksCount())
 	}
-	
+
 	// Clean up
 	useCase.Shutdown()
 }
@@ -338,7 +338,7 @@ func TestRedirectURLUseCase_Execute_EmptyCountry(t *testing.T) {
 	// Use WaitGroup for synchronization
 	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
 		wg.Done()
 	})
@@ -368,7 +368,7 @@ func TestRedirectURLUseCase_Execute_EmptyCountry(t *testing.T) {
 	if clickRepo.getRecordedClicksCount() != 1 {
 		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
 	}
-	
+
 	// Clean up
 	useCase.Shutdown()
 }
@@ -390,7 +390,7 @@ func TestRedirectURLUseCase_Execute_MultipleClicks(t *testing.T) {
 	// Use WaitGroup for synchronization
 	var wg sync.WaitGroup
 	wg.Add(5)
-	
+
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
 		wg.Done()
 	})
@@ -421,7 +421,7 @@ func TestRedirectURLUseCase_Execute_MultipleClicks(t *testing.T) {
 	if clickRepo.getRecordedClicksCount() != 5 {
 		t.Errorf("Expected 5 clicks to be recorded, got %d", clickRepo.getRecordedClicksCount())
 	}
-	
+
 	// Clean up
 	useCase.Shutdown()
 }
@@ -443,7 +443,7 @@ func TestRedirectURLUseCase_Shutdown(t *testing.T) {
 	// Use WaitGroup for synchronization
 	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
 		wg.Done()
 	})
@@ -476,7 +476,7 @@ func TestRedirectURLUseCase_Shutdown(t *testing.T) {
 
 	// Shutdown should complete without hanging
 	useCase.Shutdown()
-	
+
 	// After shutdown, no more tasks should be processed
 	// (This is just to verify Shutdown completes successfully)
 }

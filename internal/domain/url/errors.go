@@ -33,4 +33,7 @@ var (
 
 	// ErrInvalidCreatedBy is returned when created_by is empty
 	ErrInvalidCreatedBy = errors.New("created_by cannot be empty")
+
+	// ErrUnauthorizedDeletion is returned when a user attempts to delete a URL they didn't create
+	ErrUnauthorizedDeletion = errors.New("unauthorized: you can only delete URLs you created")
 )
