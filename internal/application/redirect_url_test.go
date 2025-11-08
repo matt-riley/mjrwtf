@@ -1,4 +1,3 @@
-// Package application contains tests for use case implementations.
 package application
 
 import (
