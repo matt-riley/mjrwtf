@@ -280,13 +280,6 @@ func TestCreateURLUseCase_Execute_CollisionHandling(t *testing.T) {
 
 func TestCreateURLUseCase_Execute_MaxRetriesExceeded(t *testing.T) {
 	repo := newMockRepository()
-	gen, err := url.NewGenerator(repo, url.GeneratorConfig{
-		CodeLength: 6,
-		MaxRetries: 2,
-	})
-	if err != nil {
-		t.Fatalf("NewGenerator() error = %v", err)
-	}
 
 	// Create a mock that always reports collisions
 	attempts := 0
@@ -295,7 +288,7 @@ func TestCreateURLUseCase_Execute_MaxRetriesExceeded(t *testing.T) {
 		attempts: &attempts,
 	}
 
-	gen, err = url.NewGenerator(mockRepo, url.GeneratorConfig{
+	gen, err := url.NewGenerator(mockRepo, url.GeneratorConfig{
 		CodeLength: 6,
 		MaxRetries: 2,
 	})
