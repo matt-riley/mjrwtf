@@ -335,7 +335,7 @@ func TestCreateURLUseCase_Execute_BaseURLFormatting(t *testing.T) {
 		{
 			name:       "base URL with trailing slash",
 			baseURL:    "https://mjr.wtf/",
-			wantPrefix: "https://mjr.wtf//", // This shows we might want to normalize later
+			wantPrefix: "https://mjr.wtf/",
 		},
 		{
 			name:       "base URL with subdomain",
