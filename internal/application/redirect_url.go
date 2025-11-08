@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"log"
-	"sync"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
@@ -22,20 +21,49 @@ type RedirectResponse struct {
 	OriginalURL string
 }
 
+// clickRecordTask represents a task to record a click
+type clickRecordTask struct {
+	urlID     int64
+	shortCode string
+	referrer  string
+	country   string
+	userAgent string
+}
+
 // RedirectURLUseCase handles redirecting short URLs and tracking analytics
 type RedirectURLUseCase struct {
-	urlRepo   url.Repository
-	clickRepo click.Repository
-	// Optional callback for testing synchronization
+	urlRepo         url.Repository
+	clickRepo       click.Repository
+	clickTaskChan   chan clickRecordTask
+	maxWorkers      int
 	onClickRecorded func()
 }
 
-// NewRedirectURLUseCase creates a new RedirectURLUseCase
+// NewRedirectURLUseCase creates a new RedirectURLUseCase with bounded concurrency for click recording
+// maxWorkers controls the number of concurrent goroutines for analytics recording (default: 100)
 func NewRedirectURLUseCase(urlRepo url.Repository, clickRepo click.Repository) *RedirectURLUseCase {
-	return &RedirectURLUseCase{
-		urlRepo:   urlRepo,
-		clickRepo: clickRepo,
+	return NewRedirectURLUseCaseWithWorkers(urlRepo, clickRepo, 100)
+}
+
+// NewRedirectURLUseCaseWithWorkers creates a new RedirectURLUseCase with custom worker count
+func NewRedirectURLUseCaseWithWorkers(urlRepo url.Repository, clickRepo click.Repository, maxWorkers int) *RedirectURLUseCase {
+	if maxWorkers <= 0 {
+		maxWorkers = 100
 	}
+	
+	uc := &RedirectURLUseCase{
+		urlRepo:       urlRepo,
+		clickRepo:     clickRepo,
+		clickTaskChan: make(chan clickRecordTask, maxWorkers*2),
+		maxWorkers:    maxWorkers,
+	}
+	
+	// Start worker pool
+	for i := 0; i < maxWorkers; i++ {
+		go uc.clickRecordWorker()
+	}
+	
+	return uc
 }
 
 // WithClickCallback sets an optional callback to be invoked after click recording (for testing)
@@ -44,9 +72,31 @@ func (uc *RedirectURLUseCase) WithClickCallback(callback func()) *RedirectURLUse
 	return uc
 }
 
+// clickRecordWorker processes click recording tasks from the channel
+func (uc *RedirectURLUseCase) clickRecordWorker() {
+	for task := range uc.clickTaskChan {
+		bgCtx := context.Background()
+		
+		newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
+		if err != nil {
+			log.Printf("Failed to create click entity for URL %s: %v", task.shortCode, err)
+			if uc.onClickRecorded != nil {
+				uc.onClickRecorded()
+			}
+			continue
+		}
+
+		if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
+			log.Printf("Failed to record click for URL %s: %v", task.shortCode, err)
+		}
+		
+		if uc.onClickRecorded != nil {
+			uc.onClickRecorded()
+		}
+	}
+}
+
 // Execute performs the redirect lookup and records analytics asynchronously
-// Note: This spawns a goroutine for each redirect. In production, consider using
-// a worker pool or bounded semaphore to limit concurrent goroutines under high load.
 func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) (*RedirectResponse, error) {
 	// Look up URL by short code
 	foundURL, err := uc.urlRepo.FindByShortCode(ctx, req.ShortCode)
@@ -54,30 +104,24 @@ func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) 
 		return nil, err
 	}
 
-	// Record click asynchronously (non-blocking)
-	go func() {
-		// Use a background context for the async operation
-		// so it's not cancelled when the request context is cancelled
-		bgCtx := context.Background()
-		
-		newClick, err := click.NewClick(foundURL.ID, req.Referrer, req.Country, req.UserAgent)
-		if err != nil {
-			log.Printf("Failed to create click entity for URL %s: %v", req.ShortCode, err)
-			if uc.onClickRecorded != nil {
-				uc.onClickRecorded()
-			}
-			return
-		}
-
-		if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
-			log.Printf("Failed to record click for URL %s: %v", req.ShortCode, err)
-		}
-		
-		// Notify callback if present (for testing)
+	// Send click recording task to worker pool (non-blocking with buffered channel)
+	select {
+	case uc.clickTaskChan <- clickRecordTask{
+		urlID:     foundURL.ID,
+		shortCode: req.ShortCode,
+		referrer:  req.Referrer,
+		country:   req.Country,
+		userAgent: req.UserAgent,
+	}:
+		// Task sent successfully
+	default:
+		// Channel full, log warning but don't block the redirect
+		log.Printf("Click recording queue full for URL %s, dropping analytics", req.ShortCode)
 		if uc.onClickRecorded != nil {
-			uc.onClickRecorded()
+			// Still call callback for test synchronization even if task is dropped
+			go uc.onClickRecorded()
 		}
-	}()
+	}
 
 	return &RedirectResponse{
 		OriginalURL: foundURL.OriginalURL,
