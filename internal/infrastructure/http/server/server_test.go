@@ -13,9 +13,10 @@ import (
 
 func TestNew_CreatesServerWithMiddleware(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -35,9 +36,10 @@ func TestNew_CreatesServerWithMiddleware(t *testing.T) {
 
 func TestHealthCheckHandler(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -64,9 +66,10 @@ func TestHealthCheckHandler(t *testing.T) {
 
 func TestServer_MiddlewareOrder(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -89,9 +92,10 @@ func TestServer_MiddlewareOrder(t *testing.T) {
 
 func TestServer_CORSMiddleware(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -111,9 +115,10 @@ func TestServer_CORSMiddleware(t *testing.T) {
 
 func TestServer_GracefulShutdown(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  0, // Use random available port
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     0, // Use random available port
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -137,9 +142,10 @@ func TestServer_GracefulShutdown(t *testing.T) {
 
 func TestServer_Timeouts(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -172,9 +178,10 @@ func TestServer_ListenAddress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.Config{
-				ServerPort:  tt.port,
-				DatabaseURL: "test.db",
-				AuthToken:   "test-token",
+				ServerPort:     tt.port,
+				DatabaseURL:    "test.db",
+				AuthToken:      "test-token",
+				AllowedOrigins: "*",
 			}
 
 			srv := New(cfg)
@@ -188,9 +195,10 @@ func TestServer_ListenAddress(t *testing.T) {
 
 func TestServer_Router(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -207,9 +215,10 @@ func TestServer_Router(t *testing.T) {
 
 func ExampleServer_Start() {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "./database.db",
-		AuthToken:   "secret-token",
+		ServerPort:     8080,
+		DatabaseURL:    "./database.db",
+		AuthToken:      "secret-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)

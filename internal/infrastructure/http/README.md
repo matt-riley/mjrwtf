@@ -110,7 +110,7 @@ Catches panics in request handlers and returns a 500 Internal Server Error:
 ```go
 // Automatically applied to all routes
 // Logs panic with stack trace
-// Returns JSON error response
+// Returns plain text error response
 ```
 
 ### Logger Middleware

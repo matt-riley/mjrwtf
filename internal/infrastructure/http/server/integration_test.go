@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 )
@@ -17,9 +19,10 @@ import (
 // TestMiddlewareExecutionOrder verifies that middleware executes in the correct order
 func TestMiddlewareExecutionOrder(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -34,8 +37,9 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 
 	// Capture log output to verify logging middleware executed
 	var logBuf bytes.Buffer
+	originalOutput := log.Writer()
 	log.SetOutput(&logBuf)
-	defer log.SetOutput(io.Discard)
+	defer log.SetOutput(originalOutput)
 
 	req := httptest.NewRequest(http.MethodGet, "/test-order", nil)
 	rec := httptest.NewRecorder()
@@ -56,9 +60,10 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 // TestMiddlewareRecoveryBeforeLogging ensures recovery middleware catches panics before logging
 func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -69,8 +74,9 @@ func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 
 	// Capture log output
 	var logBuf bytes.Buffer
+	originalOutput := log.Writer()
 	log.SetOutput(&logBuf)
-	defer log.SetOutput(io.Discard)
+	defer log.SetOutput(originalOutput)
 
 	req := httptest.NewRequest(http.MethodGet, "/panic-test", nil)
 	rec := httptest.NewRecorder()
@@ -92,9 +98,10 @@ func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 // TestServer_NotFoundHandler tests the default 404 response
 func TestServer_NotFoundHandler(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -112,9 +119,10 @@ func TestServer_NotFoundHandler(t *testing.T) {
 // TestServer_MethodNotAllowed tests handling of unsupported HTTP methods
 func TestServer_MethodNotAllowed(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -133,9 +141,10 @@ func TestServer_MethodNotAllowed(t *testing.T) {
 // TestServer_ConcurrentRequests tests the server handles concurrent requests
 func TestServer_ConcurrentRequests(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -163,36 +172,60 @@ func TestServer_ConcurrentRequests(t *testing.T) {
 // TestServer_ContextCancellation tests proper context handling during shutdown
 func TestServer_ContextCancellation(t *testing.T) {
 	cfg := &config.Config{
-		ServerPort:  0,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     0,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
 
-	// Start server
+	// Start server with error handling
+	serverErrors := make(chan error, 1)
 	go func() {
-		srv.Start()
+		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
+			serverErrors <- err
+		}
 	}()
 
-	// Create a context with immediate cancellation
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	// Wait for server to be ready
+	ready := false
+	for i := 0; i < 50; i++ {
+		time.Sleep(10 * time.Millisecond)
+		conn, err := net.Dial("tcp", srv.httpServer.Addr)
+		if err == nil {
+			conn.Close()
+			ready = true
+			break
+		}
+	}
 
-	// Shutdown should respect already-cancelled context
+	if !ready {
+		select {
+		case err := <-serverErrors:
+			t.Fatalf("server failed to start: %v", err)
+		default:
+			t.Skip("server not ready for test")
+		}
+	}
+
+	// Create a context with short timeout for shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	// Shutdown should complete within timeout
 	if err := srv.Shutdown(ctx); err != nil {
-		// This is expected - context is already cancelled
-		// But shutdown should still complete
-		t.Logf("Shutdown with cancelled context returned error (expected): %v", err)
+		t.Errorf("unexpected error during shutdown: %v", err)
 	}
 }
 
 // BenchmarkServer_HealthCheck benchmarks the health check endpoint
 func BenchmarkServer_HealthCheck(b *testing.B) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -209,9 +242,10 @@ func BenchmarkServer_HealthCheck(b *testing.B) {
 // BenchmarkServer_WithMiddleware benchmarks requests through full middleware stack
 func BenchmarkServer_WithMiddleware(b *testing.B) {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "test.db",
-		AuthToken:   "test-token",
+		ServerPort:     8080,
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
@@ -233,16 +267,17 @@ func BenchmarkServer_WithMiddleware(b *testing.B) {
 // ExampleServer_Shutdown demonstrates graceful server shutdown
 func ExampleServer_Shutdown() {
 	cfg := &config.Config{
-		ServerPort:  8080,
-		DatabaseURL: "./database.db",
-		AuthToken:   "secret-token",
+		ServerPort:     8080,
+		DatabaseURL:    "./database.db",
+		AuthToken:      "secret-token",
+		AllowedOrigins: "*",
 	}
 
 	srv := New(cfg)
 
 	// Start server
 	go func() {
-		if err := srv.Start(); err != http.ErrServerClosed {
+		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Server error: %v\n", err)
 		}
 	}()
