@@ -1,3 +1,4 @@
+// Package application contains tests for use case implementations.
 package application
 
 import (
@@ -161,6 +162,9 @@ func TestRedirectURLUseCase_Execute_Success(t *testing.T) {
 	if clickRepo.getRecordedClicksCount() != 1 {
 		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
 	}
+	
+	// Clean up
+	useCase.Shutdown()
 }
 
 func TestRedirectURLUseCase_Execute_URLNotFound(t *testing.T) {
@@ -252,6 +256,9 @@ func TestRedirectURLUseCase_Execute_AsyncClickRecording(t *testing.T) {
 	if finalCount != 1 {
 		t.Errorf("Expected 1 click to be recorded after async operation, got %d (initial: %d)", finalCount, initialCount)
 	}
+	
+	// Clean up
+	useCase.Shutdown()
 }
 
 func TestRedirectURLUseCase_Execute_ClickRecordingFailsButRedirectSucceeds(t *testing.T) {
@@ -309,6 +316,9 @@ func TestRedirectURLUseCase_Execute_ClickRecordingFailsButRedirectSucceeds(t *te
 	if clickRepo.getRecordedClicksCount() != 0 {
 		t.Errorf("Expected 0 clicks to be recorded (due to error), got %d", clickRepo.getRecordedClicksCount())
 	}
+	
+	// Clean up
+	useCase.Shutdown()
 }
 
 func TestRedirectURLUseCase_Execute_EmptyCountry(t *testing.T) {
@@ -358,6 +368,9 @@ func TestRedirectURLUseCase_Execute_EmptyCountry(t *testing.T) {
 	if clickRepo.getRecordedClicksCount() != 1 {
 		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
 	}
+	
+	// Clean up
+	useCase.Shutdown()
 }
 
 func TestRedirectURLUseCase_Execute_MultipleClicks(t *testing.T) {
@@ -408,4 +421,62 @@ func TestRedirectURLUseCase_Execute_MultipleClicks(t *testing.T) {
 	if clickRepo.getRecordedClicksCount() != 5 {
 		t.Errorf("Expected 5 clicks to be recorded, got %d", clickRepo.getRecordedClicksCount())
 	}
+	
+	// Clean up
+	useCase.Shutdown()
+}
+
+func TestRedirectURLUseCase_Shutdown(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	testURL := &url.URL{
+		ID:          6,
+		ShortCode:   "shutdown",
+		OriginalURL: "https://shutdown.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user6",
+	}
+	urlRepo.urls["shutdown"] = testURL
+
+	// Use WaitGroup for synchronization
+	var wg sync.WaitGroup
+	wg.Add(1)
+	
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo).WithClickCallback(func() {
+		wg.Done()
+	})
+
+	// Execute a redirect
+	req := RedirectRequest{
+		ShortCode: "shutdown",
+		Referrer:  "https://google.com",
+		UserAgent: "Mozilla/5.0",
+		Country:   "US",
+	}
+
+	resp, err := useCase.Execute(context.Background(), req)
+
+	// Assert redirect succeeded
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+
+	// Wait for click recording
+	wg.Wait()
+
+	if clickRepo.getRecordedClicksCount() != 1 {
+		t.Errorf("Expected 1 click to be recorded, got %d", clickRepo.getRecordedClicksCount())
+	}
+
+	// Shutdown should complete without hanging
+	useCase.Shutdown()
+	
+	// After shutdown, no more tasks should be processed
+	// (This is just to verify Shutdown completes successfully)
 }
