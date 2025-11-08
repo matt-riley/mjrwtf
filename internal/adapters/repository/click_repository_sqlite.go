@@ -110,8 +110,8 @@ func (r *SQLiteClickRepository) GetStatsByURLAndTimeRange(urlID int64, startTime
 
 	// Get total count in time range
 	totalCount, err := r.queries.GetTotalClickCountInTimeRange(ctx, sqliterepo.GetTotalClickCountInTimeRangeParams{
-		UrlID:     urlID,
-		ClickedAt: startTime,
+		UrlID:       urlID,
+		ClickedAt:   startTime,
 		ClickedAt_2: endTime,
 	})
 	if err != nil {
@@ -120,8 +120,8 @@ func (r *SQLiteClickRepository) GetStatsByURLAndTimeRange(urlID int64, startTime
 
 	// Get clicks by country in time range
 	countryRows, err := r.queries.GetClicksByCountryInTimeRange(ctx, sqliterepo.GetClicksByCountryInTimeRangeParams{
-		UrlID:     urlID,
-		ClickedAt: startTime,
+		UrlID:       urlID,
+		ClickedAt:   startTime,
 		ClickedAt_2: endTime,
 	})
 	if err != nil {
@@ -137,8 +137,8 @@ func (r *SQLiteClickRepository) GetStatsByURLAndTimeRange(urlID int64, startTime
 
 	// Get clicks by referrer in time range
 	referrerRows, err := r.queries.GetClicksByReferrerInTimeRange(ctx, sqliterepo.GetClicksByReferrerInTimeRangeParams{
-		UrlID:     urlID,
-		ClickedAt: startTime,
+		UrlID:       urlID,
+		ClickedAt:   startTime,
 		ClickedAt_2: endTime,
 	})
 	if err != nil {
