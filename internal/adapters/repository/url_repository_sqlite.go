@@ -111,8 +111,8 @@ func (r *SQLiteURLRepository) ListByCreatedByAndTimeRange(createdBy string, star
 	ctx := context.Background()
 
 	results, err := r.queries.ListURLsByCreatedByAndTimeRange(ctx, sqliterepo.ListURLsByCreatedByAndTimeRangeParams{
-		CreatedBy: createdBy,
-		CreatedAt: startTime,
+		CreatedBy:   createdBy,
+		CreatedAt:   startTime,
 		CreatedAt_2: endTime,
 	})
 

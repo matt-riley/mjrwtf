@@ -38,7 +38,7 @@ func setupPostgresTestDB(t *testing.T) (*sql.DB, func()) {
 
 	// Create a unique schema for this test to avoid conflicts
 	schemaName := fmt.Sprintf("test_%d", time.Now().UnixNano())
-	
+
 	_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", schemaName))
 	if err != nil {
 		t.Fatalf("failed to create schema: %v", err)
@@ -285,7 +285,7 @@ func TestPostgresURLRepository_ListByCreatedByAndTimeRange(t *testing.T) {
 	repo := NewPostgresURLRepository(db)
 
 	now := time.Now()
-	
+
 	// Create URLs at different times
 	u1, _ := url.NewURL("time1", "https://example.com/1", "user1")
 	u1.CreatedAt = now.Add(-2 * time.Hour)

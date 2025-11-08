@@ -254,7 +254,7 @@ func TestSQLiteURLRepository_ListByCreatedByAndTimeRange(t *testing.T) {
 	repo := NewSQLiteURLRepository(db)
 
 	now := time.Now()
-	
+
 	// Create URLs at different times
 	u1, _ := url.NewURL("time1", "https://example.com/1", "user1")
 	u1.CreatedAt = now.Add(-2 * time.Hour)
