@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 )
@@ -30,17 +31,12 @@ type CreateURLUseCase struct {
 func NewCreateURLUseCase(generator *url.Generator, baseURL string) *CreateURLUseCase {
 	return &CreateURLUseCase{
 		generator: generator,
-		baseURL:   baseURL,
+		baseURL:   strings.TrimSuffix(baseURL, "/"),
 	}
 }
 
 // Execute creates a shortened URL
 func (uc *CreateURLUseCase) Execute(ctx context.Context, req CreateURLRequest) (*CreateURLResponse, error) {
-	// Validate input
-	if err := url.ValidateOriginalURL(req.OriginalURL); err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
-	}
-
 	// Generate and store shortened URL
 	shortenedURL, err := uc.generator.ShortenURL(ctx, req.OriginalURL, req.CreatedBy)
 	if err != nil {
