@@ -100,6 +100,106 @@ make check                    # Takes ~4-5s total
 - `internal/domain/url/` - URL entity validation
 - `internal/infrastructure/config/` - Configuration loading
 
+## Go Code Style Standards
+
+### Naming Conventions
+- **Interfaces**: Suffix with "er" (e.g., `URLRepository`, `ClickRepository`)
+- **Errors**: Prefix with "Err" (e.g., `ErrURLNotFound`, `ErrDuplicateShortCode`)
+- **Test functions**: `Test<Type>_<Method>_<Scenario>` (e.g., `TestURL_Validate_InvalidShortCode`)
+
+### Comment Style
+- Only comment non-obvious logic (explain **why**, not **what**)
+- Package comments required for all packages
+- Exported functions must have GoDoc comments starting with the function name
+- Keep comments concise and up-to-date
+
+### File Organization
+- One entity type per file (e.g., `url.go`, `click.go`)
+- Group related functions together
+- Keep files under 300 lines when possible
+- Order: types, constructors, methods, helpers
+
+## Pull Request Guidelines
+
+### Pre-PR Checklist
+1. Run: `sqlc generate && make check`
+2. Verify all tests pass locally
+3. Update documentation if behavior changes
+4. Add/update tests for new functionality
+5. No hardcoded credentials or secrets
+6. Breaking changes documented in PR description
+
+### PR Description Template
+- **What**: Brief summary of changes (1-2 sentences)
+- **Why**: Business/technical motivation
+- **Testing**: How changes were verified (tests added, manual testing)
+- **Impact**: Breaking changes, migration needs, or "None"
+
+## Security Checklist
+
+Review before committing:
+
+- [ ] No hardcoded credentials or secrets in code
+- [ ] All user inputs validated in domain layer
+- [ ] SQL injection prevented (sqlc handles this automatically)
+- [ ] Sensitive data not logged (e.g., full URLs, user data)
+- [ ] Rate limiting considered for public endpoints
+- [ ] Authentication required for write operations
+- [ ] Error messages don't leak sensitive information
+
+## Version Compatibility
+
+- **Go 1.24.2+** required (uses latest generics features)
+- **sqlc 1.30.0+** required (older versions have breaking changes)
+- **SQLite 3.x** required (any recent version)
+- **PostgreSQL 12+** recommended for production
+- **golangci-lint 1.56.0+** (older versions may not support Go 1.24)
+- **goose v3.26.0+** for database migrations
+
+## Quick Start for New Contributors
+
+### Prerequisites
+- Go 1.24.2+
+- sqlc (install: `go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0`)
+- golangci-lint (optional but recommended)
+
+### Setup Steps
+1. Clone repository: `git clone <repo>`
+2. Copy environment file: `cp .env.example .env`
+3. Generate database code: `sqlc generate`
+4. Build migrate tool: `make build-migrate`
+5. Run tests: `make test` (PostgreSQL tests will skip if database unavailable)
+
+### Making Changes
+1. Create feature branch: `git checkout -b feature/your-feature`
+2. Make changes following architecture patterns
+3. If you modified SQL queries: `sqlc generate`
+4. Before committing: `sqlc generate && make check`
+5. Commit with descriptive message
+6. Push and create pull request
+
+## Troubleshooting
+
+### "undefined: postgresrepo" or "undefined: sqliterepo"
+**Cause:** sqlc code not generated  
+**Fix:** Run `sqlc generate`
+
+### "bin/migrate: command not found"
+**Cause:** Migration tool not built  
+**Fix:** Run `make build-migrate`
+
+### "failed to open database" or migration errors
+**Cause:** DATABASE_URL environment variable not set  
+**Fix:** `export DATABASE_URL=./database.db` (or use PostgreSQL connection string)
+
+### Linter shows errors but tests pass
+**Cause:** Known false positives with golangci-lint not recognizing sqlc-generated packages  
+**Fix:** Verify code compiles (`go build ./...`) and tests pass (`make test`) - these are more reliable
+
+### "UNIQUE constraint failed" in tests
+**Cause:** Test data collision or missing cleanup  
+**Fix:** Ensure each test uses unique data or properly cleans up after itself
+
 ## Database Migrations
 
 **Migration commands REQUIRE DATABASE_URL to be set.**
