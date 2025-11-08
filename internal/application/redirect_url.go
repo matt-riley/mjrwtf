@@ -14,6 +14,8 @@ import (
 const (
 	// DefaultMaxWorkers is the default number of worker goroutines for async click recording
 	DefaultMaxWorkers = 100
+	// bufferSizeMultiplier determines the channel buffer size relative to worker count
+	bufferSizeMultiplier = 2
 )
 
 // RedirectRequest contains the data needed to redirect and track a short URL
@@ -65,9 +67,9 @@ func NewRedirectURLUseCaseWithWorkers(urlRepo url.Repository, clickRepo click.Re
 	uc := &RedirectURLUseCase{
 		urlRepo:   urlRepo,
 		clickRepo: clickRepo,
-		// Buffer size is 2x the worker count: each worker can have one pending task,
+		// Buffer size is bufferSizeMultiplier times the worker count: each worker can have one pending task,
 		// plus an equal amount of headroom to reduce blocking during bursts of submissions.
-		clickTaskChan: make(chan clickRecordTask, maxWorkers*2),
+		clickTaskChan: make(chan clickRecordTask, maxWorkers*bufferSizeMultiplier),
 		done:          make(chan struct{}),
 		maxWorkers:    maxWorkers,
 	}
@@ -100,14 +102,6 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 	defer uc.workersWg.Done()
 	
 	for {
-		// Priority check for shutdown signal
-		select {
-		case <-uc.done:
-			return
-		default:
-		}
-		
-		// Process tasks or shutdown
 		select {
 		case <-uc.done:
 			return
@@ -166,8 +160,9 @@ func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) 
 	}:
 		// Task sent successfully
 	default:
-		// Channel full, log warning but don't block the redirect
-		// Note: callback is NOT invoked here because no task was actually enqueued
+		// Channel full, analytics data will be lost. Consider adding metrics/monitoring
+		// for dropped analytics to detect capacity issues during traffic spikes.
+		// Note: callback is NOT invoked here because no task was actually enqueued.
 		log.Printf("Click recording queue full for URL %s, dropping analytics", req.ShortCode)
 	}
 
