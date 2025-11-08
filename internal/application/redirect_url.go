@@ -65,7 +65,8 @@ func NewRedirectURLUseCaseWithWorkers(urlRepo url.Repository, clickRepo click.Re
 	uc := &RedirectURLUseCase{
 		urlRepo:   urlRepo,
 		clickRepo: clickRepo,
-		// Buffer size allows one pending task per worker plus headroom to reduce blocking
+		// Buffer size is 2x the worker count: each worker can have one pending task,
+		// plus an equal amount of headroom to reduce blocking during bursts of submissions.
 		clickTaskChan: make(chan clickRecordTask, maxWorkers*2),
 		done:          make(chan struct{}),
 		maxWorkers:    maxWorkers,
@@ -91,7 +92,6 @@ func (uc *RedirectURLUseCase) WithClickCallback(callback func()) *RedirectURLUse
 // Shutdown gracefully shuts down the worker pool, waiting for in-flight tasks to complete
 func (uc *RedirectURLUseCase) Shutdown() {
 	close(uc.done)
-	close(uc.clickTaskChan)
 	uc.workersWg.Wait()
 }
 
@@ -100,6 +100,14 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 	defer uc.workersWg.Done()
 	
 	for {
+		// Priority check for shutdown signal
+		select {
+		case <-uc.done:
+			return
+		default:
+		}
+		
+		// Process tasks or shutdown
 		select {
 		case <-uc.done:
 			return
@@ -112,9 +120,6 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 			uc.callbackMu.RLock()
 			cb := uc.onClickRecorded
 			uc.callbackMu.RUnlock()
-			if cb != nil {
-				defer cb()
-			}
 			
 			// Use background context to prevent cancellation from affecting analytics.
 			// This is intentional: we want click recording to complete even if the
@@ -125,11 +130,18 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 			newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
 			if err != nil {
 				log.Printf("Failed to create click entity for URL %s: %v", task.shortCode, err)
-				return
+				if cb != nil {
+					cb()
+				}
+				continue
 			}
 
 			if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
 				log.Printf("Failed to record click for URL %s: %v", task.shortCode, err)
+			}
+			
+			if cb != nil {
+				cb()
 			}
 		}
 	}
