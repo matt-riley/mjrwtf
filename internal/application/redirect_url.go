@@ -63,7 +63,7 @@ func NewRedirectURLUseCaseWithWorkers(urlRepo url.Repository, clickRepo click.Re
 	if maxWorkers <= 0 {
 		maxWorkers = DefaultMaxWorkers
 	}
-	
+
 	uc := &RedirectURLUseCase{
 		urlRepo:   urlRepo,
 		clickRepo: clickRepo,
@@ -73,13 +73,13 @@ func NewRedirectURLUseCaseWithWorkers(urlRepo url.Repository, clickRepo click.Re
 		done:          make(chan struct{}),
 		maxWorkers:    maxWorkers,
 	}
-	
+
 	// Start worker pool
 	uc.workersWg.Add(maxWorkers)
 	for i := 0; i < maxWorkers; i++ {
 		go uc.clickRecordWorker()
 	}
-	
+
 	return uc
 }
 
@@ -100,7 +100,7 @@ func (uc *RedirectURLUseCase) Shutdown() {
 // clickRecordWorker processes click recording tasks from the channel
 func (uc *RedirectURLUseCase) clickRecordWorker() {
 	defer uc.workersWg.Done()
-	
+
 	for {
 		select {
 		case <-uc.done:
@@ -109,18 +109,18 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 			if !ok {
 				return
 			}
-			
+
 			// Call callback once per task, regardless of success/failure
 			uc.callbackMu.RLock()
 			cb := uc.onClickRecorded
 			uc.callbackMu.RUnlock()
-			
+
 			// Use background context to prevent cancellation from affecting analytics.
 			// This is intentional: we want click recording to complete even if the
 			// original request context is cancelled, as analytics should not impact
 			// the redirect response.
 			bgCtx := context.Background()
-			
+
 			newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
 			if err != nil {
 				log.Printf("Failed to create click entity for URL %s: %v", task.shortCode, err)
@@ -133,7 +133,7 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 			if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
 				log.Printf("Failed to record click for URL %s: %v", task.shortCode, err)
 			}
-			
+
 			if cb != nil {
 				cb()
 			}
