@@ -24,9 +24,7 @@ func NewSQLiteURLRepository(db *sql.DB) *SQLiteURLRepository {
 }
 
 // Create creates a new shortened URL
-func (r *SQLiteURLRepository) Create(u *url.URL) error {
-	ctx := context.Background()
-
+func (r *SQLiteURLRepository) Create(ctx context.Context, u *url.URL) error {
 	result, err := r.queries.CreateURL(ctx, sqliterepo.CreateURLParams{
 		ShortCode:   u.ShortCode,
 		OriginalUrl: u.OriginalURL,
@@ -43,9 +41,7 @@ func (r *SQLiteURLRepository) Create(u *url.URL) error {
 }
 
 // FindByShortCode retrieves a URL by its short code
-func (r *SQLiteURLRepository) FindByShortCode(shortCode string) (*url.URL, error) {
-	ctx := context.Background()
-
+func (r *SQLiteURLRepository) FindByShortCode(ctx context.Context, shortCode string) (*url.URL, error) {
 	result, err := r.queries.FindURLByShortCode(ctx, shortCode)
 	if err != nil {
 		return nil, mapURLSQLError(err)
@@ -61,9 +57,7 @@ func (r *SQLiteURLRepository) FindByShortCode(shortCode string) (*url.URL, error
 }
 
 // Delete removes a URL by its short code
-func (r *SQLiteURLRepository) Delete(shortCode string) error {
-	ctx := context.Background()
-
+func (r *SQLiteURLRepository) Delete(ctx context.Context, shortCode string) error {
 	err := r.queries.DeleteURLByShortCode(ctx, shortCode)
 	if err != nil {
 		return mapURLSQLError(err)
@@ -73,9 +67,7 @@ func (r *SQLiteURLRepository) Delete(shortCode string) error {
 }
 
 // List retrieves URLs with optional filtering and pagination
-func (r *SQLiteURLRepository) List(createdBy string, limit, offset int) ([]*url.URL, error) {
-	ctx := context.Background()
-
+func (r *SQLiteURLRepository) List(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error) {
 	// Handle unlimited case
 	if limit == 0 {
 		limit = -1 // SQLite uses -1 for no limit
@@ -107,9 +99,7 @@ func (r *SQLiteURLRepository) List(createdBy string, limit, offset int) ([]*url.
 }
 
 // ListByCreatedByAndTimeRange retrieves URLs created by a specific user within a time range
-func (r *SQLiteURLRepository) ListByCreatedByAndTimeRange(createdBy string, startTime, endTime time.Time) ([]*url.URL, error) {
-	ctx := context.Background()
-
+func (r *SQLiteURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*url.URL, error) {
 	results, err := r.queries.ListURLsByCreatedByAndTimeRange(ctx, sqliterepo.ListURLsByCreatedByAndTimeRangeParams{
 		CreatedBy:   createdBy,
 		CreatedAt:   startTime,

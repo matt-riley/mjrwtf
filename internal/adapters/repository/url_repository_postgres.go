@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/repository/sqlc/postgres"
@@ -24,9 +26,7 @@ func NewPostgresURLRepository(db *sql.DB) *PostgresURLRepository {
 }
 
 // Create creates a new shortened URL
-func (r *PostgresURLRepository) Create(u *url.URL) error {
-	ctx := context.Background()
-
+func (r *PostgresURLRepository) Create(ctx context.Context, u *url.URL) error {
 	result, err := r.queries.CreateURL(ctx, postgresrepo.CreateURLParams{
 		ShortCode:   u.ShortCode,
 		OriginalUrl: u.OriginalURL,
@@ -43,9 +43,7 @@ func (r *PostgresURLRepository) Create(u *url.URL) error {
 }
 
 // FindByShortCode retrieves a URL by its short code
-func (r *PostgresURLRepository) FindByShortCode(shortCode string) (*url.URL, error) {
-	ctx := context.Background()
-
+func (r *PostgresURLRepository) FindByShortCode(ctx context.Context, shortCode string) (*url.URL, error) {
 	result, err := r.queries.FindURLByShortCode(ctx, shortCode)
 	if err != nil {
 		return nil, mapURLSQLError(err)
@@ -61,9 +59,7 @@ func (r *PostgresURLRepository) FindByShortCode(shortCode string) (*url.URL, err
 }
 
 // Delete removes a URL by its short code
-func (r *PostgresURLRepository) Delete(shortCode string) error {
-	ctx := context.Background()
-
+func (r *PostgresURLRepository) Delete(ctx context.Context, shortCode string) error {
 	err := r.queries.DeleteURLByShortCode(ctx, shortCode)
 	if err != nil {
 		return mapURLSQLError(err)
@@ -73,13 +69,21 @@ func (r *PostgresURLRepository) Delete(shortCode string) error {
 }
 
 // List retrieves URLs with optional filtering and pagination
-func (r *PostgresURLRepository) List(createdBy string, limit, offset int) ([]*url.URL, error) {
-	ctx := context.Background()
-
+func (r *PostgresURLRepository) List(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error) {
 	// Handle unlimited case
 	limitVal := int64(limit)
 	if limit == 0 {
-		limitVal = 2147483647 // Use max int32 for PostgreSQL
+		limitVal = math.MaxInt32 // Use max int32 for PostgreSQL
+	}
+
+	// Validate that limit doesn't overflow int32
+	if limitVal > math.MaxInt32 {
+		return nil, fmt.Errorf("limit value %d exceeds maximum allowed value %d", limitVal, math.MaxInt32)
+	}
+
+	// Validate that offset doesn't overflow int32
+	if offset > math.MaxInt32 || offset < 0 {
+		return nil, fmt.Errorf("offset value %d is out of valid range (0 to %d)", offset, math.MaxInt32)
 	}
 
 	results, err := r.queries.ListURLs(ctx, postgresrepo.ListURLsParams{
@@ -108,9 +112,7 @@ func (r *PostgresURLRepository) List(createdBy string, limit, offset int) ([]*ur
 }
 
 // ListByCreatedByAndTimeRange retrieves URLs created by a specific user within a time range
-func (r *PostgresURLRepository) ListByCreatedByAndTimeRange(createdBy string, startTime, endTime time.Time) ([]*url.URL, error) {
-	ctx := context.Background()
-
+func (r *PostgresURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*url.URL, error) {
 	results, err := r.queries.ListURLsByCreatedByAndTimeRange(ctx, postgresrepo.ListURLsByCreatedByAndTimeRangeParams{
 		CreatedBy:   createdBy,
 		CreatedAt:   startTime,

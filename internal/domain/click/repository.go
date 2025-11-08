@@ -1,6 +1,9 @@
 package click
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Stats represents analytics statistics for a URL
 type Stats struct {
@@ -26,17 +29,17 @@ type TimeRangeStats struct {
 // and implemented by adapters (e.g., PostgreSQL, SQLite)
 type Repository interface {
 	// Record records a new click event
-	Record(click *Click) error
+	Record(ctx context.Context, click *Click) error
 
 	// GetStatsByURL retrieves aggregate statistics for a specific URL
-	GetStatsByURL(urlID int64) (*Stats, error)
+	GetStatsByURL(ctx context.Context, urlID int64) (*Stats, error)
 
 	// GetStatsByURLAndTimeRange retrieves statistics for a URL within a time range
-	GetStatsByURLAndTimeRange(urlID int64, startTime, endTime time.Time) (*TimeRangeStats, error)
+	GetStatsByURLAndTimeRange(ctx context.Context, urlID int64, startTime, endTime time.Time) (*TimeRangeStats, error)
 
 	// GetTotalClickCount returns the total number of clicks for a URL
-	GetTotalClickCount(urlID int64) (int64, error)
+	GetTotalClickCount(ctx context.Context, urlID int64) (int64, error)
 
 	// GetClicksByCountry returns click counts grouped by country for a URL
-	GetClicksByCountry(urlID int64) (map[string]int64, error)
+	GetClicksByCountry(ctx context.Context, urlID int64) (map[string]int64, error)
 }

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -84,7 +85,7 @@ func TestPostgresURLRepository_Create(t *testing.T) {
 			t.Fatalf("failed to create URL: %v", err)
 		}
 
-		err = repo.Create(u)
+		err = repo.Create(context.Background(), u)
 		if err != nil {
 			t.Fatalf("Create() error = %v", err)
 		}
@@ -96,13 +97,13 @@ func TestPostgresURLRepository_Create(t *testing.T) {
 
 	t.Run("duplicate short code returns error", func(t *testing.T) {
 		u1, _ := url.NewURL("duplicate", "https://example.com", "testuser")
-		err := repo.Create(u1)
+		err := repo.Create(context.Background(), u1)
 		if err != nil {
 			t.Fatalf("first Create() error = %v", err)
 		}
 
 		u2, _ := url.NewURL("duplicate", "https://example2.com", "testuser")
-		err = repo.Create(u2)
+		err = repo.Create(context.Background(), u2)
 		if err != url.ErrDuplicateShortCode {
 			t.Errorf("Create() with duplicate short code error = %v, want %v", err, url.ErrDuplicateShortCode)
 		}
@@ -120,12 +121,12 @@ func TestPostgresURLRepository_FindByShortCode(t *testing.T) {
 
 	t.Run("find existing URL", func(t *testing.T) {
 		u, _ := url.NewURL("findme", "https://example.com", "testuser")
-		err := repo.Create(u)
+		err := repo.Create(context.Background(), u)
 		if err != nil {
 			t.Fatalf("Create() error = %v", err)
 		}
 
-		found, err := repo.FindByShortCode("findme")
+		found, err := repo.FindByShortCode(context.Background(), "findme")
 		if err != nil {
 			t.Fatalf("FindByShortCode() error = %v", err)
 		}
@@ -142,7 +143,7 @@ func TestPostgresURLRepository_FindByShortCode(t *testing.T) {
 	})
 
 	t.Run("URL not found returns error", func(t *testing.T) {
-		_, err := repo.FindByShortCode("notfound")
+		_, err := repo.FindByShortCode(context.Background(), "notfound")
 		if err != url.ErrURLNotFound {
 			t.Errorf("FindByShortCode() error = %v, want %v", err, url.ErrURLNotFound)
 		}
@@ -160,18 +161,18 @@ func TestPostgresURLRepository_Delete(t *testing.T) {
 
 	t.Run("delete existing URL", func(t *testing.T) {
 		u, _ := url.NewURL("deleteme", "https://example.com", "testuser")
-		err := repo.Create(u)
+		err := repo.Create(context.Background(), u)
 		if err != nil {
 			t.Fatalf("Create() error = %v", err)
 		}
 
-		err = repo.Delete("deleteme")
+		err = repo.Delete(context.Background(), "deleteme")
 		if err != nil {
 			t.Fatalf("Delete() error = %v", err)
 		}
 
 		// Verify it's deleted
-		_, err = repo.FindByShortCode("deleteme")
+		_, err = repo.FindByShortCode(context.Background(), "deleteme")
 		if err != url.ErrURLNotFound {
 			t.Errorf("After Delete(), FindByShortCode() error = %v, want %v", err, url.ErrURLNotFound)
 		}
@@ -179,7 +180,7 @@ func TestPostgresURLRepository_Delete(t *testing.T) {
 
 	t.Run("delete non-existent URL succeeds", func(t *testing.T) {
 		// PostgreSQL DELETE with no matching rows succeeds without error
-		err := repo.Delete("nonexistent")
+		err := repo.Delete(context.Background(), "nonexistent")
 		if err != nil {
 			t.Errorf("Delete() non-existent error = %v, want nil", err)
 		}
@@ -208,14 +209,14 @@ func TestPostgresURLRepository_List(t *testing.T) {
 
 	for _, u := range urls {
 		url, _ := url.NewURL(u.shortCode, fmt.Sprintf("https://example.com/%s", u.shortCode), u.createdBy)
-		if err := repo.Create(url); err != nil {
+		if err := repo.Create(context.Background(), url); err != nil {
 			t.Fatalf("Create() error = %v", err)
 		}
 		time.Sleep(10 * time.Millisecond) // Ensure different timestamps
 	}
 
 	t.Run("list all URLs", func(t *testing.T) {
-		results, err := repo.List("", 0, 0)
+		results, err := repo.List(context.Background(), "", 0, 0)
 		if err != nil {
 			t.Fatalf("List() error = %v", err)
 		}
@@ -231,7 +232,7 @@ func TestPostgresURLRepository_List(t *testing.T) {
 	})
 
 	t.Run("list by created_by", func(t *testing.T) {
-		results, err := repo.List("user1", 0, 0)
+		results, err := repo.List(context.Background(), "user1", 0, 0)
 		if err != nil {
 			t.Fatalf("List() error = %v", err)
 		}
@@ -248,7 +249,7 @@ func TestPostgresURLRepository_List(t *testing.T) {
 	})
 
 	t.Run("list with limit", func(t *testing.T) {
-		results, err := repo.List("", 2, 0)
+		results, err := repo.List(context.Background(), "", 2, 0)
 		if err != nil {
 			t.Fatalf("List() error = %v", err)
 		}
@@ -259,7 +260,7 @@ func TestPostgresURLRepository_List(t *testing.T) {
 	})
 
 	t.Run("list with offset", func(t *testing.T) {
-		results, err := repo.List("", 2, 2)
+		results, err := repo.List(context.Background(), "", 2, 2)
 		if err != nil {
 			t.Fatalf("List() error = %v", err)
 		}
@@ -289,21 +290,21 @@ func TestPostgresURLRepository_ListByCreatedByAndTimeRange(t *testing.T) {
 	// Create URLs at different times
 	u1, _ := url.NewURL("time1", "https://example.com/1", "user1")
 	u1.CreatedAt = now.Add(-2 * time.Hour)
-	repo.Create(u1)
+	repo.Create(context.Background(), u1)
 
 	u2, _ := url.NewURL("time2", "https://example.com/2", "user1")
 	u2.CreatedAt = now.Add(-1 * time.Hour)
-	repo.Create(u2)
+	repo.Create(context.Background(), u2)
 
 	u3, _ := url.NewURL("time3", "https://example.com/3", "user2")
 	u3.CreatedAt = now.Add(-30 * time.Minute)
-	repo.Create(u3)
+	repo.Create(context.Background(), u3)
 
 	t.Run("filter by user and time range", func(t *testing.T) {
 		startTime := now.Add(-90 * time.Minute)
 		endTime := now
 
-		results, err := repo.ListByCreatedByAndTimeRange("user1", startTime, endTime)
+		results, err := repo.ListByCreatedByAndTimeRange(context.Background(), "user1", startTime, endTime)
 		if err != nil {
 			t.Fatalf("ListByCreatedByAndTimeRange() error = %v", err)
 		}
@@ -321,7 +322,7 @@ func TestPostgresURLRepository_ListByCreatedByAndTimeRange(t *testing.T) {
 		startTime := now.Add(1 * time.Hour)
 		endTime := now.Add(2 * time.Hour)
 
-		results, err := repo.ListByCreatedByAndTimeRange("user1", startTime, endTime)
+		results, err := repo.ListByCreatedByAndTimeRange(context.Background(), "user1", startTime, endTime)
 		if err != nil {
 			t.Fatalf("ListByCreatedByAndTimeRange() error = %v", err)
 		}

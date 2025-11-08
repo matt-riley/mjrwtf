@@ -1,6 +1,7 @@
 package url
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"math/big"
@@ -75,7 +76,7 @@ func (g *Generator) GenerateShortCode() (string, error) {
 }
 
 // GenerateUniqueShortCode generates a unique short code with collision detection
-func (g *Generator) GenerateUniqueShortCode() (string, error) {
+func (g *Generator) GenerateUniqueShortCode(ctx context.Context) (string, error) {
 	for attempt := 0; attempt < g.maxRetries; attempt++ {
 		code, err := g.GenerateShortCode()
 		if err != nil {
@@ -83,7 +84,7 @@ func (g *Generator) GenerateUniqueShortCode() (string, error) {
 		}
 
 		// Check for collision by attempting to find existing URL with this code
-		_, err = g.repository.FindByShortCode(code)
+		_, err = g.repository.FindByShortCode(ctx, code)
 		if errors.Is(err, ErrURLNotFound) {
 			// No collision, code is unique
 			return code, nil
@@ -100,14 +101,14 @@ func (g *Generator) GenerateUniqueShortCode() (string, error) {
 }
 
 // ShortenURL creates a shortened URL with a unique short code
-func (g *Generator) ShortenURL(originalURL, createdBy string) (*URL, error) {
+func (g *Generator) ShortenURL(ctx context.Context, originalURL, createdBy string) (*URL, error) {
 	// Validate URL before generating short code
 	if err := ValidateOriginalURL(originalURL); err != nil {
 		return nil, err
 	}
 
 	// Generate unique short code
-	shortCode, err := g.GenerateUniqueShortCode()
+	shortCode, err := g.GenerateUniqueShortCode(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +120,7 @@ func (g *Generator) ShortenURL(originalURL, createdBy string) (*URL, error) {
 	}
 
 	// Persist to repository
-	if err := g.repository.Create(url); err != nil {
+	if err := g.repository.Create(ctx, url); err != nil {
 		return nil, err
 	}
 

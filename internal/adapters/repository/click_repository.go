@@ -26,14 +26,6 @@ func mapClickSQLError(err error) error {
 	return fmt.Errorf("database error: %w", err)
 }
 
-// stringPtrToString converts *string to string, returning empty string for nil
-func stringPtrToString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
-
 // stringToStringPtr converts string to *string, returning nil for empty string
 func stringToStringPtr(s string) *string {
 	if s == "" {
@@ -48,12 +40,4 @@ func stringToNullString(s string) sql.NullString {
 		return sql.NullString{Valid: false}
 	}
 	return sql.NullString{String: s, Valid: true}
-}
-
-// nullStringToString converts sql.NullString to string
-func nullStringToString(ns sql.NullString) string {
-	if !ns.Valid {
-		return ""
-	}
-	return ns.String
 }
