@@ -58,11 +58,11 @@ func (m *mockURLRepository) Delete(ctx context.Context, shortCode string) error 
 }
 
 func (m *mockURLRepository) List(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error) {
-	return nil, nil
+	return []*url.URL{}, nil
 }
 
 func (m *mockURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*url.URL, error) {
-	return nil, nil
+	return []*url.URL{}, nil
 }
 
 // Mock Click Repository
