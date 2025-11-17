@@ -2,6 +2,65 @@
 
 A simple URL shortener, written in Go.
 
+## Authentication
+
+The API uses token-based authentication to protect URL creation and deletion endpoints. Authentication is implemented using Bearer tokens.
+
+### Configuration
+
+Set the `AUTH_TOKEN` environment variable to configure your authentication token:
+
+```bash
+export AUTH_TOKEN=your-secret-token-here
+```
+
+Or add it to your `.env` file:
+
+```
+AUTH_TOKEN=your-secret-token-here
+```
+
+**Security Note:** The AUTH_TOKEN is required for the application to start. Choose a strong, randomly generated token for production deployments.
+
+### Making Authenticated Requests
+
+Include the token in the `Authorization` header with the `Bearer` scheme:
+
+```bash
+curl -X POST https://mjr.wtf/api/urls \
+  -H "Authorization: Bearer your-secret-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com", "short_code": "abc123"}'
+```
+
+### Authentication Responses
+
+- **200 OK** - Request succeeded with valid token
+- **401 Unauthorized** - Missing, invalid, or malformed token
+
+Example error responses:
+
+```json
+// Missing Authorization header
+Unauthorized: missing authorization header
+
+// Invalid format (not "Bearer <token>")
+Unauthorized: invalid authorization format
+
+// Token doesn't match configured AUTH_TOKEN
+Unauthorized: invalid token
+```
+
+### Protected Endpoints
+
+The following endpoints require authentication:
+- `POST /api/urls` - Create a new short URL
+- `DELETE /api/urls/:code` - Delete a short URL
+
+Public endpoints (no authentication required):
+- `GET /:code` - Redirect to original URL
+- `GET /health` - Health check
+
 ## Database Migrations
 
 This project uses [goose](https://github.com/pressly/goose) for database migrations, supporting both SQLite and PostgreSQL.
