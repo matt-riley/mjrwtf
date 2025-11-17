@@ -21,7 +21,7 @@ const (
 	readTimeout     = 15 * time.Second
 	writeTimeout    = 15 * time.Second
 	idleTimeout     = 60 * time.Second
-	shutdownTimeout = 30 * time.Second
+	ShutdownTimeout = 30 * time.Second
 )
 
 // Server represents the HTTP server
