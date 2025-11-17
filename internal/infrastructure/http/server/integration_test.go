@@ -27,10 +27,8 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 
 	srv := New(cfg)
 
-	// Add a test handler that tracks middleware execution
-	var executionOrder []string
+	// Add a test handler
 	srv.router.Get("/test-order", func(w http.ResponseWriter, r *http.Request) {
-		executionOrder = append(executionOrder, "handler")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
