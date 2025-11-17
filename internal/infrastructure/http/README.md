@@ -125,7 +125,7 @@ Logs every request with:
 Example log output:
 ```
 2025/11/08 15:03:21 GET /health 200 15B 7.023µs
-2025/11/08 15:03:22 POST /api/urls 201 1.2KB 1.234ms
+2025/11/08 15:03:22 POST /api/urls 201 1200B 1.234ms
 2025/11/08 15:03:23 GET /api/urls 200 512B 456.789µs
 ```
 
