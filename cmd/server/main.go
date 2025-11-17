@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
@@ -42,8 +41,8 @@ func main() {
 		log.Printf("Received signal: %s. Starting graceful shutdown...", sig)
 
 		// Graceful shutdown with timeout context
-		// Match server's shutdownTimeout to ensure process eventually terminates
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		// Match server's ShutdownTimeout to ensure process eventually terminates
+		ctx, cancel := context.WithTimeout(context.Background(), server.ShutdownTimeout)
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil {
