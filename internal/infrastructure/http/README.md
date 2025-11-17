@@ -95,6 +95,7 @@ The server reads configuration from environment variables:
 
 ```bash
 SERVER_PORT=8080          # Port to bind to (default: 8080)
+ALLOWED_ORIGINS=*         # CORS allowed origins (default: "*" - not recommended for production)
 DATABASE_URL=...          # Database connection string
 AUTH_TOKEN=...            # API authentication token
 ```

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -37,10 +38,17 @@ func New(cfg *config.Config) *Server {
 	// Middleware stack (order matters)
 	r.Use(middleware.Recovery) // Recover from panics
 	r.Use(middleware.Logger)   // Log all requests
+
+	// Parse CORS allowed origins (supports comma-separated list)
+	origins := strings.Split(cfg.AllowedOrigins, ",")
+	for i := range origins {
+		origins[i] = strings.TrimSpace(origins[i])
+	}
+
 	r.Use(cors.Handler(cors.Options{
 		// Note: Using "*" for allowed origins is a security risk in production.
 		// Configure ALLOWED_ORIGINS environment variable to restrict access to known domains.
-		AllowedOrigins:   []string{cfg.AllowedOrigins},
+		AllowedOrigins:   origins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		ExposedHeaders:   []string{"Link"},
@@ -94,10 +102,7 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	log.Println("Shutting down HTTP server...")
 
-	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
-	defer cancel()
-
-	if err := s.httpServer.Shutdown(shutdownCtx); err != nil {
+	if err := s.httpServer.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown server: %w", err)
 	}
 

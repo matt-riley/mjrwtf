@@ -227,7 +227,9 @@ func BenchmarkServer_HealthCheck(b *testing.B) {
 	}
 
 	srv := New(cfg)
+	originalOutput := log.Writer()
 	log.SetOutput(io.Discard) // Disable logging for benchmark
+	defer log.SetOutput(originalOutput)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -247,7 +249,9 @@ func BenchmarkServer_WithMiddleware(b *testing.B) {
 	}
 
 	srv := New(cfg)
+	originalOutput := log.Writer()
 	log.SetOutput(io.Discard) // Disable logging for benchmark
+	defer log.SetOutput(originalOutput)
 
 	srv.router.Get("/bench", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
