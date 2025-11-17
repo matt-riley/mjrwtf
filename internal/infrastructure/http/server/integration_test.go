@@ -190,7 +190,14 @@ func TestServer_ContextCancellation(t *testing.T) {
 	ready := false
 	for i := 0; i < 50; i++ {
 		time.Sleep(10 * time.Millisecond)
-		conn, err := net.Dial("tcp", srv.httpServer.Addr)
+		// Use the actual bound address from the listener, if available
+		addr := ""
+		if srv.listener != nil {
+			addr = srv.listener.Addr().String()
+		} else {
+			addr = srv.httpServer.Addr
+		}
+		conn, err := net.Dial("tcp", addr)
 		if err == nil {
 			conn.Close()
 			ready = true
