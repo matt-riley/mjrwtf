@@ -123,14 +123,24 @@ func TestServer_GracefulShutdown(t *testing.T) {
 
 	srv := New(cfg)
 
-	// Start server in background
+	// Start server in background and capture startup errors
+	serverErrors := make(chan error, 1)
 	go func() {
-		srv.Start()
+		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
+			serverErrors <- err
+		}
 	}()
 
 	// Give server time to start
 	time.Sleep(100 * time.Millisecond)
 
+	// Check for startup errors before proceeding
+	select {
+	case err := <-serverErrors:
+		t.Fatalf("server failed to start: %v", err)
+	default:
+		// Server started successfully
+	}
 	// Shutdown server
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
