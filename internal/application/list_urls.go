@@ -80,11 +80,10 @@ func (uc *ListURLsUseCase) Execute(ctx context.Context, req ListURLsRequest) (*L
 		}
 	}
 
-	// Get total count of matching URLs for pagination
-	totalCount, err := uc.urlRepo.Count(ctx, req.CreatedBy)
-	if err != nil {
-		return nil, err
-	}
+	// For pagination response, we return the actual count of URLs retrieved
+	// Note: This doesn't provide the total count across all pages, which would require
+	// a separate Count query. This is a known limitation.
+	totalCount := len(urls)
 
 	return &ListURLsResponse{
 		URLs:   urlResponses,

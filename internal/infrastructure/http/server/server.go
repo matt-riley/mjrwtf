@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/matt-riley/mjrwtf/internal/adapters/repository"
 	"github.com/matt-riley/mjrwtf/internal/application"
+	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/handlers"
@@ -29,10 +30,11 @@ const (
 
 // Server represents the HTTP server
 type Server struct {
-	httpServer *http.Server
-	router     *chi.Mux
-	config     *config.Config
-	db         *sql.DB
+	httpServer      *http.Server
+	router          *chi.Mux
+	config          *config.Config
+	db              *sql.DB
+	redirectUseCase *application.RedirectURLUseCase
 }
 
 // New creates a new HTTP server with configured middleware and dependencies
@@ -87,12 +89,15 @@ func (s *Server) setupRoutes() error {
 	// Health check endpoint
 	s.router.Get("/health", s.healthCheckHandler)
 
-	// Initialize repository based on database driver
+	// Initialize repositories based on database driver
 	var urlRepo url.Repository
+	var clickRepo click.Repository
 	if strings.HasPrefix(s.config.DatabaseURL, "postgres://") || strings.HasPrefix(s.config.DatabaseURL, "postgresql://") {
 		urlRepo = repository.NewPostgresURLRepository(s.db)
+		clickRepo = repository.NewPostgresClickRepository(s.db)
 	} else {
 		urlRepo = repository.NewSQLiteURLRepository(s.db)
+		clickRepo = repository.NewSQLiteClickRepository(s.db)
 	}
 
 	// Initialize URL generator
@@ -105,9 +110,14 @@ func (s *Server) setupRoutes() error {
 	createUseCase := application.NewCreateURLUseCase(generator, s.config.BaseURL)
 	listUseCase := application.NewListURLsUseCase(urlRepo)
 	deleteUseCase := application.NewDeleteURLUseCase(urlRepo)
+	s.redirectUseCase = application.NewRedirectURLUseCase(urlRepo, clickRepo)
 
 	// Initialize handlers
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
+	redirectHandler := handlers.NewRedirectHandler(s.redirectUseCase)
+
+	// Public redirect endpoint (no authentication required)
+	s.router.Get("/{shortCode}", redirectHandler.Redirect)
 
 	// API routes with authentication
 	s.router.Route("/api", func(r chi.Router) {
@@ -140,6 +150,11 @@ func (s *Server) Start() error {
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(ctx context.Context) error {
 	log.Println("Shutting down HTTP server...")
+
+	// Shutdown redirect use case workers first
+	if s.redirectUseCase != nil {
+		s.redirectUseCase.Shutdown()
+	}
 
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown server: %w", err)
