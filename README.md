@@ -40,7 +40,7 @@ curl -X POST https://mjr.wtf/api/urls \
 
 Example error responses:
 
-```json
+```text
 // Missing Authorization header
 Unauthorized: missing authorization header
 
