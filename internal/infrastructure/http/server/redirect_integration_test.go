@@ -15,40 +15,10 @@ import (
 
 // TestServer_RedirectEndpoint tests the public redirect endpoint
 func TestServer_RedirectEndpoint(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
-
-	db := setupTestDB(t)
-	defer db.Close()
-
-	srv, err := New(cfg, db)
-	if err != nil {
-		t.Fatalf("failed to create server: %v", err)
-	}
-	defer srv.Shutdown(context.Background())
-
-	// Create a test URL directly via repository
-	urlRepo := repository.NewSQLiteURLRepository(db)
-	testURL := &url.URL{
-		ShortCode:   "test123",
-		OriginalURL: "https://example.com/test",
-		CreatedBy:   "test-user",
-		CreatedAt:   time.Now(),
-	}
-
-	ctx := context.Background()
-	if err := urlRepo.Create(ctx, testURL); err != nil {
-		t.Fatalf("failed to create test URL: %v", err)
-	}
-
 	tests := []struct {
 		name               string
 		shortCode          string
+		existingURL        *url.URL
 		referrer           string
 		userAgent          string
 		expectedStatus     int
@@ -56,8 +26,14 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 		checkLocation      bool
 	}{
 		{
-			name:             "successful redirect",
-			shortCode:        "test123",
+			name:      "successful redirect",
+			shortCode: "test123",
+			existingURL: &url.URL{
+				ShortCode:   "test123",
+				OriginalURL: "https://example.com/test",
+				CreatedBy:   "test-user",
+				CreatedAt:   time.Now(),
+			},
 			referrer:         "https://google.com",
 			userAgent:        "Mozilla/5.0",
 			expectedStatus:   http.StatusFound,
@@ -65,8 +41,14 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 			checkLocation:    true,
 		},
 		{
-			name:             "redirect without referrer",
-			shortCode:        "test123",
+			name:      "redirect without referrer",
+			shortCode: "noref123",
+			existingURL: &url.URL{
+				ShortCode:   "noref123",
+				OriginalURL: "https://example.com/test",
+				CreatedBy:   "test-user",
+				CreatedAt:   time.Now(),
+			},
 			referrer:         "",
 			userAgent:        "Mozilla/5.0",
 			expectedStatus:   http.StatusFound,
@@ -76,6 +58,7 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 		{
 			name:           "short code not found",
 			shortCode:      "notfound",
+			existingURL:    nil,
 			expectedStatus: http.StatusNotFound,
 			checkLocation:  false,
 		},
@@ -83,6 +66,32 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg := &config.Config{
+				ServerPort:     8080,
+				BaseURL:        "http://localhost:8080",
+				DatabaseURL:    "test.db",
+				AuthToken:      "test-token",
+				AllowedOrigins: "*",
+			}
+
+			db := setupTestDB(t)
+			defer db.Close()
+
+			srv, err := New(cfg, db)
+			if err != nil {
+				t.Fatalf("failed to create server: %v", err)
+			}
+			defer srv.Shutdown(context.Background())
+
+			// Create test URL if provided
+			if tt.existingURL != nil {
+				urlRepo := repository.NewSQLiteURLRepository(db)
+				ctx := context.Background()
+				if err := urlRepo.Create(ctx, tt.existingURL); err != nil {
+					t.Fatalf("failed to create test URL: %v", err)
+				}
+			}
+
 			req := httptest.NewRequest(http.MethodGet, "/"+tt.shortCode, nil)
 			if tt.referrer != "" {
 				req.Header.Set("Referer", tt.referrer)
@@ -178,25 +187,6 @@ func TestServer_RedirectWithAnalytics(t *testing.T) {
 
 // TestServer_RedirectPreservesURL tests that redirects preserve the original URL intact
 func TestServer_RedirectPreservesURL(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
-
-	db := setupTestDB(t)
-	defer db.Close()
-
-	srv, err := New(cfg, db)
-	if err != nil {
-		t.Fatalf("failed to create server: %v", err)
-	}
-	defer srv.Shutdown(context.Background())
-
-	// Create test URLs with complex query parameters
-	urlRepo := repository.NewSQLiteURLRepository(db)
 	tests := []struct {
 		name        string
 		shortCode   string
@@ -219,21 +209,39 @@ func TestServer_RedirectPreservesURL(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
-	for _, tt := range tests {
-		testURL := &url.URL{
-			ShortCode:   tt.shortCode,
-			OriginalURL: tt.originalURL,
-			CreatedBy:   "test-user",
-			CreatedAt:   time.Now(),
-		}
-		if err := urlRepo.Create(ctx, testURL); err != nil {
-			t.Fatalf("failed to create test URL: %v", err)
-		}
-	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg := &config.Config{
+				ServerPort:     8080,
+				BaseURL:        "http://localhost:8080",
+				DatabaseURL:    "test.db",
+				AuthToken:      "test-token",
+				AllowedOrigins: "*",
+			}
+
+			db := setupTestDB(t)
+			defer db.Close()
+
+			srv, err := New(cfg, db)
+			if err != nil {
+				t.Fatalf("failed to create server: %v", err)
+			}
+			defer srv.Shutdown(context.Background())
+
+			// Create test URL
+			urlRepo := repository.NewSQLiteURLRepository(db)
+			testURL := &url.URL{
+				ShortCode:   tt.shortCode,
+				OriginalURL: tt.originalURL,
+				CreatedBy:   "test-user",
+				CreatedAt:   time.Now(),
+			}
+			
+			ctx := context.Background()
+			if err := urlRepo.Create(ctx, testURL); err != nil {
+				t.Fatalf("failed to create test URL: %v", err)
+			}
+
 			req := httptest.NewRequest(http.MethodGet, "/"+tt.shortCode, nil)
 			rec := httptest.NewRecorder()
 
