@@ -22,7 +22,7 @@ func TestAuth_MissingToken(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
 	}
 
-	expected := "Unauthorized: missing authorization header\n"
+	expected := `{"error":"Unauthorized: missing authorization header"}`
 	if rec.Body.String() != expected {
 		t.Errorf("expected response %q, got %q", expected, rec.Body.String())
 	}
@@ -76,7 +76,7 @@ func TestAuth_InvalidToken(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
 	}
 
-	expected := "Unauthorized: invalid token\n"
+	expected := `{"error":"Unauthorized: invalid token"}`
 	if rec.Body.String() != expected {
 		t.Errorf("expected response %q, got %q", expected, rec.Body.String())
 	}

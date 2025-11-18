@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 )
 
@@ -20,12 +22,16 @@ import (
 func TestMiddlewareExecutionOrder(t *testing.T) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	// Add a test handler
 	srv.router.Get("/test-order", func(w http.ResponseWriter, r *http.Request) {
@@ -59,12 +65,16 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	srv.router.Get("/panic-test", func(w http.ResponseWriter, r *http.Request) {
 		panic("intentional panic for testing")
@@ -97,12 +107,16 @@ func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 func TestServer_NotFoundHandler(t *testing.T) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
 	rec := httptest.NewRecorder()
@@ -118,12 +132,16 @@ func TestServer_NotFoundHandler(t *testing.T) {
 func TestServer_MethodNotAllowed(t *testing.T) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	// Health check only supports GET, try POST
 	req := httptest.NewRequest(http.MethodPost, "/health", nil)
@@ -140,12 +158,16 @@ func TestServer_MethodNotAllowed(t *testing.T) {
 func TestServer_ConcurrentRequests(t *testing.T) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	const numRequests = 100
 	results := make(chan int, numRequests)
@@ -171,12 +193,16 @@ func TestServer_ConcurrentRequests(t *testing.T) {
 func TestServer_ContextCancellation(t *testing.T) {
 	cfg := &config.Config{
 		ServerPort:     0,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	// Start server with error handling
 	serverErrors := make(chan error, 1)
@@ -222,12 +248,16 @@ func TestServer_ContextCancellation(t *testing.T) {
 func BenchmarkServer_HealthCheck(b *testing.B) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(b)
+	defer db.Close()
+
+	srv := New(cfg, db)
 	originalOutput := log.Writer()
 	log.SetOutput(io.Discard) // Disable logging for benchmark
 	defer log.SetOutput(originalOutput)
@@ -244,12 +274,16 @@ func BenchmarkServer_HealthCheck(b *testing.B) {
 func BenchmarkServer_WithMiddleware(b *testing.B) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(b)
+	defer db.Close()
+
+	srv := New(cfg, db)
 	originalOutput := log.Writer()
 	log.SetOutput(io.Discard) // Disable logging for benchmark
 	defer log.SetOutput(originalOutput)
@@ -271,12 +305,17 @@ func BenchmarkServer_WithMiddleware(b *testing.B) {
 func ExampleServer_Shutdown() {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "./database.db",
 		AuthToken:      "secret-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	// Open database for example (in production, handle errors properly)
+	db, _ := sql.Open("sqlite3", cfg.DatabaseURL)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	// Start server
 	go func() {
