@@ -120,6 +120,11 @@ func (h *URLHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit := parseQueryInt(r, "limit", 20)
 	offset := parseQueryInt(r, "offset", 0)
 
+	// Validate pagination parameters
+	if limit < 0 || offset < 0 {
+		respondError(w, "limit and offset must be non-negative", http.StatusBadRequest)
+		return
+	}
 	// Execute use case
 	resp, err := h.listUseCase.Execute(r.Context(), application.ListURLsRequest{
 		CreatedBy: userID,
