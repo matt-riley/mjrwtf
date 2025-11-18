@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
@@ -29,7 +30,10 @@ func main() {
 	defer db.Close()
 
 	// Create server
-	srv := server.New(cfg, db)
+	srv, err := server.New(cfg, db)
+	if err != nil {
+		log.Fatalf("Failed to create server: %v", err)
+	}
 
 	// Channel to listen for errors from the server
 	serverErrors := make(chan error, 1)

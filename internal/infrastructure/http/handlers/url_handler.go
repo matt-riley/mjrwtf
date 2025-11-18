@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -169,11 +170,18 @@ func (h *URLHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // respondJSON writes a JSON response
 func respondJSON(w http.ResponseWriter, data interface{}, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		// Log error but don't send another response
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	
+	// Encode to a buffer first to catch errors before writing status code
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(data); err != nil {
+		// Log error and send internal server error
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":"failed to encode response"}`))
+		return
 	}
+	
+	w.WriteHeader(statusCode)
+	w.Write(buf.Bytes())
 }
 
 // respondError writes a JSON error response

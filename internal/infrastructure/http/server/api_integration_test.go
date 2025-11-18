@@ -23,7 +23,10 @@ func TestAPIEndpoints_CreateURL(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	tests := []struct {
 		name           string
@@ -146,7 +149,10 @@ func TestAPIEndpoints_ListURLs(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	// First, create some URLs
 	createURL := func(originalURL string) {
@@ -267,7 +273,10 @@ func TestAPIEndpoints_DeleteURL(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	// Create a URL to delete
 	createReq := httptest.NewRequest(http.MethodPost, "/api/urls", 
@@ -364,7 +373,10 @@ func TestAPIEndpoints_FullWorkflow(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	// Step 1: Create a URL
 	createReq := httptest.NewRequest(http.MethodPost, "/api/urls",

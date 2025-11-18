@@ -36,7 +36,8 @@ type Server struct {
 }
 
 // New creates a new HTTP server with configured middleware and dependencies
-func New(cfg *config.Config, db *sql.DB) *Server {
+// Returns an error if the server cannot be initialized properly
+func New(cfg *config.Config, db *sql.DB) (*Server, error) {
 	r := chi.NewRouter()
 
 	// Middleware stack (order matters)
@@ -74,13 +75,15 @@ func New(cfg *config.Config, db *sql.DB) *Server {
 	}
 
 	// Setup routes
-	server.setupRoutes()
+	if err := server.setupRoutes(); err != nil {
+		return nil, err
+	}
 
-	return server
+	return server, nil
 }
 
 // setupRoutes configures the HTTP routes
-func (s *Server) setupRoutes() {
+func (s *Server) setupRoutes() error {
 	// Health check endpoint
 	s.router.Get("/health", s.healthCheckHandler)
 
@@ -90,7 +93,7 @@ func (s *Server) setupRoutes() {
 	// Initialize URL generator
 	generator, err := url.NewGenerator(urlRepo, url.DefaultGeneratorConfig())
 	if err != nil {
-		log.Fatalf("Failed to create URL generator: %v", err)
+		return fmt.Errorf("failed to create URL generator: %w", err)
 	}
 
 	// Initialize use cases
@@ -112,6 +115,8 @@ func (s *Server) setupRoutes() {
 			r.Delete("/{shortCode}", urlHandler.Delete)
 		})
 	})
+
+	return nil
 }
 
 // healthCheckHandler returns a simple health check response

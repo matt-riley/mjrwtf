@@ -31,7 +31,10 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	// Add a test handler
 	srv.router.Get("/test-order", func(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +77,10 @@ func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	srv.router.Get("/panic-test", func(w http.ResponseWriter, r *http.Request) {
 		panic("intentional panic for testing")
@@ -116,7 +122,10 @@ func TestServer_NotFoundHandler(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
 	rec := httptest.NewRecorder()
@@ -141,7 +150,10 @@ func TestServer_MethodNotAllowed(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	// Health check only supports GET, try POST
 	req := httptest.NewRequest(http.MethodPost, "/health", nil)
@@ -167,7 +179,10 @@ func TestServer_ConcurrentRequests(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	const numRequests = 100
 	results := make(chan int, numRequests)
@@ -202,7 +217,10 @@ func TestServer_ContextCancellation(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
 	// Start server with error handling
 	serverErrors := make(chan error, 1)
@@ -257,7 +275,10 @@ func BenchmarkServer_HealthCheck(b *testing.B) {
 	db := setupTestDB(b)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		b.Fatalf("failed to create server: %v", err)
+	}
 	originalOutput := log.Writer()
 	log.SetOutput(io.Discard) // Disable logging for benchmark
 	defer log.SetOutput(originalOutput)
@@ -283,7 +304,10 @@ func BenchmarkServer_WithMiddleware(b *testing.B) {
 	db := setupTestDB(b)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		b.Fatalf("failed to create server: %v", err)
+	}
 	originalOutput := log.Writer()
 	log.SetOutput(io.Discard) // Disable logging for benchmark
 	defer log.SetOutput(originalOutput)
@@ -315,7 +339,11 @@ func ExampleServer_Shutdown() {
 	db, _ := sql.Open("sqlite3", cfg.DatabaseURL)
 	defer db.Close()
 
-	srv := New(cfg, db)
+	srv, err := New(cfg, db)
+	if err != nil {
+		fmt.Printf("Server creation error: %v\n", err)
+		return
+	}
 
 	// Start server
 	go func() {

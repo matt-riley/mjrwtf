@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"net/http"
 	"strings"
 )
@@ -63,9 +64,17 @@ func Auth(authToken string) func(http.Handler) http.Handler {
 func respondJSONError(w http.ResponseWriter, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	// Simple JSON response without dependencies
-	response := `{"error":"` + message + `"}`
-	w.Write([]byte(response))
+	
+	// Use json.Marshal to properly escape the message
+	type errorResponse struct {
+		Error string `json:"error"`
+	}
+	
+	response := errorResponse{Error: message}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		// Fallback to plain text if JSON encoding fails
+		w.Write([]byte(`{"error":"internal server error"}`))
+	}
 }
 
 // GetUserID extracts the user ID from the request context
