@@ -87,8 +87,13 @@ func (s *Server) setupRoutes() error {
 	// Health check endpoint
 	s.router.Get("/health", s.healthCheckHandler)
 
-	// Initialize repository
-	urlRepo := repository.NewSQLiteURLRepository(s.db)
+	// Initialize repository based on database driver
+	var urlRepo url.Repository
+	if strings.HasPrefix(s.config.DatabaseURL, "postgres://") || strings.HasPrefix(s.config.DatabaseURL, "postgresql://") {
+		urlRepo = repository.NewPostgresURLRepository(s.db)
+	} else {
+		urlRepo = repository.NewSQLiteURLRepository(s.db)
+	}
 
 	// Initialize URL generator
 	generator, err := url.NewGenerator(urlRepo, url.DefaultGeneratorConfig())
