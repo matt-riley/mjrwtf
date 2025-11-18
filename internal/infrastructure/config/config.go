@@ -15,6 +15,7 @@ type Config struct {
 
 	// Server configuration
 	ServerPort int
+	BaseURL    string
 
 	// CORS configuration
 	AllowedOrigins string
@@ -39,6 +40,7 @@ func LoadConfig() (*Config, error) {
 	config := &Config{
 		DatabaseURL:       getEnv("DATABASE_URL", ""),
 		ServerPort:        getEnvAsInt("SERVER_PORT", 8080),
+		BaseURL:           getEnv("BASE_URL", "http://localhost:8080"),
 		AllowedOrigins:    getEnv("ALLOWED_ORIGINS", "*"),
 		AuthToken:         getEnv("AUTH_TOKEN", ""),
 		DiscordWebhookURL: getEnv("DISCORD_WEBHOOK_URL", ""),

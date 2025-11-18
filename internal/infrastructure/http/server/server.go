@@ -1,9 +1,8 @@
-// Package server provides HTTP server infrastructure for the mjrwtf URL shortener,
-// including routing, middleware setup, and graceful shutdown.
 package server
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,7 +11,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/matt-riley/mjrwtf/internal/adapters/repository"
+	"github.com/matt-riley/mjrwtf/internal/application"
+	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/handlers"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
 
@@ -29,10 +32,11 @@ type Server struct {
 	httpServer *http.Server
 	router     *chi.Mux
 	config     *config.Config
+	db         *sql.DB
 }
 
-// New creates a new HTTP server with configured middleware
-func New(cfg *config.Config) *Server {
+// New creates a new HTTP server with configured middleware and dependencies
+func New(cfg *config.Config, db *sql.DB) *Server {
 	r := chi.NewRouter()
 
 	// Middleware stack (order matters)
@@ -59,6 +63,7 @@ func New(cfg *config.Config) *Server {
 	server := &Server{
 		router: r,
 		config: cfg,
+		db:     db,
 		httpServer: &http.Server{
 			Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
 			Handler:      r,
@@ -79,9 +84,33 @@ func (s *Server) setupRoutes() {
 	// Health check endpoint
 	s.router.Get("/health", s.healthCheckHandler)
 
-	// API routes will be added later
+	// Initialize repository
+	urlRepo := repository.NewSQLiteURLRepository(s.db)
+
+	// Initialize URL generator
+	generator, err := url.NewGenerator(urlRepo, url.DefaultGeneratorConfig())
+	if err != nil {
+		log.Fatalf("Failed to create URL generator: %v", err)
+	}
+
+	// Initialize use cases
+	createUseCase := application.NewCreateURLUseCase(generator, s.config.BaseURL)
+	listUseCase := application.NewListURLsUseCase(urlRepo)
+	deleteUseCase := application.NewDeleteURLUseCase(urlRepo)
+
+	// Initialize handlers
+	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
+
+	// API routes with authentication
 	s.router.Route("/api", func(r chi.Router) {
-		// Placeholder for API routes
+		r.Route("/urls", func(r chi.Router) {
+			// Apply auth middleware to all URL endpoints
+			r.Use(middleware.Auth(s.config.AuthToken))
+
+			r.Post("/", urlHandler.Create)
+			r.Get("/", urlHandler.List)
+			r.Delete("/{shortCode}", urlHandler.Delete)
+		})
 	})
 }
 

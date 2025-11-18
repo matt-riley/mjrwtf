@@ -13,12 +13,16 @@ import (
 func TestServer_AuthMiddlewareIntegration(t *testing.T) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-secret-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	// Add a test protected route to demonstrate auth middleware usage
 	srv.router.Route("/api/protected", func(r chi.Router) {
@@ -47,13 +51,13 @@ func TestServer_AuthMiddlewareIntegration(t *testing.T) {
 			name:           "missing auth header",
 			authHeader:     "",
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   "Unauthorized: missing authorization header\n",
+			expectedBody:   `{"error":"Unauthorized: missing authorization header"}`,
 		},
 		{
 			name:           "invalid token",
 			authHeader:     "Bearer wrong-token",
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   "Unauthorized: invalid token\n",
+			expectedBody:   `{"error":"Unauthorized: invalid token"}`,
 		},
 		{
 			name:           "valid token",
@@ -87,12 +91,16 @@ func TestServer_AuthMiddlewareIntegration(t *testing.T) {
 func TestServer_UnprotectedRouteWithoutAuth(t *testing.T) {
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-secret-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	// Health check should work without authentication
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)

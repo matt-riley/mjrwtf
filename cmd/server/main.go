@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
 )
@@ -18,8 +21,15 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// Open database connection
+	db, err := openDatabase(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
 	// Create server
-	srv := server.New(cfg)
+	srv := server.New(cfg, db)
 
 	// Channel to listen for errors from the server
 	serverErrors := make(chan error, 1)
@@ -51,4 +61,26 @@ func main() {
 
 		log.Println("Server shutdown complete")
 	}
+}
+
+// openDatabase opens a database connection based on the connection string
+func openDatabase(dbURL string) (*sql.DB, error) {
+	// Determine database driver based on URL
+	driver := "sqlite3"
+	if strings.HasPrefix(dbURL, "postgres://") || strings.HasPrefix(dbURL, "postgresql://") {
+		driver = "postgres"
+	}
+
+	db, err := sql.Open(driver, dbURL)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify connection
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return db, nil
 }

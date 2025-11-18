@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,14 +13,18 @@ import (
 )
 
 func TestNew_CreatesServerWithMiddleware(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	srv := New(cfg, db)
 
 	if srv == nil {
 		t.Fatal("expected server to be created")
@@ -35,14 +40,18 @@ func TestNew_CreatesServerWithMiddleware(t *testing.T) {
 }
 
 func TestHealthCheckHandler(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	srv := New(cfg, db)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	rec := httptest.NewRecorder()
@@ -65,14 +74,18 @@ func TestHealthCheckHandler(t *testing.T) {
 }
 
 func TestServer_MiddlewareOrder(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	srv := New(cfg, db)
 
 	// Test that recovery middleware works (middleware is active)
 	srv.router.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
@@ -91,14 +104,18 @@ func TestServer_MiddlewareOrder(t *testing.T) {
 }
 
 func TestServer_CORSMiddleware(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	srv := New(cfg, db)
 
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
 	req.Header.Set("Origin", "http://example.com")
@@ -114,14 +131,18 @@ func TestServer_CORSMiddleware(t *testing.T) {
 }
 
 func TestServer_GracefulShutdown(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
 	cfg := &config.Config{
 		ServerPort:     0, // Use random available port
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	srv := New(cfg, db)
 
 	// Start server in background with error handling
 	serverErrors := make(chan error, 1)
@@ -153,14 +174,18 @@ func TestServer_GracefulShutdown(t *testing.T) {
 }
 
 func TestServer_Timeouts(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	srv := New(cfg, db)
 
 	// Verify timeout configurations
 	if srv.httpServer.ReadTimeout != readTimeout {
@@ -189,14 +214,18 @@ func TestServer_ListenAddress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			db := setupTestDB(t)
+			defer db.Close()
+
 			cfg := &config.Config{
 				ServerPort:     tt.port,
+				BaseURL:        "http://localhost:8080",
 				DatabaseURL:    "test.db",
 				AuthToken:      "test-token",
 				AllowedOrigins: "*",
 			}
 
-			srv := New(cfg)
+			srv := New(cfg, db)
 
 			if srv.httpServer.Addr != tt.want {
 				t.Errorf("expected address %s, got %s", tt.want, srv.httpServer.Addr)
@@ -206,14 +235,18 @@ func TestServer_ListenAddress(t *testing.T) {
 }
 
 func TestServer_Router(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
 	cfg := &config.Config{
 		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		DatabaseURL:    "test.db",
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	srv := New(cfg, db)
 
 	router := srv.Router()
 	if router == nil {
@@ -233,7 +266,10 @@ func ExampleServer_Start() {
 		AllowedOrigins: "*",
 	}
 
-	srv := New(cfg)
+	db, _ := sql.Open("sqlite3", cfg.DatabaseURL)
+	defer db.Close()
+
+	srv := New(cfg, db)
 
 	// Start server in goroutine
 	go func() {

@@ -22,27 +22,27 @@ func Auth(authToken string) func(http.Handler) http.Handler {
 			// Extract Authorization header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				http.Error(w, "Unauthorized: missing authorization header", http.StatusUnauthorized)
+				respondJSONError(w, "Unauthorized: missing authorization header", http.StatusUnauthorized)
 				return
 			}
 
 			// Check for Bearer token format
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || parts[0] != "Bearer" {
-				http.Error(w, "Unauthorized: invalid authorization format", http.StatusUnauthorized)
+				respondJSONError(w, "Unauthorized: invalid authorization format", http.StatusUnauthorized)
 				return
 			}
 
 			token := parts[1]
 			if token == "" {
-				http.Error(w, "Unauthorized: invalid authorization format", http.StatusUnauthorized)
+				respondJSONError(w, "Unauthorized: invalid authorization format", http.StatusUnauthorized)
 				return
 			}
 
 			// Validate token against configured secret using constant-time comparison
 			// to prevent timing attacks
 			if subtle.ConstantTimeCompare([]byte(token), []byte(authToken)) != 1 {
-				http.Error(w, "Unauthorized: invalid token", http.StatusUnauthorized)
+				respondJSONError(w, "Unauthorized: invalid token", http.StatusUnauthorized)
 				return
 			}
 
@@ -57,6 +57,15 @@ func Auth(authToken string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// respondJSONError writes a JSON error response
+func respondJSONError(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	// Simple JSON response without dependencies
+	response := `{"error":"` + message + `"}`
+	w.Write([]byte(response))
 }
 
 // GetUserID extracts the user ID from the request context
