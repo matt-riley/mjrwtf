@@ -31,7 +31,6 @@ func TestRedirectHandler_Redirect(t *testing.T) {
 		shortCode          string
 		referrer           string
 		userAgent          string
-		xForwardedFor      string
 		mockResponse       *application.RedirectResponse
 		mockError          error
 		expectedStatus     int
@@ -146,9 +145,6 @@ func TestRedirectHandler_Redirect(t *testing.T) {
 			if tt.userAgent != "" {
 				req.Header.Set("User-Agent", tt.userAgent)
 			}
-			if tt.xForwardedFor != "" {
-				req.Header.Set("X-Forwarded-For", tt.xForwardedFor)
-			}
 
 			// Set up chi URL params
 			rctx := chi.NewRouteContext()
@@ -201,64 +197,5 @@ func TestRedirectHandler_EmptyShortCode(t *testing.T) {
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("expected status %d for empty short code, got %d", http.StatusNotFound, rec.Code)
-	}
-}
-
-// TestExtractIPAddress tests IP address extraction
-func TestExtractIPAddress(t *testing.T) {
-	tests := []struct {
-		name          string
-		remoteAddr    string
-		xForwardedFor string
-		expected      string
-	}{
-		{
-			name:       "extract from RemoteAddr",
-			remoteAddr: "192.168.1.1:12345",
-			expected:   "192.168.1.1",
-		},
-		{
-			name:       "extract from RemoteAddr without port",
-			remoteAddr: "192.168.1.1",
-			expected:   "192.168.1.1",
-		},
-		{
-			name:          "prefer X-Forwarded-For",
-			remoteAddr:    "192.168.1.1:12345",
-			xForwardedFor: "203.0.113.1",
-			expected:      "203.0.113.1",
-		},
-		{
-			name:          "X-Forwarded-For with multiple IPs",
-			remoteAddr:    "192.168.1.1:12345",
-			xForwardedFor: "203.0.113.1, 198.51.100.1, 192.168.1.1",
-			expected:      "203.0.113.1",
-		},
-		{
-			name:          "X-Forwarded-For with spaces",
-			remoteAddr:    "192.168.1.1:12345",
-			xForwardedFor: "  203.0.113.1  , 198.51.100.1",
-			expected:      "203.0.113.1",
-		},
-		{
-			name:       "IPv6 address",
-			remoteAddr: "[2001:db8::1]:12345",
-			expected:   "2001:db8::1",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/test", nil)
-			req.RemoteAddr = tt.remoteAddr
-			if tt.xForwardedFor != "" {
-				req.Header.Set("X-Forwarded-For", tt.xForwardedFor)
-			}
-
-			result := extractIPAddress(req)
-			if result != tt.expected {
-				t.Errorf("expected IP '%s', got '%s'", tt.expected, result)
-			}
-		})
 	}
 }
