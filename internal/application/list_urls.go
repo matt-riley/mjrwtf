@@ -80,9 +80,12 @@ func (uc *ListURLsUseCase) Execute(ctx context.Context, req ListURLsRequest) (*L
 		}
 	}
 
-	// For pagination response, we return the actual count of URLs retrieved
-	// Note: This doesn't provide the total count across all pages, which would require
-	// a separate Count query. This is a known limitation.
+	// FIXME: Pagination Total field currently returns page count, not total count
+	// The Total field should represent the total count of URLs across all pages,
+	// but the Repository interface doesn't have a Count() method yet.
+	// For now, we return the count of URLs in the current page as a temporary workaround.
+	// This is a known limitation that breaks proper pagination semantics.
+	// See: Repository interface needs Count(ctx, createdBy) method
 	totalCount := len(urls)
 
 	return &ListURLsResponse{
