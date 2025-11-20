@@ -22,9 +22,9 @@ templates/
 Create or modify `.templ` files in this directory:
 
 ```templ
-// Example: components/button.templ
 package components
 
+// Button renders a styled button link
 templ Button(text string, href string) {
     <a href={ href } class="btn">
         { text }

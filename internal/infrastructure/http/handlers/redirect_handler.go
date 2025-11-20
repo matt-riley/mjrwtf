@@ -68,7 +68,7 @@ func handleRedirectError(w http.ResponseWriter, r *http.Request, err error) {
 		w.WriteHeader(http.StatusNotFound)
 		if renderErr := pages.NotFound().Render(r.Context(), w); renderErr != nil {
 			// Fallback to plain text if template rendering fails
-			http.Error(w, "Not Found", http.StatusNotFound)
+			w.Write([]byte("Not Found"))
 		}
 		return
 	}
@@ -77,6 +77,6 @@ func handleRedirectError(w http.ResponseWriter, r *http.Request, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 	if renderErr := pages.InternalError("An error occurred while processing your request").Render(r.Context(), w); renderErr != nil {
 		// Fallback to plain text if template rendering fails
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
 	}
 }
