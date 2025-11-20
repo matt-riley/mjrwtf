@@ -10,9 +10,9 @@ import (
 	"syscall"
 
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {

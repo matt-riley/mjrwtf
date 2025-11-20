@@ -27,15 +27,15 @@ func (m *mockRedirectUseCase) Execute(ctx context.Context, req application.Redir
 // TestRedirectHandler_Redirect tests the Redirect endpoint
 func TestRedirectHandler_Redirect(t *testing.T) {
 	tests := []struct {
-		name               string
-		shortCode          string
-		referrer           string
-		userAgent          string
-		mockResponse       *application.RedirectResponse
-		mockError          error
-		expectedStatus     int
-		expectedLocation   string
-		checkRequestData   func(t *testing.T, req application.RedirectRequest)
+		name             string
+		shortCode        string
+		referrer         string
+		userAgent        string
+		mockResponse     *application.RedirectResponse
+		mockError        error
+		expectedStatus   int
+		expectedLocation string
+		checkRequestData func(t *testing.T, req application.RedirectRequest)
 	}{
 		{
 			name:      "successful redirect",
@@ -185,7 +185,7 @@ func TestRedirectHandler_EmptyShortCode(t *testing.T) {
 	handler := NewRedirectHandler(mockRedirect)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	
+
 	// Set up chi URL params with empty short code
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("shortCode", "")

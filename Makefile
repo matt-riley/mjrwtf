@@ -1,4 +1,4 @@
-.PHONY: help test lint fmt vet build build-server build-migrate clean migrate-up migrate-down migrate-status migrate-create migrate-reset
+.PHONY: help test lint fmt vet build build-server build-migrate clean migrate-up migrate-down migrate-status migrate-create migrate-reset templ-generate templ-watch
 
 # Default target
 help:
@@ -11,6 +11,8 @@ help:
 	@echo "  build-server      - Build the HTTP server binary"
 	@echo "  build-migrate     - Build the migration tool"
 	@echo "  clean             - Clean build artifacts and coverage files"
+	@echo "  templ-generate    - Generate Go code from Templ templates"
+	@echo "  templ-watch       - Watch and auto-regenerate Templ templates"
 	@echo ""
 	@echo "Migration targets:"
 	@echo "  migrate-up        - Apply all pending migrations"
@@ -42,10 +44,10 @@ vet:
 	go vet ./...
 
 # Build all binaries
-build: build-server build-migrate
+build: templ-generate build-server build-migrate
 
 # Build server binary
-build-server:
+build-server: templ-generate
 	go build -o bin/server ./cmd/server
 
 # Build migrate tool
@@ -79,3 +81,23 @@ migrate-reset: build-migrate
 # Run all checks (fmt, vet, lint, test)
 check: fmt vet lint test
 	@echo "All checks passed!"
+
+# Generate Go code from Templ templates
+templ-generate:
+	@if command -v templ >/dev/null 2>&1; then \
+		templ generate; \
+	else \
+		echo "templ not installed. Install with:"; \
+		echo "  go install github.com/a-h/templ/cmd/templ@latest"; \
+		exit 1; \
+	fi
+
+# Watch and auto-regenerate Templ templates
+templ-watch:
+	@if command -v templ >/dev/null 2>&1; then \
+		templ generate --watch; \
+	else \
+		echo "templ not installed. Install with:"; \
+		echo "  go install github.com/a-h/templ/cmd/templ@latest"; \
+		exit 1; \
+	fi

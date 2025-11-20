@@ -16,14 +16,14 @@ import (
 // TestServer_RedirectEndpoint tests the public redirect endpoint
 func TestServer_RedirectEndpoint(t *testing.T) {
 	tests := []struct {
-		name               string
-		shortCode          string
-		existingURL        *url.URL
-		referrer           string
-		userAgent          string
-		expectedStatus     int
-		expectedLocation   string
-		checkLocation      bool
+		name             string
+		shortCode        string
+		existingURL      *url.URL
+		referrer         string
+		userAgent        string
+		expectedStatus   int
+		expectedLocation string
+		checkLocation    bool
 	}{
 		{
 			name:      "successful redirect",
@@ -140,7 +140,7 @@ func TestServer_RedirectWithAnalytics(t *testing.T) {
 	// Create a test URL directly via repository
 	urlRepo := repository.NewSQLiteURLRepository(db)
 	clickRepo := repository.NewSQLiteClickRepository(db)
-	
+
 	testURL := &url.URL{
 		ShortCode:   "analytics123",
 		OriginalURL: "https://example.com/analytics",
@@ -236,7 +236,7 @@ func TestServer_RedirectPreservesURL(t *testing.T) {
 				CreatedBy:   "test-user",
 				CreatedAt:   time.Now(),
 			}
-			
+
 			ctx := context.Background()
 			if err := urlRepo.Create(ctx, testURL); err != nil {
 				t.Fatalf("failed to create test URL: %v", err)
@@ -307,7 +307,7 @@ func TestServer_RedirectVsAPIRoutes(t *testing.T) {
 				// For API endpoints, use GET to list
 				method = http.MethodGet
 			}
-			
+
 			req := httptest.NewRequest(method, tt.path, nil)
 			rec := httptest.NewRecorder()
 
