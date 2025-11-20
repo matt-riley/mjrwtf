@@ -6,14 +6,24 @@ This package provides the HTTP server infrastructure for the mjrwtf URL shortene
 
 ```
 internal/infrastructure/http/
+├── handlers/            # HTTP request handlers
+│   ├── page_handler.go    # HTML page rendering
+│   ├── url_handler.go     # API URL management
+│   ├── redirect_handler.go # URL redirection
+│   └── *_test.go          # Handler tests
 ├── middleware/          # HTTP middleware components
-│   ├── recovery.go      # Panic recovery middleware
-│   ├── logger.go        # Request logging middleware
-│   └── *_test.go        # Middleware tests
-└── server/              # HTTP server implementation
-    ├── server.go        # Main server with routing
-    ├── server_test.go   # Unit tests
-    └── integration_test.go  # Integration tests
+│   ├── recovery.go        # Panic recovery middleware
+│   ├── logger.go          # Request logging middleware
+│   ├── auth.go            # Authentication middleware
+│   └── *_test.go          # Middleware tests
+├── server/              # HTTP server implementation
+│   ├── server.go          # Main server with routing
+│   ├── server_test.go     # Unit tests
+│   └── integration_test.go  # Integration tests
+└── templates/           # Templ HTML templates (see templates/README.md)
+    ├── layouts/           # Layout templates
+    ├── pages/             # Page templates
+    └── components/        # Reusable components
 ```
 
 ## Components
@@ -25,14 +35,23 @@ The main HTTP server with:
 - **Graceful Shutdown**: Handles SIGTERM/SIGINT with 30s timeout
 - **Timeouts**: Configurable read (15s), write (15s), and idle (60s) timeouts
 - **Health Check**: `/health` endpoint for monitoring
+- **HTML Rendering**: Serves HTML pages using Templ templates
+- **API Routes**: RESTful API endpoints for URL management
+
+### Handlers (`handlers/`)
+
+Request handlers for different concerns:
+- **PageHandler**: Renders HTML pages (home, error pages)
+- **URLHandler**: API endpoints for URL CRUD operations
+- **RedirectHandler**: Handles short URL redirects with analytics
 
 ### Middleware (`middleware/`)
 
 Middleware stack executes in this order:
-1. **Recovery**: Catches panics and returns 500 errors
+1. **Recovery**: Catches panics and returns 500 errors (HTML for browser, JSON for API)
 2. **Logger**: Logs all requests with method, path, status, duration
 3. **CORS**: Handles cross-origin requests
-4. **Auth**: (To be implemented) Authentication middleware
+4. **Auth**: Authentication middleware (applied to `/api` routes only)
 5. **Handlers**: Route handlers
 
 ## Usage
@@ -67,14 +86,34 @@ srv.Shutdown(ctx)
 ### Adding Routes
 
 ```go
-srv := server.New(cfg)
+srv := server.New(cfg, db)
 router := srv.Router()
 
-// Add custom routes
-router.Get("/api/urls", handleListURLs)
-router.Post("/api/urls", handleCreateURL)
-router.Delete("/api/urls/{id}", handleDeleteURL)
+// Add custom HTML page routes
+router.Get("/custom", customPageHandler)
+
+// Add custom API routes
+router.Route("/api/custom", func(r chi.Router) {
+    r.Use(middleware.Auth(cfg.AuthToken))
+    r.Get("/", handleList)
+    r.Post("/", handleCreate)
+})
 ```
+
+### Rendering HTML Pages
+
+```go
+import "github.com/matt-riley/mjrwtf/internal/adapters/http/templates/pages"
+
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "text/html; charset=utf-8")
+    if err := pages.Home().Render(r.Context(), w); err != nil {
+        http.Error(w, "Error rendering page", http.StatusInternalServerError)
+    }
+}
+```
+
+See `internal/adapters/http/templates/README.md` for more on Templ templates.
 
 ### Testing
 
@@ -157,7 +196,8 @@ The server supports graceful shutdown with:
 
 ## Future Enhancements
 
-- [ ] Authentication middleware
+- [x] Authentication middleware
+- [x] HTML page rendering with Templ
 - [ ] Rate limiting middleware
 - [ ] Request ID tracking
 - [ ] Metrics/monitoring middleware
