@@ -1,0 +1,242 @@
+package pages
+
+import "github.com/matt-riley/mjrwtf/internal/adapters/http/templates/layouts"
+
+// Create renders the URL creation form page
+templ Create() {
+	@layouts.Base("Create Short URL", createContent("", "", "", ""))
+}
+
+// CreateWithResult renders the URL creation form with success result
+templ CreateWithResult(shortCode string, shortURL string, originalURL string) {
+	@layouts.Base("Create Short URL", createContent("", shortCode, shortURL, originalURL))
+}
+
+// CreateWithError renders the URL creation form with error message
+templ CreateWithError(errorMessage string) {
+	@layouts.Base("Create Short URL", createContent(errorMessage, "", "", ""))
+}
+
+templ createContent(errorMessage string, shortCode string, shortURL string, originalURL string) {
+	<div class="max-w-2xl mx-auto">
+		<div class="mb-8">
+			<h1 class="text-4xl font-bold text-gray-900 mb-2">
+				Create Short URL
+			</h1>
+			<p class="text-gray-600">
+				Enter a long URL below to create a shortened link
+			</p>
+		</div>
+		<!-- Success message with shortened URL -->
+		if shortURL != "" {
+			<div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6" role="alert">
+				<div class="flex items-start">
+					<div class="text-green-600 text-2xl mr-3" role="img" aria-label="Success">✓</div>
+					<div class="flex-1">
+						<h3 class="text-lg font-semibold text-green-900 mb-2">URL Shortened Successfully!</h3>
+						<div class="mb-4">
+							<label class="block text-sm font-medium text-gray-700 mb-1">Your Short URL:</label>
+							<div class="flex items-center gap-2">
+								<input
+									type="text"
+									id="short-url-display"
+									value={ shortURL }
+									readonly
+									class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white font-mono text-sm"
+								/>
+								<button
+									type="button"
+									onclick="copyToClipboard()"
+									class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+									aria-label="Copy to clipboard"
+								>
+									<span id="copy-button-text">Copy</span>
+								</button>
+							</div>
+						</div>
+						<div class="text-sm text-gray-600">
+							<p class="mb-1"><strong>Original URL:</strong> { originalURL }</p>
+							<p><strong>Short Code:</strong> { shortCode }</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		}
+		<!-- Error message -->
+		if errorMessage != "" {
+			<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" role="alert">
+				<div class="flex items-start">
+					<div class="text-red-600 text-xl mr-3" role="img" aria-label="Error">✕</div>
+					<div class="flex-1">
+						<h3 class="text-sm font-semibold text-red-900 mb-1">Error</h3>
+						<p class="text-sm text-red-800">{ errorMessage }</p>
+					</div>
+				</div>
+			</div>
+		}
+		<!-- URL Creation Form -->
+		<div class="bg-white rounded-lg shadow-md p-6">
+			<form method="POST" action="/create" onsubmit="return validateForm()" novalidate>
+				<div class="mb-6">
+					<label for="original_url" class="block text-sm font-medium text-gray-700 mb-2">
+						Enter URL to shorten <span class="text-red-600">*</span>
+					</label>
+					<input
+						type="url"
+						id="original_url"
+						name="original_url"
+						placeholder="https://example.com/very/long/url/here"
+						required
+						class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						aria-describedby="url-help url-error"
+					/>
+					<p id="url-help" class="mt-2 text-sm text-gray-600">
+						Must be a valid HTTP or HTTPS URL
+					</p>
+					<p id="url-error" class="mt-2 text-sm text-red-600 hidden" role="alert"></p>
+				</div>
+				<div class="mb-6">
+					<label for="auth_token" class="block text-sm font-medium text-gray-700 mb-2">
+						Authentication Token <span class="text-red-600">*</span>
+					</label>
+					<input
+						type="password"
+						id="auth_token"
+						name="auth_token"
+						placeholder="Enter your API token"
+						required
+						class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						aria-describedby="token-help token-error"
+					/>
+					<p id="token-help" class="mt-2 text-sm text-gray-600">
+						Required to create shortened URLs
+					</p>
+					<p id="token-error" class="mt-2 text-sm text-red-600 hidden" role="alert"></p>
+				</div>
+				<div class="flex flex-col sm:flex-row gap-4">
+					<button
+						type="submit"
+						class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+					>
+						Shorten URL
+					</button>
+					<a
+						href="/"
+						class="flex-1 px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors text-center"
+					>
+						Cancel
+					</a>
+				</div>
+			</form>
+		</div>
+		<!-- Information section -->
+		<div class="mt-8 bg-blue-50 rounded-lg p-6">
+			<h2 class="text-lg font-semibold text-blue-900 mb-3">How It Works</h2>
+			<ol class="list-decimal list-inside space-y-2 text-sm text-blue-800">
+				<li>Enter the long URL you want to shorten</li>
+				<li>Provide your authentication token</li>
+				<li>Click "Shorten URL" to generate your short link</li>
+				<li>Copy and share your new short URL</li>
+			</ol>
+		</div>
+	</div>
+	<script>
+		// Client-side form validation
+		function validateForm() {
+			const urlInput = document.getElementById('original_url');
+			const tokenInput = document.getElementById('auth_token');
+			const urlError = document.getElementById('url-error');
+			const tokenError = document.getElementById('token-error');
+			
+			let isValid = true;
+			
+			// Reset error messages
+			urlError.classList.add('hidden');
+			tokenError.classList.add('hidden');
+			urlInput.classList.remove('border-red-500');
+			tokenInput.classList.remove('border-red-500');
+			
+			// Validate URL
+			const urlValue = urlInput.value.trim();
+			if (!urlValue) {
+				urlError.textContent = 'URL is required';
+				urlError.classList.remove('hidden');
+				urlInput.classList.add('border-red-500');
+				isValid = false;
+			} else {
+				try {
+					const url = new URL(urlValue);
+					if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+						urlError.textContent = 'URL must use HTTP or HTTPS protocol';
+						urlError.classList.remove('hidden');
+						urlInput.classList.add('border-red-500');
+						isValid = false;
+					}
+				} catch (e) {
+					urlError.textContent = 'Please enter a valid URL';
+					urlError.classList.remove('hidden');
+					urlInput.classList.add('border-red-500');
+					isValid = false;
+				}
+			}
+			
+			// Validate token
+			const tokenValue = tokenInput.value.trim();
+			if (!tokenValue) {
+				tokenError.textContent = 'Authentication token is required';
+				tokenError.classList.remove('hidden');
+				tokenInput.classList.add('border-red-500');
+				isValid = false;
+			}
+			
+			return isValid;
+		}
+		
+		// Copy to clipboard functionality
+		function copyToClipboard() {
+			const shortUrlInput = document.getElementById('short-url-display');
+			const copyButtonText = document.getElementById('copy-button-text');
+			
+			// Use modern Clipboard API with fallback
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(shortUrlInput.value)
+					.then(() => {
+						// Show success feedback
+						const originalText = copyButtonText.textContent;
+						copyButtonText.textContent = 'Copied!';
+						setTimeout(() => {
+							copyButtonText.textContent = originalText;
+						}, 2000);
+					})
+					.catch(err => {
+						console.error('Failed to copy:', err);
+						fallbackCopyToClipboard(shortUrlInput);
+					});
+			} else {
+				// Fallback for older browsers
+				fallbackCopyToClipboard(shortUrlInput);
+			}
+		}
+		
+		// Fallback copy method for older browsers
+		function fallbackCopyToClipboard(input) {
+			input.select();
+			input.setSelectionRange(0, 99999); // For mobile devices
+			
+			try {
+				const successful = document.execCommand('copy');
+				if (successful) {
+					const copyButtonText = document.getElementById('copy-button-text');
+					const originalText = copyButtonText.textContent;
+					copyButtonText.textContent = 'Copied!';
+					setTimeout(() => {
+						copyButtonText.textContent = originalText;
+					}, 2000);
+				}
+			} catch (err) {
+				console.error('Fallback copy failed:', err);
+				alert('Failed to copy. Please select and copy manually.');
+			}
+		}
+	</script>
+}
