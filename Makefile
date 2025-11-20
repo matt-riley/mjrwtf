@@ -78,8 +78,8 @@ migrate-create: build-migrate
 migrate-reset: build-migrate
 	./bin/migrate reset
 
-# Run all checks (fmt, vet, lint, test)
-check: fmt vet lint test
+# Run all checks (templ-generate, fmt, vet, lint, test)
+check: templ-generate fmt vet lint test
 	@echo "All checks passed!"
 
 # Generate Go code from Templ templates
