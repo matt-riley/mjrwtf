@@ -31,7 +31,7 @@ func TestAuth_MissingToken(t *testing.T) {
 
 func TestAuth_InvalidTokenFormat(t *testing.T) {
 	tests := []struct {
-		name      string
+		name       string
 		authHeader string
 	}{
 		{"no bearer prefix", "test-token"},
@@ -109,10 +109,10 @@ func TestAuth_ValidToken(t *testing.T) {
 
 func TestAuth_UserIdentityInContext(t *testing.T) {
 	authMiddleware := Auth("test-secret-token")
-	
+
 	var capturedUserID string
 	var userIDFound bool
-	
+
 	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedUserID, userIDFound = GetUserID(r.Context())
 		w.WriteHeader(http.StatusOK)
@@ -173,13 +173,13 @@ func TestAuth_MultipleRequests(t *testing.T) {
 
 func TestGetUserID_NoContext(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	
+
 	userID, ok := GetUserID(req.Context())
-	
+
 	if ok {
 		t.Error("expected ok to be false when no user ID in context")
 	}
-	
+
 	if userID != "" {
 		t.Errorf("expected empty user ID, got %q", userID)
 	}

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/matt-riley/mjrwtf/internal/adapters/http/templates/pages"
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 )
@@ -62,9 +63,20 @@ func (h *RedirectHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 // handleRedirectError maps redirect errors to HTTP responses
 func handleRedirectError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, url.ErrURLNotFound) {
-		http.NotFound(w, r)
+		// Render HTML 404 page for not found errors
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusNotFound)
+		if renderErr := pages.NotFound().Render(r.Context(), w); renderErr != nil {
+			// Fallback to plain text if template rendering fails
+			http.Error(w, "Not Found", http.StatusNotFound)
+		}
 		return
 	}
-	// For other errors, return internal server error
-	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// For other errors, render HTML 500 page
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusInternalServerError)
+	if renderErr := pages.InternalError("An error occurred while processing your request").Render(r.Context(), w); renderErr != nil {
+		// Fallback to plain text if template rendering fails
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }

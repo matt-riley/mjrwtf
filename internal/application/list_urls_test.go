@@ -146,7 +146,7 @@ func TestListURLsUseCase_Execute_DefaultPagination(t *testing.T) {
 
 	req := ListURLsRequest{
 		CreatedBy: "user1",
-		Limit:     0, // Should default to 20
+		Limit:     0,  // Should default to 20
 		Offset:    -1, // Should default to 0
 	}
 

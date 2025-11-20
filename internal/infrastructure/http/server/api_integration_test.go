@@ -279,7 +279,7 @@ func TestAPIEndpoints_DeleteURL(t *testing.T) {
 	}
 
 	// Create a URL to delete
-	createReq := httptest.NewRequest(http.MethodPost, "/api/urls", 
+	createReq := httptest.NewRequest(http.MethodPost, "/api/urls",
 		bytes.NewBufferString(`{"original_url":"https://example.com"}`))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Authorization", "Bearer test-token")
@@ -407,7 +407,7 @@ func TestAPIEndpoints_FullWorkflow(t *testing.T) {
 	var listResp map[string]interface{}
 	json.Unmarshal(listRec.Body.Bytes(), &listResp)
 	urls := listResp["urls"].([]interface{})
-	
+
 	found := false
 	for _, urlData := range urls {
 		urlMap := urlData.(map[string]interface{})
@@ -416,7 +416,7 @@ func TestAPIEndpoints_FullWorkflow(t *testing.T) {
 			break
 		}
 	}
-	
+
 	if !found {
 		t.Error("created URL not found in list")
 	}

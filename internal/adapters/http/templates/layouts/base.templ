@@ -1,0 +1,82 @@
+package layouts
+
+templ Base(title string, content templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="description" content="mjr.wtf - URL Shortener"/>
+			<title>{ title } - mjr.wtf</title>
+			<!-- Tailwind CSS CDN -->
+			<script src="https://cdn.tailwindcss.com"></script>
+			<style>
+				body {
+					min-height: 100vh;
+					display: flex;
+					flex-direction: column;
+				}
+				main {
+					flex: 1;
+				}
+			</style>
+		</head>
+		<body class="bg-gray-50 text-gray-900">
+			@Header()
+			<main class="container mx-auto px-4 py-8">
+				@content
+			</main>
+			@Footer()
+		</body>
+	</html>
+}
+
+templ Header() {
+	<header class="bg-white shadow">
+		<div class="container mx-auto px-4">
+			<nav class="flex items-center justify-between py-4">
+				<div class="flex items-center space-x-8">
+					<a href="/" class="text-2xl font-bold text-blue-600 hover:text-blue-700">
+						mjr.wtf
+					</a>
+					<div class="hidden md:flex space-x-4">
+						<a href="/" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+							Home
+						</a>
+						<a href="/create" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+							Create Short URL
+						</a>
+						<a href="/dashboard" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+							Dashboard
+						</a>
+					</div>
+				</div>
+				<div class="flex items-center space-x-4">
+					<a href="/api/urls" class="text-gray-600 hover:text-gray-900 text-sm">
+						API
+					</a>
+				</div>
+			</nav>
+		</div>
+	</header>
+}
+
+templ Footer() {
+	<footer class="bg-white border-t border-gray-200 mt-12">
+		<div class="container mx-auto px-4 py-6">
+			<div class="flex flex-col md:flex-row justify-between items-center">
+				<div class="text-gray-600 text-sm mb-4 md:mb-0">
+					© 2025 mjr.wtf. All rights reserved.
+				</div>
+				<div class="flex space-x-6">
+					<a href="https://github.com/matt-riley/mjrwtf" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-900 text-sm">
+						GitHub
+					</a>
+					<a href="/health" class="text-gray-600 hover:text-gray-900 text-sm">
+						Health
+					</a>
+				</div>
+			</div>
+		</div>
+	</footer>
+}

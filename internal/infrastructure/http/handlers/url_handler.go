@@ -175,7 +175,7 @@ func (h *URLHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // respondJSON writes a JSON response
 func respondJSON(w http.ResponseWriter, data interface{}, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	// Encode to a buffer first to catch errors before writing status code
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(data); err != nil {
@@ -184,7 +184,7 @@ func respondJSON(w http.ResponseWriter, data interface{}, statusCode int) {
 		w.Write([]byte(`{"error":"failed to encode response"}`))
 		return
 	}
-	
+
 	w.WriteHeader(statusCode)
 	w.Write(buf.Bytes())
 }
