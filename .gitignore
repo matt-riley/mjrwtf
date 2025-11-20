@@ -33,3 +33,4 @@ go.work
 
 # Generated Templ files
 *_templ.go
+test_database.db
