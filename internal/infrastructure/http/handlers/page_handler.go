@@ -246,18 +246,11 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Fetch click counts for each URL
+	// Fetch click counts for each URL (optimized to avoid N+1 queries)
 	clickCounts := make(map[string]int64)
 	for _, urlItem := range resp.URLs {
-		// Find the URL by short code to get its ID
-		urlEntity, err := h.urlRepo.FindByShortCode(r.Context(), urlItem.ShortCode)
-		if err != nil {
-			// If we can't find the URL, skip it (shouldn't happen but be defensive)
-			continue
-		}
-		
-		// Get the click count for this URL
-		count, err := h.clickRepo.GetTotalClickCount(r.Context(), urlEntity.ID)
+		// Get the click count using the URL ID directly (no extra query needed)
+		count, err := h.clickRepo.GetTotalClickCount(r.Context(), urlItem.ID)
 		if err != nil {
 			// If we can't get the count, default to 0
 			count = 0
