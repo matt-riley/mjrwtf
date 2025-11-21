@@ -258,8 +258,7 @@ func TestPageHandler_CreatePage_POST_MissingToken(t *testing.T) {
 func TestPageHandler_CreatePage_POST_UseCaseError(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{
 		executeFunc: func(ctx context.Context, req application.CreateURLRequest) (*application.CreateURLResponse, error) {
-			// Import is already at top of file
-			return nil, errors.New("failed to create shortened URL: URL scheme must be http or https")
+			return nil, fmt.Errorf("failed to create shortened URL: %w", errors.New("URL scheme must be http or https"))
 		},
 	}
 	handler := NewPageHandler(mockUseCase, "test-token")
