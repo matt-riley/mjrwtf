@@ -196,7 +196,21 @@ func (h *PageHandler) renderErrorPage(w http.ResponseWriter, r *http.Request, er
 	}
 }
 
-// Dashboard renders the URL management dashboard page
+// Dashboard renders the URL management dashboard page.
+//
+// GET /dashboard?limit=20&offset=0
+//
+// Query parameters:
+//   - limit: maximum number of URLs to return (default: 20, max: 100)
+//   - offset: number of URLs to skip (default: 0)
+//
+// Returns:
+//   - 200: Successfully rendered dashboard
+//   - 400: Invalid pagination parameters
+//   - 500: Failed to load URLs
+//
+// Note: Currently uses a fixed user ID "authenticated-user".
+// In production, this should come from session authentication.
 func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	
@@ -205,7 +219,7 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	offset := parseQueryInt(r, "offset", 0)
 	
 	// Validate pagination parameters
-	if limit < 0 || offset < 0 {
+	if limit < 0 || offset < 0 || limit > 100 {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := pages.DashboardWithError("Invalid pagination parameters").Render(r.Context(), w); err != nil {
 			w.Write([]byte("Error rendering page"))

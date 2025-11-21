@@ -203,9 +203,31 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 			
 			modalShortCode.textContent = shortCode;
 			modalOriginalURL.textContent = originalURL;
-			deleteForm.setAttribute('hx-delete', '/api/urls/' + shortCode);
+			deleteForm.setAttribute('hx-delete', '/api/urls/' + encodeURIComponent(shortCode));
 			
 			modal.classList.remove('hidden');
+		}
+
+		// Copy short code to clipboard
+		function copyShortCode(shortCode) {
+			const baseURL = window.location.origin;
+			const shortURL = baseURL + '/' + shortCode;
+			
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(shortURL)
+					.then(() => {
+						// Show success feedback (simple approach)
+						const btn = event.target;
+						const originalText = btn.textContent;
+						btn.textContent = '✓';
+						setTimeout(() => {
+							btn.textContent = originalText;
+						}, 2000);
+					})
+					.catch(err => {
+						console.error('Failed to copy:', err);
+					});
+			}
 		}
 
 		// Close modal
@@ -213,6 +235,29 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 			const modal = document.getElementById('delete-modal');
 			modal.classList.add('hidden');
 		}
+
+		// Close modal on Escape key
+		document.addEventListener('keydown', function(e) {
+			if (e.key === 'Escape') {
+				closeModal();
+				const authModal = document.getElementById('auth-modal');
+				if (authModal && !authModal.classList.contains('hidden')) {
+					// Don't close auth modal as it's required
+				}
+			}
+		});
+
+		// Close delete modal on backdrop click
+		window.addEventListener('DOMContentLoaded', function() {
+			const modal = document.getElementById('delete-modal');
+			if (modal) {
+				modal.addEventListener('click', function(e) {
+					if (e.target === modal) {
+						closeModal();
+					}
+				});
+			}
+		});
 
 		// Auth token management
 		function getAuthToken() {
@@ -243,14 +288,24 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 		// Save auth token
 		function saveAuthToken() {
 			const tokenInput = document.getElementById('auth-token-input');
+			const errorMsg = document.getElementById('auth-token-error');
 			const token = tokenInput.value.trim();
 			if (token) {
 				setAuthToken(token);
 				const modal = document.getElementById('auth-modal');
 				modal.classList.add('hidden');
+				// Reset error state
+				tokenInput.classList.remove('border-red-500');
+				if (errorMsg) {
+					errorMsg.classList.add('hidden');
+				}
 			} else {
-				// Show error inline instead of alert
+				// Show error inline with message
 				tokenInput.classList.add('border-red-500');
+				if (errorMsg) {
+					errorMsg.classList.remove('hidden');
+					errorMsg.textContent = 'Authentication token is required';
+				}
 			}
 		}
 
@@ -268,9 +323,9 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 		});
 	</script>
 	<!-- Delete Confirmation Modal -->
-	<div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+	<div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
 		<div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-			<h3 class="text-xl font-bold text-gray-900 mb-4">Confirm Deletion</h3>
+			<h3 id="delete-modal-title" class="text-xl font-bold text-gray-900 mb-4">Confirm Deletion</h3>
 			<p class="text-gray-600 mb-2">Are you sure you want to delete this URL?</p>
 			<div class="bg-gray-50 rounded p-3 mb-4">
 				<p class="text-sm text-gray-600 mb-1"><strong>Short Code:</strong> <span id="modal-short-code"></span></p>
@@ -301,9 +356,9 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 		</div>
 	</div>
 	<!-- Auth Token Modal -->
-	<div id="auth-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+	<div id="auth-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
 		<div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-			<h3 class="text-xl font-bold text-gray-900 mb-4">Authentication Required</h3>
+			<h3 id="auth-modal-title" class="text-xl font-bold text-gray-900 mb-4">Authentication Required</h3>
 			<p class="text-gray-600 mb-4">Please enter your authentication token to manage URLs.</p>
 			<div class="mb-6">
 				<label for="auth-token-input" class="block text-sm font-medium text-gray-700 mb-2">
@@ -314,7 +369,9 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 					id="auth-token-input"
 					placeholder="Enter your API token"
 					class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+					aria-describedby="auth-token-error"
 				/>
+				<p id="auth-token-error" class="mt-2 text-sm text-red-600 hidden" role="alert" aria-live="polite"></p>
 			</div>
 			<button
 				onclick="saveAuthToken()"
@@ -327,12 +384,13 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 }
 
 templ urlTableRow(url application.URLResponse, clickCount int64) {
-	<tr id={ fmt.Sprintf("url-row-%s", url.ShortCode) }>
+	<tr id={ fmt.Sprintf("url-row-%s", url.ShortCode) } data-short-code={ url.ShortCode }>
 		<td class="px-6 py-4 whitespace-nowrap">
 			<div class="flex items-center">
 				<span class="text-sm font-medium text-blue-600 font-mono">{ url.ShortCode }</span>
 				<button
-					onclick={ templ.ComponentScript{Call: fmt.Sprintf("copyShortCode('%s')", url.ShortCode)} }
+					data-shortcode={ url.ShortCode }
+					onclick="copyShortCode(this.dataset.shortcode)"
 					class="ml-2 text-gray-400 hover:text-gray-600"
 					title="Copy short URL"
 				>
@@ -357,30 +415,15 @@ templ urlTableRow(url application.URLResponse, clickCount int64) {
 		</td>
 		<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
 			<button
-				onclick={ templ.ComponentScript{Call: fmt.Sprintf("confirmDelete('%s', '%s')", url.ShortCode, url.OriginalURL)} }
+				data-shortcode={ url.ShortCode }
+				data-url={ url.OriginalURL }
+				onclick="confirmDelete(this.dataset.shortcode, this.dataset.url)"
 				class="text-red-600 hover:text-red-900"
 			>
 				Delete
 			</button>
 		</td>
 	</tr>
-}
-
-script copyShortCode(shortCode string) {
-	const baseURL = window.location.origin;
-	const shortURL = baseURL + '/' + shortCode;
-	
-	if (navigator.clipboard && navigator.clipboard.writeText) {
-		navigator.clipboard.writeText(shortURL)
-			.then(() => {
-				alert('Short URL copied to clipboard!');
-			})
-			.catch(err => {
-				console.error('Failed to copy:', err);
-			});
-	} else {
-		alert('Copy not supported on this browser');
-	}
 }
 
 func calculateTotalClicks(clickCounts map[string]int64) int64 {
@@ -392,11 +435,12 @@ func calculateTotalClicks(clickCounts map[string]int64) int64 {
 }
 
 func calculateAvgClicks(clickCounts map[string]int64, totalURLs int) float64 {
-	if totalURLs == 0 {
+	displayedURLs := len(clickCounts)
+	if displayedURLs == 0 {
 		return 0
 	}
 	total := calculateTotalClicks(clickCounts)
-	return float64(total) / float64(totalURLs)
+	return float64(total) / float64(displayedURLs)
 }
 
 func formatDate(t time.Time) string {
