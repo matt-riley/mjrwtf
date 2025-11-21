@@ -184,13 +184,21 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 	<!-- HTMX for dynamic delete -->
 	<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 	<script>
-		// Handle successful deletion
-		document.body.addEventListener('htmx:afterSwap', function(evt) {
-			if (evt.detail.target.id === 'delete-modal') {
-				// Reload page after successful deletion
-				setTimeout(() => {
-					window.location.reload();
-				}, 1000);
+		// Remove the deleted row from the DOM after successful deletion
+		document.body.addEventListener('htmx:afterRequest', function(evt) {
+			// Check if the request was a DELETE and was successful (204 or 200)
+			if (evt.detail.verb === 'delete' && evt.detail.xhr.status >= 200 && evt.detail.xhr.status < 300) {
+				// Find the row with the data-short-code attribute matching the deleted short code
+				const deletedShortCode = evt.detail.path.split('/').pop();
+				const row = document.querySelector(`tr[data-short-code="${deletedShortCode}"]`);
+				if (row) {
+					row.remove();
+				}
+				// Hide the modal
+				const modal = document.getElementById('delete-modal');
+				if (modal) {
+					modal.classList.add('hidden');
+				}
 			}
 		});
 
