@@ -9,6 +9,7 @@ import (
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/http/templates/pages"
 	"github.com/matt-riley/mjrwtf/internal/application"
+	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
@@ -16,13 +17,25 @@ import (
 // PageHandler handles HTML page rendering
 type PageHandler struct {
 	createUseCase CreateURLUseCase
+	listUseCase   ListURLsUseCase
+	urlRepo       url.Repository
+	clickRepo     click.Repository
 	authToken     string
 }
 
 // NewPageHandler creates a new PageHandler
-func NewPageHandler(createUseCase CreateURLUseCase, authToken string) *PageHandler {
+func NewPageHandler(
+	createUseCase CreateURLUseCase,
+	listUseCase ListURLsUseCase,
+	urlRepo url.Repository,
+	clickRepo click.Repository,
+	authToken string,
+) *PageHandler {
 	return &PageHandler{
 		createUseCase: createUseCase,
+		listUseCase:   listUseCase,
+		urlRepo:       urlRepo,
+		clickRepo:     clickRepo,
 		authToken:     authToken,
 	}
 }
@@ -182,3 +195,66 @@ func (h *PageHandler) renderErrorPage(w http.ResponseWriter, r *http.Request, er
 		w.Write([]byte("Error rendering page"))
 	}
 }
+
+// Dashboard renders the URL management dashboard page
+func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	
+	// Parse query parameters for pagination
+	limit := parseQueryInt(r, "limit", 20)
+	offset := parseQueryInt(r, "offset", 0)
+	
+	// Validate pagination parameters
+	if limit < 0 || offset < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		if err := pages.DashboardWithError("Invalid pagination parameters").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
+	
+	// For now, use a fixed user ID. In a real app, this would come from a session cookie.
+	// This matches the pattern used in the create page where the user provides an auth token.
+	userID := "authenticated-user"
+	
+	// Fetch URLs using the list use case
+	resp, err := h.listUseCase.Execute(r.Context(), application.ListURLsRequest{
+		CreatedBy: userID,
+		Limit:     limit,
+		Offset:    offset,
+	})
+	
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		if err := pages.DashboardWithError("Failed to load URLs").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
+	
+	// Fetch click counts for each URL
+	clickCounts := make(map[string]int64)
+	for _, urlItem := range resp.URLs {
+		// Find the URL by short code to get its ID
+		urlEntity, err := h.urlRepo.FindByShortCode(r.Context(), urlItem.ShortCode)
+		if err != nil {
+			// If we can't find the URL, skip it (shouldn't happen but be defensive)
+			continue
+		}
+		
+		// Get the click count for this URL
+		count, err := h.clickRepo.GetTotalClickCount(r.Context(), urlEntity.ID)
+		if err != nil {
+			// If we can't get the count, default to 0
+			count = 0
+		}
+		clickCounts[urlItem.ShortCode] = count
+	}
+	
+	// Render the dashboard
+	w.WriteHeader(http.StatusOK)
+	if err := pages.Dashboard(resp.URLs, clickCounts, resp.Total, limit, offset).Render(r.Context(), w); err != nil {
+		w.Write([]byte("Error rendering page"))
+	}
+}
+
