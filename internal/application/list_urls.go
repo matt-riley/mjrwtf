@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 )
 
@@ -21,6 +22,7 @@ type URLResponse struct {
 	OriginalURL string    `json:"original_url"`
 	CreatedAt   time.Time `json:"created_at"`
 	CreatedBy   string    `json:"created_by"`
+	ClickCount  int64     `json:"click_count"`
 }
 
 // ListURLsResponse represents the output after listing URLs
@@ -33,13 +35,15 @@ type ListURLsResponse struct {
 
 // ListURLsUseCase handles listing of shortened URLs
 type ListURLsUseCase struct {
-	urlRepo url.Repository
+	urlRepo   url.Repository
+	clickRepo click.Repository
 }
 
 // NewListURLsUseCase creates a new ListURLsUseCase
-func NewListURLsUseCase(urlRepo url.Repository) *ListURLsUseCase {
+func NewListURLsUseCase(urlRepo url.Repository, clickRepo click.Repository) *ListURLsUseCase {
 	return &ListURLsUseCase{
-		urlRepo: urlRepo,
+		urlRepo:   urlRepo,
+		clickRepo: clickRepo,
 	}
 }
 
@@ -70,15 +74,23 @@ func (uc *ListURLsUseCase) Execute(ctx context.Context, req ListURLsRequest) (*L
 		return nil, err
 	}
 
-	// Convert domain URLs to response format
+	// Convert domain URLs to response format and fetch click counts
 	urlResponses := make([]URLResponse, len(urls))
 	for i, u := range urls {
+		// Fetch click count for this URL
+		clickCount, err := uc.clickRepo.GetTotalClickCount(ctx, u.ID)
+		if err != nil {
+			// Default to 0 if we can't get the count
+			clickCount = 0
+		}
+		
 		urlResponses[i] = URLResponse{
 			ID:          u.ID,
 			ShortCode:   u.ShortCode,
 			OriginalURL: u.OriginalURL,
 			CreatedAt:   u.CreatedAt,
 			CreatedBy:   u.CreatedBy,
+			ClickCount:  clickCount,
 		}
 	}
 
