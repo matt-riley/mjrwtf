@@ -115,7 +115,7 @@ func (s *Server) setupRoutes() error {
 	// Initialize handlers
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
 	redirectHandler := handlers.NewRedirectHandler(s.redirectUseCase)
-	pageHandler := handlers.NewPageHandler(createUseCase)
+	pageHandler := handlers.NewPageHandler(createUseCase, s.config.AuthToken)
 
 	// HTML page routes
 	s.router.Get("/", pageHandler.Home)

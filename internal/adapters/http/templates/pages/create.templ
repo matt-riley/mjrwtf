@@ -224,6 +224,8 @@ templ createContent(errorMessage string, shortCode string, shortURL string, orig
 			input.setSelectionRange(0, 99999); // For mobile devices
 			
 			try {
+				// Intentionally use deprecated execCommand('copy') as a fallback for older browsers
+				// that don't support the modern Clipboard API
 				const successful = document.execCommand('copy');
 				if (successful) {
 					const copyButtonText = document.getElementById('copy-button-text');
