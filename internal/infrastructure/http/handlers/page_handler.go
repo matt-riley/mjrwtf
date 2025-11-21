@@ -246,7 +246,9 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Fetch click counts for each URL (optimized to avoid N+1 queries)
+	// Fetch click counts for each URL
+	// TODO: Optimize further with batch query method like GetClickCountsForURLs([]int64)
+	// to fetch all counts in a single query. Currently makes N queries (one per URL).
 	clickCounts := make(map[string]int64)
 	for _, urlItem := range resp.URLs {
 		// Get the click count using the URL ID directly (no extra query needed)
