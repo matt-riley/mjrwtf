@@ -16,6 +16,7 @@ type ListURLsRequest struct {
 
 // URLResponse represents a single URL in the response
 type URLResponse struct {
+	ID          int64     `json:"id"`
 	ShortCode   string    `json:"short_code"`
 	OriginalURL string    `json:"original_url"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -73,6 +74,7 @@ func (uc *ListURLsUseCase) Execute(ctx context.Context, req ListURLsRequest) (*L
 	urlResponses := make([]URLResponse, len(urls))
 	for i, u := range urls {
 		urlResponses[i] = URLResponse{
+			ID:          u.ID,
 			ShortCode:   u.ShortCode,
 			OriginalURL: u.OriginalURL,
 			CreatedAt:   u.CreatedAt,
