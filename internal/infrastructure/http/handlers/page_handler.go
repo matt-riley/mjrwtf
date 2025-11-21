@@ -212,8 +212,9 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	offset := parseQueryInt(r, "offset", 0)
 	
 	// Validate pagination parameters
-	if limit < 0 || offset < 0 || limit > 100 {
+	if limit <= 0 || offset < 0 || limit > 100 {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		if err := pages.DashboardWithError("Invalid pagination parameters").Render(r.Context(), w); err != nil {
 			w.Write([]byte("Error rendering page"))
 		}
@@ -234,6 +235,7 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := pages.DashboardWithError("Failed to load URLs").Render(r.Context(), w); err != nil {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 			w.Write([]byte("Error rendering page"))
 		}
 		return
@@ -248,6 +250,7 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	// Render the dashboard
 	w.WriteHeader(http.StatusOK)
 	if err := pages.Dashboard(resp.URLs, clickCounts, resp.Total, limit, offset).Render(r.Context(), w); err != nil {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write([]byte("Error rendering page"))
 	}
 }
