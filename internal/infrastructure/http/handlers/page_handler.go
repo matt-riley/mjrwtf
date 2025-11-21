@@ -2,22 +2,28 @@ package handlers
 
 import (
 	"context"
+	"crypto/subtle"
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/http/templates/pages"
 	"github.com/matt-riley/mjrwtf/internal/application"
+	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
 
 // PageHandler handles HTML page rendering
 type PageHandler struct {
 	createUseCase CreateURLUseCase
+	authToken     string
 }
 
 // NewPageHandler creates a new PageHandler
-func NewPageHandler(createUseCase CreateURLUseCase) *PageHandler {
+func NewPageHandler(createUseCase CreateURLUseCase, authToken string) *PageHandler {
 	return &PageHandler{
 		createUseCase: createUseCase,
+		authToken:     authToken,
 	}
 }
 
@@ -106,10 +112,18 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 		return
 	}
 	
-	// Create context with user ID based on auth token
-	// For now, use a static user ID since we don't have JWT parsing
+	// Validate auth token using constant-time comparison to prevent timing attacks
+	if subtle.ConstantTimeCompare([]byte(authToken), []byte(h.authToken)) != 1 {
+		w.WriteHeader(http.StatusUnauthorized)
+		if err := pages.CreateWithError("Invalid authentication token").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
+	
+	// Create context with user ID (use typed context key for type safety)
 	userID := "authenticated-user"
-	ctx := context.WithValue(r.Context(), "userID", userID)
+	ctx := context.WithValue(r.Context(), middleware.UserIDKey, userID)
 	
 	// Call the create URL use case
 	resp, err := h.createUseCase.Execute(ctx, application.CreateURLRequest{
@@ -118,23 +132,53 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 	})
 	
 	if err != nil {
-		// Extract user-friendly error message
-		errorMsg := err.Error()
-		// Clean up technical error prefixes
-		if strings.Contains(errorMsg, "failed to create shortened URL:") {
-			errorMsg = strings.TrimPrefix(errorMsg, "failed to create shortened URL: ")
-		}
-		
-		w.WriteHeader(http.StatusBadRequest)
-		if err := pages.CreateWithError(errorMsg).Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
-		}
+		// Map domain errors to user-friendly messages
+		h.renderErrorPage(w, r, err)
 		return
 	}
 	
 	// Render success page with result
 	w.WriteHeader(http.StatusOK)
 	if err := pages.CreateWithResult(resp.ShortCode, resp.ShortURL, resp.OriginalURL).Render(r.Context(), w); err != nil {
+		w.Write([]byte("Error rendering page"))
+	}
+}
+
+// renderErrorPage maps domain errors to appropriate HTTP status codes and user-friendly messages
+func (h *PageHandler) renderErrorPage(w http.ResponseWriter, r *http.Request, err error) {
+	var statusCode int
+	var errorMsg string
+	
+	// Map domain errors to HTTP status codes and messages
+	switch {
+	case errors.Is(err, url.ErrInvalidOriginalURL):
+		statusCode = http.StatusBadRequest
+		errorMsg = "Invalid URL format"
+	case errors.Is(err, url.ErrEmptyOriginalURL):
+		statusCode = http.StatusBadRequest
+		errorMsg = "URL is required"
+	case errors.Is(err, url.ErrMissingURLScheme):
+		statusCode = http.StatusBadRequest
+		errorMsg = "URL must include http:// or https://"
+	case errors.Is(err, url.ErrInvalidURLScheme):
+		statusCode = http.StatusBadRequest
+		errorMsg = "URL must use HTTP or HTTPS protocol"
+	case errors.Is(err, url.ErrMissingURLHost):
+		statusCode = http.StatusBadRequest
+		errorMsg = "URL must include a valid host"
+	case errors.Is(err, url.ErrInvalidShortCode):
+		statusCode = http.StatusBadRequest
+		errorMsg = "Invalid short code format"
+	case errors.Is(err, url.ErrDuplicateShortCode):
+		statusCode = http.StatusConflict
+		errorMsg = "This short code is already in use, please try again"
+	default:
+		statusCode = http.StatusInternalServerError
+		errorMsg = "An error occurred while creating the short URL"
+	}
+	
+	w.WriteHeader(statusCode)
+	if err := pages.CreateWithError(errorMsg).Render(r.Context(), w); err != nil {
 		w.Write([]byte("Error rendering page"))
 	}
 }
