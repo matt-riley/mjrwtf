@@ -9,7 +9,6 @@ import (
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/http/templates/pages"
 	"github.com/matt-riley/mjrwtf/internal/application"
-	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
@@ -18,8 +17,6 @@ import (
 type PageHandler struct {
 	createUseCase CreateURLUseCase
 	listUseCase   ListURLsUseCase
-	urlRepo       url.Repository
-	clickRepo     click.Repository
 	authToken     string
 }
 
@@ -27,15 +24,11 @@ type PageHandler struct {
 func NewPageHandler(
 	createUseCase CreateURLUseCase,
 	listUseCase ListURLsUseCase,
-	urlRepo url.Repository,
-	clickRepo click.Repository,
 	authToken string,
 ) *PageHandler {
 	return &PageHandler{
 		createUseCase: createUseCase,
 		listUseCase:   listUseCase,
-		urlRepo:       urlRepo,
-		clickRepo:     clickRepo,
 		authToken:     authToken,
 	}
 }
@@ -231,7 +224,7 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	// This matches the pattern used in the create page where the user provides an auth token.
 	userID := "authenticated-user"
 	
-	// Fetch URLs using the list use case
+	// Fetch URLs using the list use case (includes click counts)
 	resp, err := h.listUseCase.Execute(r.Context(), application.ListURLsRequest{
 		CreatedBy: userID,
 		Limit:     limit,
@@ -246,18 +239,10 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Fetch click counts for each URL
-	// TODO: Optimize further with batch query method like GetClickCountsForURLs([]int64)
-	// to fetch all counts in a single query. Currently makes N queries (one per URL).
+	// Extract click counts from response (already fetched by use case)
 	clickCounts := make(map[string]int64)
 	for _, urlItem := range resp.URLs {
-		// Get the click count using the URL ID directly (no extra query needed)
-		count, err := h.clickRepo.GetTotalClickCount(r.Context(), urlItem.ID)
-		if err != nil {
-			// If we can't get the count, default to 0
-			count = 0
-		}
-		clickCounts[urlItem.ShortCode] = count
+		clickCounts[urlItem.ShortCode] = urlItem.ClickCount
 	}
 	
 	// Render the dashboard

@@ -9,16 +9,13 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/application"
-	"github.com/matt-riley/mjrwtf/internal/domain/click"
-	domainurl "github.com/matt-riley/mjrwtf/internal/domain/url"
 )
 
 func TestPageHandler_Home(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
@@ -48,7 +45,7 @@ func TestPageHandler_Home(t *testing.T) {
 
 func TestPageHandler_NotFound(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
 	w := httptest.NewRecorder()
@@ -78,7 +75,7 @@ func TestPageHandler_NotFound(t *testing.T) {
 
 func TestPageHandler_InternalError(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	req := httptest.NewRequest(http.MethodGet, "/error", nil)
 	w := httptest.NewRecorder()
@@ -112,7 +109,7 @@ func TestPageHandler_InternalError(t *testing.T) {
 
 func TestPageHandler_InternalError_EmptyMessage(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	req := httptest.NewRequest(http.MethodGet, "/error", nil)
 	w := httptest.NewRecorder()
@@ -134,7 +131,7 @@ func TestPageHandler_InternalError_EmptyMessage(t *testing.T) {
 
 func TestPageHandler_CreatePage_GET(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	req := httptest.NewRequest(http.MethodGet, "/create", nil)
 	w := httptest.NewRecorder()
@@ -175,7 +172,7 @@ func TestPageHandler_CreatePage_POST_Success(t *testing.T) {
 			}, nil
 		},
 	}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	form := url.Values{}
 	form.Add("original_url", "https://example.com/very/long/url")
@@ -208,7 +205,7 @@ func TestPageHandler_CreatePage_POST_Success(t *testing.T) {
 
 func TestPageHandler_CreatePage_POST_MissingURL(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	form := url.Values{}
 	form.Add("auth_token", "test-token")
@@ -234,7 +231,7 @@ func TestPageHandler_CreatePage_POST_MissingURL(t *testing.T) {
 
 func TestPageHandler_CreatePage_POST_MissingToken(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	form := url.Values{}
 	form.Add("original_url", "https://example.com")
@@ -264,7 +261,7 @@ func TestPageHandler_CreatePage_POST_UseCaseError(t *testing.T) {
 			return nil, fmt.Errorf("failed to create shortened URL: %w", errors.New("URL scheme must be http or https"))
 		},
 	}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	form := url.Values{}
 	form.Add("original_url", "ftp://not-a-valid-url")
@@ -298,7 +295,7 @@ func TestPageHandler_CreatePage_POST_DomainError(t *testing.T) {
 			return nil, fmt.Errorf("failed to shorten URL: %w", errors.New("URL scheme must be http or https"))
 		},
 	}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	form := url.Values{}
 	form.Add("original_url", "ftp://example.com")
@@ -321,7 +318,7 @@ func TestPageHandler_CreatePage_POST_DomainError(t *testing.T) {
 
 func TestPageHandler_CreatePage_MethodNotAllowed(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "test-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token")
 
 	req := httptest.NewRequest(http.MethodPut, "/create", nil)
 	w := httptest.NewRecorder()
@@ -338,7 +335,7 @@ func TestPageHandler_CreatePage_MethodNotAllowed(t *testing.T) {
 
 func TestPageHandler_CreatePage_POST_InvalidToken(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
-	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, &mockURLRepository{}, &mockClickRepository{}, "correct-token")
+	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "correct-token")
 
 	form := url.Values{}
 	form.Add("original_url", "https://example.com")
@@ -361,60 +358,5 @@ func TestPageHandler_CreatePage_POST_InvalidToken(t *testing.T) {
 	if !strings.Contains(body, "Invalid authentication token") {
 		t.Error("expected body to contain invalid token error message")
 	}
-}
-
-// Mock implementations for testing
-type mockURLRepository struct {
-	findByShortCodeFunc func(ctx context.Context, shortCode string) (*domainurl.URL, error)
-}
-
-func (m *mockURLRepository) FindByShortCode(ctx context.Context, shortCode string) (*domainurl.URL, error) {
-	if m.findByShortCodeFunc != nil {
-		return m.findByShortCodeFunc(ctx, shortCode)
-	}
-	return nil, domainurl.ErrURLNotFound
-}
-
-func (m *mockURLRepository) Create(ctx context.Context, u *domainurl.URL) error {
-	return nil
-}
-
-func (m *mockURLRepository) Delete(ctx context.Context, shortCode string) error {
-	return nil
-}
-
-func (m *mockURLRepository) List(ctx context.Context, createdBy string, limit, offset int) ([]*domainurl.URL, error) {
-	return []*domainurl.URL{}, nil
-}
-
-func (m *mockURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*domainurl.URL, error) {
-	return []*domainurl.URL{}, nil
-}
-
-type mockClickRepository struct {
-	getTotalClickCountFunc func(ctx context.Context, urlID int64) (int64, error)
-}
-
-func (m *mockClickRepository) GetTotalClickCount(ctx context.Context, urlID int64) (int64, error) {
-	if m.getTotalClickCountFunc != nil {
-		return m.getTotalClickCountFunc(ctx, urlID)
-	}
-	return 0, nil
-}
-
-func (m *mockClickRepository) Record(ctx context.Context, c *click.Click) error {
-	return nil
-}
-
-func (m *mockClickRepository) GetStatsByURL(ctx context.Context, urlID int64) (*click.Stats, error) {
-	return nil, nil
-}
-
-func (m *mockClickRepository) GetStatsByURLAndTimeRange(ctx context.Context, urlID int64, startTime, endTime time.Time) (*click.TimeRangeStats, error) {
-	return nil, nil
-}
-
-func (m *mockClickRepository) GetClicksByCountry(ctx context.Context, urlID int64) (map[string]int64, error) {
-	return nil, nil
 }
 

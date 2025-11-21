@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 )
 
@@ -34,6 +35,34 @@ func (m *mockListURLRepository) Delete(ctx context.Context, shortCode string) er
 }
 
 func (m *mockListURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*url.URL, error) {
+	return nil, nil
+}
+
+// mockClickRepository is a test double for Click repository
+type mockListClickRepository struct {
+	getTotalClickCountFunc func(ctx context.Context, urlID int64) (int64, error)
+}
+
+func (m *mockListClickRepository) GetTotalClickCount(ctx context.Context, urlID int64) (int64, error) {
+	if m.getTotalClickCountFunc != nil {
+		return m.getTotalClickCountFunc(ctx, urlID)
+	}
+	return 0, nil
+}
+
+func (m *mockListClickRepository) Record(ctx context.Context, c *click.Click) error {
+	return nil
+}
+
+func (m *mockListClickRepository) GetStatsByURL(ctx context.Context, urlID int64) (*click.Stats, error) {
+	return nil, nil
+}
+
+func (m *mockListClickRepository) GetStatsByURLAndTimeRange(ctx context.Context, urlID int64, startTime, endTime time.Time) (*click.TimeRangeStats, error) {
+	return nil, nil
+}
+
+func (m *mockListClickRepository) GetClicksByCountry(ctx context.Context, urlID int64) (map[string]int64, error) {
 	return nil, nil
 }
 
@@ -67,7 +96,7 @@ func TestListURLsUseCase_Execute_Success(t *testing.T) {
 		},
 	}
 
-	useCase := NewListURLsUseCase(mockRepo)
+	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
 
 	req := ListURLsRequest{
 		CreatedBy: "user1",
@@ -110,7 +139,7 @@ func TestListURLsUseCase_Execute_EmptyCreatedBy(t *testing.T) {
 	ctx := context.Background()
 
 	mockRepo := &mockListURLRepository{}
-	useCase := NewListURLsUseCase(mockRepo)
+	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
 
 	req := ListURLsRequest{
 		CreatedBy: "",
@@ -142,7 +171,7 @@ func TestListURLsUseCase_Execute_DefaultPagination(t *testing.T) {
 		},
 	}
 
-	useCase := NewListURLsUseCase(mockRepo)
+	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
 
 	req := ListURLsRequest{
 		CreatedBy: "user1",
@@ -177,7 +206,7 @@ func TestListURLsUseCase_Execute_MaxLimit(t *testing.T) {
 		},
 	}
 
-	useCase := NewListURLsUseCase(mockRepo)
+	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
 
 	req := ListURLsRequest{
 		CreatedBy: "user1",
@@ -207,7 +236,7 @@ func TestListURLsUseCase_Execute_RepositoryError(t *testing.T) {
 		},
 	}
 
-	useCase := NewListURLsUseCase(mockRepo)
+	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
 
 	req := ListURLsRequest{
 		CreatedBy: "user1",
@@ -235,7 +264,7 @@ func TestListURLsUseCase_Execute_EmptyList(t *testing.T) {
 		},
 	}
 
-	useCase := NewListURLsUseCase(mockRepo)
+	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
 
 	req := ListURLsRequest{
 		CreatedBy: "user1",
