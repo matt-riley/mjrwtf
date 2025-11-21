@@ -1,0 +1,417 @@
+package pages
+
+import "github.com/matt-riley/mjrwtf/internal/adapters/http/templates/layouts"
+import "github.com/matt-riley/mjrwtf/internal/application"
+import "fmt"
+import "time"
+
+// Dashboard renders the URL management dashboard page
+templ Dashboard(urls []application.URLResponse, clickCounts map[string]int64, totalCount int, limit int, offset int) {
+	@layouts.Base("Dashboard", dashboardContent(urls, clickCounts, totalCount, limit, offset))
+}
+
+// DashboardWithError renders the dashboard with an error message
+templ DashboardWithError(errorMessage string) {
+	@layouts.Base("Dashboard", dashboardErrorContent(errorMessage))
+}
+
+templ dashboardErrorContent(errorMessage string) {
+	<div class="max-w-6xl mx-auto">
+		<div class="mb-8">
+			<h1 class="text-4xl font-bold text-gray-900 mb-2">
+				URL Dashboard
+			</h1>
+			<p class="text-gray-600">
+				Manage your shortened URLs
+			</p>
+		</div>
+		<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" role="alert">
+			<div class="flex items-start">
+				<div class="text-red-600 text-xl mr-3" role="img" aria-label="Error">✕</div>
+				<div class="flex-1">
+					<h3 class="text-sm font-semibold text-red-900 mb-1">Error</h3>
+					<p class="text-sm text-red-800">{ errorMessage }</p>
+				</div>
+			</div>
+		</div>
+		<div class="text-center">
+			<a href="/create" class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+				Create Your First Short URL
+			</a>
+		</div>
+	</div>
+}
+
+templ dashboardContent(urls []application.URLResponse, clickCounts map[string]int64, totalCount int, limit int, offset int) {
+	<div class="max-w-6xl mx-auto">
+		<div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+			<div>
+				<h1 class="text-4xl font-bold text-gray-900 mb-2">
+					URL Dashboard
+				</h1>
+				<p class="text-gray-600">
+					Manage your shortened URLs
+				</p>
+			</div>
+			<div class="flex gap-3">
+				<a
+					href="/create"
+					class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+				>
+					Create New URL
+				</a>
+			</div>
+		</div>
+		<!-- Empty state -->
+		if len(urls) == 0 {
+			<div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+				<div class="text-gray-400 text-6xl mb-4" role="img" aria-label="Empty">📋</div>
+				<h3 class="text-xl font-semibold text-gray-700 mb-2">No URLs Yet</h3>
+				<p class="text-gray-600 mb-6">
+					You haven't created any shortened URLs yet. Create your first one to get started!
+				</p>
+				<a
+					href="/create"
+					class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+				>
+					Create Your First URL
+				</a>
+			</div>
+		} else {
+			<!-- Analytics Summary -->
+			<div class="grid md:grid-cols-3 gap-6 mb-8">
+				<div class="bg-white rounded-lg shadow-md p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm text-gray-600 mb-1">Total URLs</p>
+							<p class="text-3xl font-bold text-gray-900">{ fmt.Sprintf("%d", totalCount) }</p>
+						</div>
+						<div class="text-blue-600 text-4xl" role="img" aria-label="Links">🔗</div>
+					</div>
+				</div>
+				<div class="bg-white rounded-lg shadow-md p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm text-gray-600 mb-1">Total Clicks</p>
+							<p class="text-3xl font-bold text-gray-900">{ fmt.Sprintf("%d", calculateTotalClicks(clickCounts)) }</p>
+						</div>
+						<div class="text-green-600 text-4xl" role="img" aria-label="Chart">📊</div>
+					</div>
+				</div>
+				<div class="bg-white rounded-lg shadow-md p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm text-gray-600 mb-1">Avg. Clicks/URL</p>
+							<p class="text-3xl font-bold text-gray-900">{ fmt.Sprintf("%.1f", calculateAvgClicks(clickCounts, totalCount)) }</p>
+						</div>
+						<div class="text-purple-600 text-4xl" role="img" aria-label="Target">🎯</div>
+					</div>
+				</div>
+			</div>
+			<!-- URLs Table -->
+			<div class="bg-white rounded-lg shadow-md overflow-hidden">
+				<div class="overflow-x-auto">
+					<table class="min-w-full divide-y divide-gray-200">
+						<thead class="bg-gray-50">
+							<tr>
+								<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Short Code
+								</th>
+								<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Original URL
+								</th>
+								<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Created
+								</th>
+								<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Clicks
+								</th>
+								<th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Actions
+								</th>
+							</tr>
+						</thead>
+						<tbody class="bg-white divide-y divide-gray-200" id="urls-table-body">
+							for _, url := range urls {
+								@urlTableRow(url, clickCounts[url.ShortCode])
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<!-- Pagination -->
+			if totalCount > limit {
+				<div class="mt-6 flex items-center justify-between">
+					<div class="text-sm text-gray-600">
+						Showing { fmt.Sprintf("%d", offset+1) } to { fmt.Sprintf("%d", min(offset+limit, totalCount)) } of { fmt.Sprintf("%d", totalCount) } URLs
+					</div>
+					<div class="flex gap-2">
+						if offset > 0 {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/dashboard?limit=%d&offset=%d", limit, max(0, offset-limit))) }
+								class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+							>
+								Previous
+							</a>
+						} else {
+							<button
+								disabled
+								class="px-4 py-2 bg-gray-100 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed"
+							>
+								Previous
+							</button>
+						}
+						if offset + limit < totalCount {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/dashboard?limit=%d&offset=%d", limit, offset+limit)) }
+								class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+							>
+								Next
+							</a>
+						} else {
+							<button
+								disabled
+								class="px-4 py-2 bg-gray-100 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed"
+							>
+								Next
+							</button>
+						}
+					</div>
+				</div>
+			}
+		}
+	</div>
+	<!-- HTMX for dynamic delete -->
+	<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+	<script>
+		// Handle successful deletion
+		document.body.addEventListener('htmx:afterSwap', function(evt) {
+			if (evt.detail.target.id === 'delete-modal') {
+				// Reload page after successful deletion
+				setTimeout(() => {
+					window.location.reload();
+				}, 1000);
+			}
+		});
+
+		// Show delete confirmation modal
+		function confirmDelete(shortCode, originalURL) {
+			const modal = document.getElementById('delete-modal');
+			const modalShortCode = document.getElementById('modal-short-code');
+			const modalOriginalURL = document.getElementById('modal-original-url');
+			const deleteForm = document.getElementById('delete-form');
+			
+			modalShortCode.textContent = shortCode;
+			modalOriginalURL.textContent = originalURL;
+			deleteForm.setAttribute('hx-delete', '/api/urls/' + shortCode);
+			
+			modal.classList.remove('hidden');
+		}
+
+		// Close modal
+		function closeModal() {
+			const modal = document.getElementById('delete-modal');
+			modal.classList.add('hidden');
+		}
+
+		// Auth token management
+		function getAuthToken() {
+			return sessionStorage.getItem('authToken') || '';
+		}
+
+		function setAuthToken(token) {
+			sessionStorage.setItem('authToken', token);
+		}
+
+		// Set auth header before HTMX requests
+		document.body.addEventListener('htmx:configRequest', function(evt) {
+			const token = getAuthToken();
+			if (token) {
+				evt.detail.headers['Authorization'] = 'Bearer ' + token;
+			}
+		});
+
+		// Check if we need to prompt for auth token
+		window.addEventListener('DOMContentLoaded', function() {
+			const token = getAuthToken();
+			if (!token) {
+				const modal = document.getElementById('auth-modal');
+				modal.classList.remove('hidden');
+			}
+		});
+
+		// Save auth token
+		function saveAuthToken() {
+			const tokenInput = document.getElementById('auth-token-input');
+			const token = tokenInput.value.trim();
+			if (token) {
+				setAuthToken(token);
+				const modal = document.getElementById('auth-modal');
+				modal.classList.add('hidden');
+			} else {
+				alert('Please enter a valid auth token');
+			}
+		}
+
+		// Handle enter key in auth token input
+		document.addEventListener('DOMContentLoaded', function() {
+			const tokenInput = document.getElementById('auth-token-input');
+			if (tokenInput) {
+				tokenInput.addEventListener('keypress', function(e) {
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						saveAuthToken();
+					}
+				});
+			}
+		});
+	</script>
+	<!-- Delete Confirmation Modal -->
+	<div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+			<h3 class="text-xl font-bold text-gray-900 mb-4">Confirm Deletion</h3>
+			<p class="text-gray-600 mb-2">Are you sure you want to delete this URL?</p>
+			<div class="bg-gray-50 rounded p-3 mb-4">
+				<p class="text-sm text-gray-600 mb-1"><strong>Short Code:</strong> <span id="modal-short-code"></span></p>
+				<p class="text-sm text-gray-600 break-all"><strong>Original URL:</strong> <span id="modal-original-url"></span></p>
+			</div>
+			<div class="flex gap-3">
+				<button
+					onclick="closeModal()"
+					class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+				>
+					Cancel
+				</button>
+				<form
+					id="delete-form"
+					hx-delete=""
+					hx-target="#delete-modal"
+					hx-swap="innerHTML"
+					class="flex-1"
+				>
+					<button
+						type="submit"
+						class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+					>
+						Delete
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
+	<!-- Auth Token Modal -->
+	<div id="auth-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+			<h3 class="text-xl font-bold text-gray-900 mb-4">Authentication Required</h3>
+			<p class="text-gray-600 mb-4">Please enter your authentication token to manage URLs.</p>
+			<div class="mb-6">
+				<label for="auth-token-input" class="block text-sm font-medium text-gray-700 mb-2">
+					Authentication Token
+				</label>
+				<input
+					type="password"
+					id="auth-token-input"
+					placeholder="Enter your API token"
+					class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+				/>
+			</div>
+			<button
+				onclick="saveAuthToken()"
+				class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+			>
+				Continue
+			</button>
+		</div>
+	</div>
+}
+
+templ urlTableRow(url application.URLResponse, clickCount int64) {
+	<tr id={ fmt.Sprintf("url-row-%s", url.ShortCode) }>
+		<td class="px-6 py-4 whitespace-nowrap">
+			<div class="flex items-center">
+				<span class="text-sm font-medium text-blue-600 font-mono">{ url.ShortCode }</span>
+				<button
+					onclick={ templ.ComponentScript{Call: fmt.Sprintf("copyShortCode('%s')", url.ShortCode)} }
+					class="ml-2 text-gray-400 hover:text-gray-600"
+					title="Copy short URL"
+				>
+					📋
+				</button>
+			</div>
+		</td>
+		<td class="px-6 py-4">
+			<div class="text-sm text-gray-900 truncate max-w-xs" title={ url.OriginalURL }>
+				{ url.OriginalURL }
+			</div>
+		</td>
+		<td class="px-6 py-4 whitespace-nowrap">
+			<div class="text-sm text-gray-500">
+				{ formatDate(url.CreatedAt) }
+			</div>
+		</td>
+		<td class="px-6 py-4 whitespace-nowrap">
+			<div class="flex items-center">
+				<span class="text-sm font-semibold text-gray-900">{ fmt.Sprintf("%d", clickCount) }</span>
+			</div>
+		</td>
+		<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+			<button
+				onclick={ templ.ComponentScript{Call: fmt.Sprintf("confirmDelete('%s', '%s')", url.ShortCode, url.OriginalURL)} }
+				class="text-red-600 hover:text-red-900"
+			>
+				Delete
+			</button>
+		</td>
+	</tr>
+}
+
+script copyShortCode(shortCode string) {
+	const baseURL = window.location.origin;
+	const shortURL = baseURL + '/' + shortCode;
+	
+	if (navigator.clipboard && navigator.clipboard.writeText) {
+		navigator.clipboard.writeText(shortURL)
+			.then(() => {
+				alert('Short URL copied to clipboard!');
+			})
+			.catch(err => {
+				console.error('Failed to copy:', err);
+			});
+	} else {
+		alert('Copy not supported on this browser');
+	}
+}
+
+func calculateTotalClicks(clickCounts map[string]int64) int64 {
+	total := int64(0)
+	for _, count := range clickCounts {
+		total += count
+	}
+	return total
+}
+
+func calculateAvgClicks(clickCounts map[string]int64, totalURLs int) float64 {
+	if totalURLs == 0 {
+		return 0
+	}
+	total := calculateTotalClicks(clickCounts)
+	return float64(total) / float64(totalURLs)
+}
+
+func formatDate(t time.Time) string {
+	return t.Format("Jan 2, 2006")
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}

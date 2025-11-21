@@ -115,11 +115,12 @@ func (s *Server) setupRoutes() error {
 	// Initialize handlers
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
 	redirectHandler := handlers.NewRedirectHandler(s.redirectUseCase)
-	pageHandler := handlers.NewPageHandler(createUseCase, s.config.AuthToken)
+	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, urlRepo, clickRepo, s.config.AuthToken)
 
 	// HTML page routes
 	s.router.Get("/", pageHandler.Home)
 	s.router.HandleFunc("/create", pageHandler.CreatePage)
+	s.router.Get("/dashboard", pageHandler.Dashboard)
 
 	// Public redirect endpoint (no authentication required)
 	// Must come after specific routes to avoid capturing them
