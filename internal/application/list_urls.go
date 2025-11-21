@@ -17,12 +17,12 @@ type ListURLsRequest struct {
 
 // URLResponse represents a single URL in the response
 type URLResponse struct {
-	ID          int64     `json:"id"`
-	ShortCode   string    `json:"short_code"`
-	OriginalURL string    `json:"original_url"`
-	CreatedAt   time.Time `json:"created_at"`
-	CreatedBy   string    `json:"created_by"`
-	ClickCount  int64     `json:"click_count"`
+	ID          int64     `json:"id"`           // ID is the unique identifier of the URL
+	ShortCode   string    `json:"short_code"`   // ShortCode is the shortened URL identifier
+	OriginalURL string    `json:"original_url"` // OriginalURL is the original long URL
+	CreatedAt   time.Time `json:"created_at"`   // CreatedAt is when the URL was created
+	CreatedBy   string    `json:"created_by"`   // CreatedBy is the user who created the URL
+	ClickCount  int64     `json:"click_count"`  // ClickCount is the total number of clicks on this URL
 }
 
 // ListURLsResponse represents the output after listing URLs
