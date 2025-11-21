@@ -249,7 +249,8 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 				const modal = document.getElementById('auth-modal');
 				modal.classList.add('hidden');
 			} else {
-				alert('Please enter a valid auth token');
+				// Show error inline instead of alert
+				tokenInput.classList.add('border-red-500');
 			}
 		}
 
