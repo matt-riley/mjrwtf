@@ -217,12 +217,14 @@ templ dashboardContent(urls []application.URLResponse, clickCounts map[string]in
 				navigator.clipboard.writeText(shortURL)
 					.then(() => {
 						// Show success feedback (simple approach)
-						const btn = event.target;
-						const originalText = btn.textContent;
-						btn.textContent = '✓';
-						setTimeout(() => {
-							btn.textContent = originalText;
-						}, 2000);
+						const btn = window.event ? window.event.target : null;
+						if (btn) {
+							const originalText = btn.textContent;
+							btn.textContent = '✓';
+							setTimeout(() => {
+								btn.textContent = originalText;
+							}, 2000);
+						}
 					})
 					.catch(err => {
 						console.error('Failed to copy:', err);
