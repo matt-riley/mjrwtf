@@ -110,10 +110,12 @@ func (s *Server) setupRoutes() error {
 	createUseCase := application.NewCreateURLUseCase(generator, s.config.BaseURL)
 	listUseCase := application.NewListURLsUseCase(urlRepo, clickRepo)
 	deleteUseCase := application.NewDeleteURLUseCase(urlRepo)
+	getAnalyticsUseCase := application.NewGetAnalyticsUseCase(urlRepo, clickRepo)
 	s.redirectUseCase = application.NewRedirectURLUseCase(urlRepo, clickRepo)
 
 	// Initialize handlers
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
+	analyticsHandler := handlers.NewAnalyticsHandler(getAnalyticsUseCase)
 	redirectHandler := handlers.NewRedirectHandler(s.redirectUseCase)
 	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, s.config.AuthToken)
 
@@ -135,6 +137,7 @@ func (s *Server) setupRoutes() error {
 			r.Post("/", urlHandler.Create)
 			r.Get("/", urlHandler.List)
 			r.Delete("/{shortCode}", urlHandler.Delete)
+			r.Get("/{shortCode}/analytics", analyticsHandler.GetAnalytics)
 		})
 	})
 
