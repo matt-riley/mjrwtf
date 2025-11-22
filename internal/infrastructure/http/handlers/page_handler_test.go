@@ -359,4 +359,3 @@ func TestPageHandler_CreatePage_POST_InvalidToken(t *testing.T) {
 		t.Error("expected body to contain invalid token error message")
 	}
 }
-

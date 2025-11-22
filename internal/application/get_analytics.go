@@ -17,14 +17,14 @@ type GetAnalyticsRequest struct {
 
 // GetAnalyticsResponse represents the analytics data for a URL
 type GetAnalyticsResponse struct {
-	ShortCode   string              `json:"short_code"`
-	OriginalURL string              `json:"original_url"`
-	TotalClicks int64               `json:"total_clicks"`
-	ByCountry   map[string]int64    `json:"by_country"`
-	ByReferrer  map[string]int64    `json:"by_referrer"`
-	ByDate      map[string]int64    `json:"by_date,omitempty"` // Only for all-time stats
-	StartTime   *time.Time          `json:"start_time,omitempty"`
-	EndTime     *time.Time          `json:"end_time,omitempty"`
+	ShortCode   string           `json:"short_code"`
+	OriginalURL string           `json:"original_url"`
+	TotalClicks int64            `json:"total_clicks"`
+	ByCountry   map[string]int64 `json:"by_country"`
+	ByReferrer  map[string]int64 `json:"by_referrer"`
+	ByDate      map[string]int64 `json:"by_date,omitempty"` // Only for all-time stats
+	StartTime   *time.Time       `json:"start_time,omitempty"`
+	EndTime     *time.Time       `json:"end_time,omitempty"`
 }
 
 // GetAnalyticsUseCase handles retrieving analytics for shortened URLs

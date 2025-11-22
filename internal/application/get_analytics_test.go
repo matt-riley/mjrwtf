@@ -97,7 +97,7 @@ func TestGetAnalyticsUseCase_Execute_AllTimeStats(t *testing.T) {
 			"UK": 50,
 		},
 		ByReferrer: map[string]int64{
-			"https://google.com": 80,
+			"https://google.com":  80,
 			"https://twitter.com": 70,
 		},
 		ByDate: map[string]int64{
@@ -210,7 +210,7 @@ func TestGetAnalyticsUseCase_Execute_TimeRangeStats(t *testing.T) {
 			"UK": 30,
 		},
 		ByReferrer: map[string]int64{
-			"https://google.com": 60,
+			"https://google.com":  60,
 			"https://twitter.com": 40,
 		},
 	}
