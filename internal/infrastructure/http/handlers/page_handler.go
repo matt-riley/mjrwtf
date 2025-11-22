@@ -66,7 +66,7 @@ func (h *PageHandler) InternalError(w http.ResponseWriter, r *http.Request, mess
 // CreatePage renders the URL creation form page
 func (h *PageHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	
+
 	// Handle GET request - show empty form
 	if r.Method == http.MethodGet {
 		w.WriteHeader(http.StatusOK)
@@ -75,13 +75,13 @@ func (h *PageHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	// Handle POST request - process form submission
 	if r.Method == http.MethodPost {
 		h.handleCreateURLForm(w, r)
 		return
 	}
-	
+
 	// Method not allowed
 	w.WriteHeader(http.StatusMethodNotAllowed)
 }
@@ -96,11 +96,11 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	
+
 	// Extract form values
 	originalURL := strings.TrimSpace(r.FormValue("original_url"))
 	authToken := strings.TrimSpace(r.FormValue("auth_token"))
-	
+
 	// Server-side validation
 	if originalURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -109,7 +109,7 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	
+
 	if authToken == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := pages.CreateWithError("Authentication token is required").Render(r.Context(), w); err != nil {
@@ -117,7 +117,7 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	
+
 	// Validate auth token using constant-time comparison to prevent timing attacks
 	if subtle.ConstantTimeCompare([]byte(authToken), []byte(h.authToken)) != 1 {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -126,23 +126,23 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	
+
 	// Create context with user ID (use typed context key for type safety)
 	userID := "authenticated-user"
 	ctx := context.WithValue(r.Context(), middleware.UserIDKey, userID)
-	
+
 	// Call the create URL use case
 	resp, err := h.createUseCase.Execute(ctx, application.CreateURLRequest{
 		OriginalURL: originalURL,
 		CreatedBy:   userID,
 	})
-	
+
 	if err != nil {
 		// Map domain errors to user-friendly messages
 		h.renderErrorPage(w, r, err)
 		return
 	}
-	
+
 	// Render success page with result
 	w.WriteHeader(http.StatusOK)
 	if err := pages.CreateWithResult(resp.ShortCode, resp.ShortURL, resp.OriginalURL).Render(r.Context(), w); err != nil {
@@ -154,7 +154,7 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 func (h *PageHandler) renderErrorPage(w http.ResponseWriter, r *http.Request, err error) {
 	var statusCode int
 	var errorMsg string
-	
+
 	// Map domain errors to HTTP status codes and messages
 	switch {
 	case errors.Is(err, url.ErrInvalidOriginalURL):
@@ -182,7 +182,7 @@ func (h *PageHandler) renderErrorPage(w http.ResponseWriter, r *http.Request, er
 		statusCode = http.StatusInternalServerError
 		errorMsg = "An error occurred while creating the short URL"
 	}
-	
+
 	w.WriteHeader(statusCode)
 	if err := pages.CreateWithError(errorMsg).Render(r.Context(), w); err != nil {
 		w.Write([]byte("Error rendering page"))
@@ -206,11 +206,11 @@ func (h *PageHandler) renderErrorPage(w http.ResponseWriter, r *http.Request, er
 // In production, this should come from session authentication.
 func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	
+
 	// Parse query parameters for pagination
 	limit := parseQueryInt(r, "limit", 20)
 	offset := parseQueryInt(r, "offset", 0)
-	
+
 	// Validate pagination parameters
 	if limit <= 0 || offset < 0 || limit > 100 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -220,18 +220,18 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	// For now, use a fixed user ID. In a real app, this would come from a session cookie.
 	// This matches the pattern used in the create page where the user provides an auth token.
 	userID := "authenticated-user"
-	
+
 	// Fetch URLs using the list use case (includes click counts)
 	resp, err := h.listUseCase.Execute(r.Context(), application.ListURLsRequest{
 		CreatedBy: userID,
 		Limit:     limit,
 		Offset:    offset,
 	})
-	
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := pages.DashboardWithError("Failed to load URLs").Render(r.Context(), w); err != nil {
@@ -240,13 +240,13 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	// Extract click counts from response (already fetched by use case)
 	clickCounts := make(map[string]int64)
 	for _, urlItem := range resp.URLs {
 		clickCounts[urlItem.ShortCode] = urlItem.ClickCount
 	}
-	
+
 	// Render the dashboard
 	w.WriteHeader(http.StatusOK)
 	if err := pages.Dashboard(resp.URLs, clickCounts, resp.Total, limit, offset).Render(r.Context(), w); err != nil {
@@ -254,4 +254,3 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Error rendering page"))
 	}
 }
-

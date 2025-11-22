@@ -36,7 +36,7 @@ func TestAnalyticsHandler_GetAnalytics_Success(t *testing.T) {
 			"UK": 50,
 		},
 		ByReferrer: map[string]int64{
-			"https://google.com": 80,
+			"https://google.com":  80,
 			"https://twitter.com": 70,
 		},
 		ByDate: map[string]int64{
