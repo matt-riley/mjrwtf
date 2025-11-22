@@ -83,7 +83,7 @@ func (uc *ListURLsUseCase) Execute(ctx context.Context, req ListURLsRequest) (*L
 			// Default to 0 if we can't get the count
 			clickCount = 0
 		}
-		
+
 		urlResponses[i] = URLResponse{
 			ID:          u.ID,
 			ShortCode:   u.ShortCode,
