@@ -74,22 +74,16 @@ func (uc *ListURLsUseCase) Execute(ctx context.Context, req ListURLsRequest) (*L
 		return nil, err
 	}
 
-	// Convert domain URLs to response format and fetch click counts in batch
+	// Convert domain URLs to response format and fetch click counts
 	urlResponses := make([]URLResponse, len(urls))
-	urlIDs := make([]int64, len(urls))
 	for i, u := range urls {
-		urlIDs[i] = u.ID
-	}
-
-	// Batch fetch click counts for all URLs
-	clickCounts, err := uc.clickRepo.GetClickCountsForURLs(ctx, urlIDs)
-	if err != nil {
-		// If batch fetch fails, default all click counts to 0
-		clickCounts = make(map[int64]int64)
-	}
-
-	for i, u := range urls {
-		clickCount := clickCounts[u.ID]
+		// Fetch click count for this URL
+		clickCount, err := uc.clickRepo.GetTotalClickCount(ctx, u.ID)
+		if err != nil {
+			// Default to 0 if we can't get the count
+			clickCount = 0
+		}
+		
 		urlResponses[i] = URLResponse{
 			ID:          u.ID,
 			ShortCode:   u.ShortCode,
