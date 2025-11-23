@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
 
 // GetAnalyticsUseCase defines the interface for getting analytics
@@ -30,6 +31,13 @@ func NewAnalyticsHandler(getAnalyticsUseCase GetAnalyticsUseCase) *AnalyticsHand
 
 // GetAnalytics handles GET /api/urls/:shortCode/analytics - Get analytics for a URL
 func (h *AnalyticsHandler) GetAnalytics(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from context (set by auth middleware)
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		respondError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// Extract short code from URL path
 	shortCode := chi.URLParam(r, "shortCode")
 	if shortCode == "" {
@@ -68,9 +76,10 @@ func (h *AnalyticsHandler) GetAnalytics(w http.ResponseWriter, r *http.Request) 
 
 	// Execute use case
 	resp, err := h.getAnalyticsUseCase.Execute(r.Context(), application.GetAnalyticsRequest{
-		ShortCode: shortCode,
-		StartTime: startTime,
-		EndTime:   endTime,
+		ShortCode:   shortCode,
+		RequestedBy: userID,
+		StartTime:   startTime,
+		EndTime:     endTime,
 	})
 
 	if err != nil {
@@ -90,6 +99,10 @@ func handleAnalyticsError(w http.ResponseWriter, err error) {
 	case errors.Is(err, url.ErrEmptyShortCode):
 		respondError(w, err.Error(), http.StatusBadRequest)
 	case errors.Is(err, url.ErrInvalidShortCode):
+		respondError(w, err.Error(), http.StatusBadRequest)
+	case errors.Is(err, url.ErrUnauthorizedDeletion):
+		respondError(w, err.Error(), http.StatusForbidden)
+	case errors.Is(err, url.ErrInvalidCreatedBy):
 		respondError(w, err.Error(), http.StatusBadRequest)
 	default:
 		respondError(w, "internal server error", http.StatusInternalServerError)

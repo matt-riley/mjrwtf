@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -84,6 +85,8 @@ func TestRedirectURLUseCase_LoadTest(t *testing.T) {
 	// Simulate high traffic: 100 requests as fast as possible
 	numRequests := 100
 	var wg sync.WaitGroup
+	var errorsMu sync.Mutex
+	var errors []string
 	startTime := time.Now()
 
 	for i := 0; i < numRequests; i++ {
@@ -100,18 +103,29 @@ func TestRedirectURLUseCase_LoadTest(t *testing.T) {
 
 			resp, err := useCase.Execute(context.Background(), req)
 			if err != nil {
-				t.Errorf("request %d failed: %v", reqNum, err)
+				errorsMu.Lock()
+				errors = append(errors, fmt.Sprintf("request %d failed: %v", reqNum, err))
+				errorsMu.Unlock()
 				return
 			}
 
 			if resp.OriginalURL != "https://example.com" {
-				t.Errorf("request %d: unexpected URL: %s", reqNum, resp.OriginalURL)
+				errorsMu.Lock()
+				errors = append(errors, fmt.Sprintf("request %d: unexpected URL: %s", reqNum, resp.OriginalURL))
+				errorsMu.Unlock()
 			}
 		}(i)
 	}
 
 	// Wait for all redirects to complete
 	wg.Wait()
+
+	// Report any errors that occurred
+	if len(errors) > 0 {
+		for _, err := range errors {
+			t.Error(err)
+		}
+	}
 	redirectDuration := time.Since(startTime)
 
 	// Verify redirects are fast (non-blocking)

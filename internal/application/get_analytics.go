@@ -10,9 +10,10 @@ import (
 
 // GetAnalyticsRequest represents the input for getting analytics for a URL
 type GetAnalyticsRequest struct {
-	ShortCode string
-	StartTime *time.Time // Optional: filter clicks from this time
-	EndTime   *time.Time // Optional: filter clicks until this time
+	ShortCode   string
+	RequestedBy string     // User requesting analytics (for ownership verification)
+	StartTime   *time.Time // Optional: filter clicks from this time
+	EndTime     *time.Time // Optional: filter clicks until this time
 }
 
 // GetAnalyticsResponse represents the analytics data for a URL
@@ -48,10 +49,20 @@ func (uc *GetAnalyticsUseCase) Execute(ctx context.Context, req GetAnalyticsRequ
 		return nil, url.ErrEmptyShortCode
 	}
 
+	// Validate requested by
+	if req.RequestedBy == "" {
+		return nil, url.ErrInvalidCreatedBy
+	}
+
 	// Find URL by short code
 	foundURL, err := uc.urlRepo.FindByShortCode(ctx, req.ShortCode)
 	if err != nil {
 		return nil, err
+	}
+
+	// Verify ownership - only the creator can view analytics
+	if foundURL.CreatedBy != req.RequestedBy {
+		return nil, url.ErrUnauthorizedDeletion
 	}
 
 	// Check if time range is specified

@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
 
 // Mock GetAnalyticsUseCase
@@ -24,6 +25,11 @@ func (m *mockGetAnalyticsUseCase) Execute(ctx context.Context, req application.G
 		return m.executeFunc(ctx, req)
 	}
 	return nil, errors.New("not implemented")
+}
+
+// Helper function to add user ID to context
+func withUserIDForAnalytics(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, middleware.UserIDKey, userID)
 }
 
 func TestAnalyticsHandler_GetAnalytics_Success(t *testing.T) {
@@ -48,7 +54,7 @@ func TestAnalyticsHandler_GetAnalytics_Success(t *testing.T) {
 
 	useCase := &mockGetAnalyticsUseCase{
 		executeFunc: func(ctx context.Context, req application.GetAnalyticsRequest) (*application.GetAnalyticsResponse, error) {
-			if req.ShortCode == "abc123" {
+			if req.ShortCode == "abc123" && req.RequestedBy == "test-user" {
 				return mockResp, nil
 			}
 			return nil, url.ErrURLNotFound
@@ -61,8 +67,9 @@ func TestAnalyticsHandler_GetAnalytics_Success(t *testing.T) {
 	r := chi.NewRouter()
 	r.Get("/api/urls/{shortCode}/analytics", handler.GetAnalytics)
 
-	// Create request
+	// Create request with user context
 	req := httptest.NewRequest(http.MethodGet, "/api/urls/abc123/analytics", nil)
+	req = req.WithContext(withUserIDForAnalytics(req.Context(), "test-user"))
 	w := httptest.NewRecorder()
 
 	// Serve request
@@ -114,7 +121,7 @@ func TestAnalyticsHandler_GetAnalytics_WithTimeRange(t *testing.T) {
 
 	useCase := &mockGetAnalyticsUseCase{
 		executeFunc: func(ctx context.Context, req application.GetAnalyticsRequest) (*application.GetAnalyticsResponse, error) {
-			if req.ShortCode == "abc123" && req.StartTime != nil && req.EndTime != nil {
+			if req.ShortCode == "abc123" && req.RequestedBy == "test-user" && req.StartTime != nil && req.EndTime != nil {
 				return mockResp, nil
 			}
 			return nil, url.ErrURLNotFound
@@ -127,8 +134,9 @@ func TestAnalyticsHandler_GetAnalytics_WithTimeRange(t *testing.T) {
 	r := chi.NewRouter()
 	r.Get("/api/urls/{shortCode}/analytics", handler.GetAnalytics)
 
-	// Create request with time range
+	// Create request with time range and user context
 	req := httptest.NewRequest(http.MethodGet, "/api/urls/abc123/analytics?start_time=2025-11-20T00:00:00Z&end_time=2025-11-22T23:59:59Z", nil)
+	req = req.WithContext(withUserIDForAnalytics(req.Context(), "test-user"))
 	w := httptest.NewRecorder()
 
 	// Serve request
@@ -168,8 +176,9 @@ func TestAnalyticsHandler_GetAnalytics_NotFound(t *testing.T) {
 	r := chi.NewRouter()
 	r.Get("/api/urls/{shortCode}/analytics", handler.GetAnalytics)
 
-	// Create request
+	// Create request with user context
 	req := httptest.NewRequest(http.MethodGet, "/api/urls/notfound/analytics", nil)
+	req = req.WithContext(withUserIDForAnalytics(req.Context(), "test-user"))
 	w := httptest.NewRecorder()
 
 	// Serve request
@@ -178,6 +187,59 @@ func TestAnalyticsHandler_GetAnalytics_NotFound(t *testing.T) {
 	// Check status code
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected status 404, got %d", w.Code)
+	}
+}
+
+func TestAnalyticsHandler_GetAnalytics_Unauthorized(t *testing.T) {
+	useCase := &mockGetAnalyticsUseCase{
+		executeFunc: func(ctx context.Context, req application.GetAnalyticsRequest) (*application.GetAnalyticsResponse, error) {
+			return nil, url.ErrUnauthorizedDeletion
+		},
+	}
+
+	handler := NewAnalyticsHandler(useCase)
+
+	// Create router with chi
+	r := chi.NewRouter()
+	r.Get("/api/urls/{shortCode}/analytics", handler.GetAnalytics)
+
+	// Create request with user context
+	req := httptest.NewRequest(http.MethodGet, "/api/urls/abc123/analytics", nil)
+	req = req.WithContext(withUserIDForAnalytics(req.Context(), "test-user"))
+	w := httptest.NewRecorder()
+
+	// Serve request
+	r.ServeHTTP(w, req)
+
+	// Check status code - should be 403 Forbidden
+	if w.Code != http.StatusForbidden {
+		t.Errorf("expected status 403, got %d", w.Code)
+	}
+}
+
+func TestAnalyticsHandler_GetAnalytics_NoUserInContext(t *testing.T) {
+	useCase := &mockGetAnalyticsUseCase{
+		executeFunc: func(ctx context.Context, req application.GetAnalyticsRequest) (*application.GetAnalyticsResponse, error) {
+			return nil, errors.New("should not be called")
+		},
+	}
+
+	handler := NewAnalyticsHandler(useCase)
+
+	// Create router with chi
+	r := chi.NewRouter()
+	r.Get("/api/urls/{shortCode}/analytics", handler.GetAnalytics)
+
+	// Create request WITHOUT user context
+	req := httptest.NewRequest(http.MethodGet, "/api/urls/abc123/analytics", nil)
+	w := httptest.NewRecorder()
+
+	// Serve request
+	r.ServeHTTP(w, req)
+
+	// Check status code - should be 401 Unauthorized
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
 	}
 }
 
@@ -219,6 +281,7 @@ func TestAnalyticsHandler_GetAnalytics_InvalidTimeFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			req = req.WithContext(withUserIDForAnalytics(req.Context(), "test-user"))
 			w := httptest.NewRecorder()
 
 			r.ServeHTTP(w, req)
