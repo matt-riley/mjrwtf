@@ -276,6 +276,10 @@ func TestAnalyticsHandler_GetAnalytics_InvalidTimeFormat(t *testing.T) {
 			name: "missing start_time",
 			url:  "/api/urls/abc123/analytics?end_time=2025-11-22T23:59:59Z",
 		},
+		{
+			name: "start_time after end_time",
+			url:  "/api/urls/abc123/analytics?start_time=2025-11-22T23:59:59Z&end_time=2025-11-20T00:00:00Z",
+		},
 	}
 
 	for _, tt := range tests {

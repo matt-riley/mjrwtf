@@ -1,16 +1,12 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/matt-riley/mjrwtf/internal/application"
-	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
 
@@ -61,11 +57,6 @@ type CreateURLResponse struct {
 	OriginalURL string `json:"original_url"`
 }
 
-// ErrorResponse represents a JSON error response
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
 // Create handles POST /api/urls - Create shortened URL
 func (h *URLHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Extract user ID from context (set by auth middleware)
@@ -95,7 +86,7 @@ func (h *URLHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		handleUseCaseError(w, err)
+		handleDomainError(w, err)
 		return
 	}
 
@@ -133,7 +124,7 @@ func (h *URLHandler) List(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		handleUseCaseError(w, err)
+		handleDomainError(w, err)
 		return
 	}
 
@@ -164,77 +155,10 @@ func (h *URLHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		handleUseCaseError(w, err)
+		handleDomainError(w, err)
 		return
 	}
 
 	// Respond with no content on success
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// respondJSON writes a JSON response
-func respondJSON(w http.ResponseWriter, data interface{}, statusCode int) {
-	w.Header().Set("Content-Type", "application/json")
-
-	// Encode to a buffer first to catch errors before writing status code
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(data); err != nil {
-		// Log error and send internal server error
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"failed to encode response"}`))
-		return
-	}
-
-	w.WriteHeader(statusCode)
-	w.Write(buf.Bytes())
-}
-
-// respondError writes a JSON error response
-func respondError(w http.ResponseWriter, message string, statusCode int) {
-	respondJSON(w, ErrorResponse{Error: message}, statusCode)
-}
-
-// handleUseCaseError maps domain errors to HTTP status codes
-func handleUseCaseError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, url.ErrURLNotFound):
-		respondError(w, err.Error(), http.StatusNotFound)
-	case errors.Is(err, url.ErrDuplicateShortCode):
-		respondError(w, err.Error(), http.StatusConflict)
-	case errors.Is(err, url.ErrInvalidShortCode):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrEmptyShortCode):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrInvalidOriginalURL):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrEmptyOriginalURL):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrInvalidCreatedBy):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrUnauthorizedDeletion):
-		respondError(w, err.Error(), http.StatusForbidden)
-	case errors.Is(err, url.ErrMissingURLScheme):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrInvalidURLScheme):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrMissingURLHost):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	default:
-		respondError(w, "internal server error", http.StatusInternalServerError)
-	}
-}
-
-// parseQueryInt parses an integer query parameter with a default value
-func parseQueryInt(r *http.Request, key string, defaultValue int) int {
-	valueStr := r.URL.Query().Get(key)
-	if valueStr == "" {
-		return defaultValue
-	}
-
-	value, err := strconv.Atoi(valueStr)
-	if err != nil {
-		return defaultValue
-	}
-
-	return value
 }

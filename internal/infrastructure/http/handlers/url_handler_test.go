@@ -454,7 +454,7 @@ func TestHandleUseCaseError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
-			handleUseCaseError(rec, tt.err)
+			handleDomainError(rec, tt.err)
 
 			if rec.Code != tt.expectedStatus {
 				t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)

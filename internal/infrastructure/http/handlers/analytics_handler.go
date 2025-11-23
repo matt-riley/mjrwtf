@@ -2,13 +2,11 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/matt-riley/mjrwtf/internal/application"
-	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
 
@@ -74,6 +72,12 @@ func (h *AnalyticsHandler) GetAnalytics(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Validate that start_time is before end_time
+	if startTime != nil && endTime != nil && startTime.After(*endTime) {
+		respondError(w, "start_time must be before end_time", http.StatusBadRequest)
+		return
+	}
+
 	// Execute use case
 	resp, err := h.getAnalyticsUseCase.Execute(r.Context(), application.GetAnalyticsRequest{
 		ShortCode:   shortCode,
@@ -83,28 +87,10 @@ func (h *AnalyticsHandler) GetAnalytics(w http.ResponseWriter, r *http.Request) 
 	})
 
 	if err != nil {
-		handleAnalyticsError(w, err)
+		handleDomainError(w, err)
 		return
 	}
 
 	// Respond with success
 	respondJSON(w, resp, http.StatusOK)
-}
-
-// handleAnalyticsError maps domain errors to HTTP status codes
-func handleAnalyticsError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, url.ErrURLNotFound):
-		respondError(w, err.Error(), http.StatusNotFound)
-	case errors.Is(err, url.ErrEmptyShortCode):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrInvalidShortCode):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, url.ErrUnauthorizedDeletion):
-		respondError(w, err.Error(), http.StatusForbidden)
-	case errors.Is(err, url.ErrInvalidCreatedBy):
-		respondError(w, err.Error(), http.StatusBadRequest)
-	default:
-		respondError(w, "internal server error", http.StatusInternalServerError)
-	}
 }
