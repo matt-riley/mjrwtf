@@ -57,7 +57,7 @@ func TestAnalyticsIntegration(t *testing.T) {
 	urlRepo := repository.NewSQLiteURLRepository(db)
 	clickRepo := repository.NewSQLiteClickRepository(db)
 
-	testURL, err := url.NewURL("test123", "https://example.com", "user1")
+	testURL, err := url.NewURL("test123", "https://example.com", "authenticated-user")
 	if err != nil {
 		t.Fatalf("failed to create test URL: %v", err)
 	}
@@ -205,6 +205,30 @@ func TestAnalyticsIntegration(t *testing.T) {
 
 		if w.Code != http.StatusNotFound {
 			t.Errorf("expected status 404, got %d", w.Code)
+		}
+	})
+
+	t.Run("unauthorized access to analytics (URL owned by different user)", func(t *testing.T) {
+		// Create a URL with a different owner
+		otherUserURL, err := url.NewURL("other123", "https://other.com", "other-user")
+		if err != nil {
+			t.Fatalf("failed to create test URL: %v", err)
+		}
+
+		if err := urlRepo.Create(context.Background(), otherUserURL); err != nil {
+			t.Fatalf("failed to save test URL: %v", err)
+		}
+
+		// Try to access analytics for URL owned by other-user
+		req := httptest.NewRequest(http.MethodGet, "/api/urls/other123/analytics", nil)
+		req.Header.Set("Authorization", "Bearer test-token")
+		w := httptest.NewRecorder()
+
+		server.Router().ServeHTTP(w, req)
+
+		// Should get 403 Forbidden because authenticated-user doesn't own this URL
+		if w.Code != http.StatusForbidden {
+			t.Errorf("expected status 403, got %d: %s", w.Code, w.Body.String())
 		}
 	})
 }

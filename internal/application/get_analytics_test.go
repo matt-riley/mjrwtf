@@ -129,7 +129,8 @@ func TestGetAnalyticsUseCase_Execute_AllTimeStats(t *testing.T) {
 
 	t.Run("successfully get all-time analytics", func(t *testing.T) {
 		resp, err := useCase.Execute(ctx, GetAnalyticsRequest{
-			ShortCode: "abc123",
+			ShortCode:   "abc123",
+			RequestedBy: "user1",
 		})
 
 		if err != nil {
@@ -167,7 +168,8 @@ func TestGetAnalyticsUseCase_Execute_AllTimeStats(t *testing.T) {
 
 	t.Run("URL not found", func(t *testing.T) {
 		_, err := useCase.Execute(ctx, GetAnalyticsRequest{
-			ShortCode: "notfound",
+			ShortCode:   "notfound",
+			RequestedBy: "user1",
 		})
 
 		if !errors.Is(err, url.ErrURLNotFound) {
@@ -177,11 +179,34 @@ func TestGetAnalyticsUseCase_Execute_AllTimeStats(t *testing.T) {
 
 	t.Run("empty short code", func(t *testing.T) {
 		_, err := useCase.Execute(ctx, GetAnalyticsRequest{
-			ShortCode: "",
+			ShortCode:   "",
+			RequestedBy: "user1",
 		})
 
 		if !errors.Is(err, url.ErrEmptyShortCode) {
 			t.Errorf("expected ErrEmptyShortCode, got %v", err)
+		}
+	})
+
+	t.Run("unauthorized access", func(t *testing.T) {
+		_, err := useCase.Execute(ctx, GetAnalyticsRequest{
+			ShortCode:   "abc123",
+			RequestedBy: "user2", // Different user
+		})
+
+		if !errors.Is(err, url.ErrUnauthorizedDeletion) {
+			t.Errorf("expected ErrUnauthorizedDeletion, got %v", err)
+		}
+	})
+
+	t.Run("empty requested by", func(t *testing.T) {
+		_, err := useCase.Execute(ctx, GetAnalyticsRequest{
+			ShortCode:   "abc123",
+			RequestedBy: "",
+		})
+
+		if !errors.Is(err, url.ErrInvalidCreatedBy) {
+			t.Errorf("expected ErrInvalidCreatedBy, got %v", err)
 		}
 	})
 }
@@ -237,9 +262,10 @@ func TestGetAnalyticsUseCase_Execute_TimeRangeStats(t *testing.T) {
 
 	t.Run("successfully get time range analytics", func(t *testing.T) {
 		resp, err := useCase.Execute(ctx, GetAnalyticsRequest{
-			ShortCode: "abc123",
-			StartTime: &startTime,
-			EndTime:   &endTime,
+			ShortCode:   "abc123",
+			RequestedBy: "user1",
+			StartTime:   &startTime,
+			EndTime:     &endTime,
 		})
 
 		if err != nil {
