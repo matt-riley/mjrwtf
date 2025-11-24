@@ -75,6 +75,11 @@ CREATE TABLE IF NOT EXISTS clicks (
     -- NULL if no referer or direct access
     referrer TEXT,
     
+    -- Parsed domain from referrer URL (e.g., "google.com")
+    -- Extracted from the referrer field for efficient domain-level analytics
+    -- NULL if no referer or URL is malformed
+    referrer_domain VARCHAR(255),
+    
     -- Country code derived from IP address
     -- Example: "US", "GB", "CA" (ISO 3166-1 alpha-2)
     -- NULL if GeoIP is disabled or lookup fails
@@ -100,6 +105,9 @@ CREATE INDEX IF NOT EXISTS idx_clicks_clicked_at ON clicks(clicked_at);
 
 -- Index for country-based analytics
 CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
+
+-- Index for referrer domain analytics
+CREATE INDEX IF NOT EXISTS idx_clicks_referrer_domain ON clicks(referrer_domain);
 
 
 -- ============================================================================
@@ -133,8 +141,8 @@ CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
 --   SELECT original_url FROM urls WHERE short_code = 'abc123';
 --
 -- Record a click:
---   INSERT INTO clicks (url_id, referrer, country, user_agent) 
---   VALUES (1, 'https://google.com', 'US', 'Mozilla/5.0...');
+--   INSERT INTO clicks (url_id, referrer, referrer_domain, country, user_agent) 
+--   VALUES (1, 'https://google.com/search', 'google.com', 'US', 'Mozilla/5.0...');
 --
 -- Get click count for a URL:
 --   SELECT COUNT(*) FROM clicks WHERE url_id = 1;
@@ -143,6 +151,24 @@ CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
 --   SELECT country, COUNT(*) as click_count 
 --   FROM clicks 
 --   WHERE url_id = 1 AND country IS NOT NULL
+--   GROUP BY country
+--   ORDER BY click_count DESC;
+--
+-- Get top 10 referrers for a URL:
+--   SELECT referrer, COUNT(*) as click_count 
+--   FROM clicks 
+--   WHERE url_id = 1 AND referrer IS NOT NULL
+--   GROUP BY referrer
+--   ORDER BY click_count DESC
+--   LIMIT 10;
+--
+-- Get top referrer domains:
+--   SELECT referrer_domain, COUNT(*) as click_count 
+--   FROM clicks 
+--   WHERE url_id = 1 AND referrer_domain IS NOT NULL
+--   GROUP BY referrer_domain
+--   ORDER BY click_count DESC
+--   LIMIT 10;
 --   GROUP BY country
 --   ORDER BY click_count DESC;
 --
