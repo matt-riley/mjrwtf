@@ -75,11 +75,6 @@ CREATE TABLE IF NOT EXISTS clicks (
     -- NULL if no referer or direct access
     referrer TEXT,
     
-    -- Parsed domain from referrer URL (e.g., "google.com")
-    -- Extracted from the referrer field for efficient domain-level analytics
-    -- NULL if no referer or URL is malformed
-    referrer_domain VARCHAR(255),
-    
     -- Country code derived from IP address
     -- Example: "US", "GB", "CA" (ISO 3166-1 alpha-2)
     -- NULL if GeoIP is disabled or lookup fails
@@ -88,6 +83,12 @@ CREATE TABLE IF NOT EXISTS clicks (
     -- User-Agent header from the request
     -- Useful for device/browser analytics
     user_agent TEXT,
+    
+    -- Parsed domain from referrer URL (e.g., "google.com")
+    -- Extracted from the referrer field for efficient domain-level analytics
+    -- NULL if no referer or URL is malformed
+    -- Note: Added via migration, appears at end of table
+    referrer_domain VARCHAR(255),
     
     -- Foreign key constraint linking to urls table
     -- ON DELETE CASCADE: when a URL is deleted, all its clicks are deleted too
