@@ -6,13 +6,22 @@ package sqliterepo
 
 import (
 	"context"
+	"time"
 )
 
 type Querier interface {
 	// ============================================================================
+	// Session Queries
+	// ============================================================================
+	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	// ============================================================================
 	// URL Queries
 	// ============================================================================
 	CreateURL(ctx context.Context, arg CreateURLParams) (Url, error)
+	DeleteExpiredSessions(ctx context.Context) (int64, error)
+	DeleteIdleSessions(ctx context.Context, lastActivityAt time.Time) (int64, error)
+	DeleteSession(ctx context.Context, id string) error
+	DeleteSessionsByUserID(ctx context.Context, userID string) error
 	DeleteURLByShortCode(ctx context.Context, shortCode string) error
 	FindURLByShortCode(ctx context.Context, shortCode string) (Url, error)
 	GetClicksByCountry(ctx context.Context, urlID int64) ([]GetClicksByCountryRow, error)
@@ -20,14 +29,17 @@ type Querier interface {
 	GetClicksByDate(ctx context.Context, urlID int64) ([]GetClicksByDateRow, error)
 	GetClicksByReferrer(ctx context.Context, urlID int64) ([]GetClicksByReferrerRow, error)
 	GetClicksByReferrerInTimeRange(ctx context.Context, arg GetClicksByReferrerInTimeRangeParams) ([]GetClicksByReferrerInTimeRangeRow, error)
+	GetSessionByID(ctx context.Context, id string) (Session, error)
 	GetTotalClickCount(ctx context.Context, urlID int64) (int64, error)
 	GetTotalClickCountInTimeRange(ctx context.Context, arg GetTotalClickCountInTimeRangeParams) (int64, error)
+	ListSessionsByUserID(ctx context.Context, userID string) ([]Session, error)
 	ListURLs(ctx context.Context, arg ListURLsParams) ([]Url, error)
 	ListURLsByCreatedByAndTimeRange(ctx context.Context, arg ListURLsByCreatedByAndTimeRangeParams) ([]Url, error)
 	// ============================================================================
 	// Click Queries
 	// ============================================================================
 	RecordClick(ctx context.Context, arg RecordClickParams) (Click, error)
+	UpdateSessionActivity(ctx context.Context, arg UpdateSessionActivityParams) error
 }
 
 var _ Querier = (*Queries)(nil)

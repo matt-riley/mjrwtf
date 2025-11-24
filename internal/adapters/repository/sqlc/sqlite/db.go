@@ -24,8 +24,23 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.createSessionStmt, err = db.PrepareContext(ctx, createSession); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateSession: %w", err)
+	}
 	if q.createURLStmt, err = db.PrepareContext(ctx, createURL); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateURL: %w", err)
+	}
+	if q.deleteExpiredSessionsStmt, err = db.PrepareContext(ctx, deleteExpiredSessions); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteExpiredSessions: %w", err)
+	}
+	if q.deleteIdleSessionsStmt, err = db.PrepareContext(ctx, deleteIdleSessions); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteIdleSessions: %w", err)
+	}
+	if q.deleteSessionStmt, err = db.PrepareContext(ctx, deleteSession); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteSession: %w", err)
+	}
+	if q.deleteSessionsByUserIDStmt, err = db.PrepareContext(ctx, deleteSessionsByUserID); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteSessionsByUserID: %w", err)
 	}
 	if q.deleteURLByShortCodeStmt, err = db.PrepareContext(ctx, deleteURLByShortCode); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteURLByShortCode: %w", err)
@@ -48,11 +63,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getClicksByReferrerInTimeRangeStmt, err = db.PrepareContext(ctx, getClicksByReferrerInTimeRange); err != nil {
 		return nil, fmt.Errorf("error preparing query GetClicksByReferrerInTimeRange: %w", err)
 	}
+	if q.getSessionByIDStmt, err = db.PrepareContext(ctx, getSessionByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetSessionByID: %w", err)
+	}
 	if q.getTotalClickCountStmt, err = db.PrepareContext(ctx, getTotalClickCount); err != nil {
 		return nil, fmt.Errorf("error preparing query GetTotalClickCount: %w", err)
 	}
 	if q.getTotalClickCountInTimeRangeStmt, err = db.PrepareContext(ctx, getTotalClickCountInTimeRange); err != nil {
 		return nil, fmt.Errorf("error preparing query GetTotalClickCountInTimeRange: %w", err)
+	}
+	if q.listSessionsByUserIDStmt, err = db.PrepareContext(ctx, listSessionsByUserID); err != nil {
+		return nil, fmt.Errorf("error preparing query ListSessionsByUserID: %w", err)
 	}
 	if q.listURLsStmt, err = db.PrepareContext(ctx, listURLs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListURLs: %w", err)
@@ -63,14 +84,42 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.recordClickStmt, err = db.PrepareContext(ctx, recordClick); err != nil {
 		return nil, fmt.Errorf("error preparing query RecordClick: %w", err)
 	}
+	if q.updateSessionActivityStmt, err = db.PrepareContext(ctx, updateSessionActivity); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateSessionActivity: %w", err)
+	}
 	return &q, nil
 }
 
 func (q *Queries) Close() error {
 	var err error
+	if q.createSessionStmt != nil {
+		if cerr := q.createSessionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createSessionStmt: %w", cerr)
+		}
+	}
 	if q.createURLStmt != nil {
 		if cerr := q.createURLStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createURLStmt: %w", cerr)
+		}
+	}
+	if q.deleteExpiredSessionsStmt != nil {
+		if cerr := q.deleteExpiredSessionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteExpiredSessionsStmt: %w", cerr)
+		}
+	}
+	if q.deleteIdleSessionsStmt != nil {
+		if cerr := q.deleteIdleSessionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteIdleSessionsStmt: %w", cerr)
+		}
+	}
+	if q.deleteSessionStmt != nil {
+		if cerr := q.deleteSessionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteSessionStmt: %w", cerr)
+		}
+	}
+	if q.deleteSessionsByUserIDStmt != nil {
+		if cerr := q.deleteSessionsByUserIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteSessionsByUserIDStmt: %w", cerr)
 		}
 	}
 	if q.deleteURLByShortCodeStmt != nil {
@@ -108,6 +157,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getClicksByReferrerInTimeRangeStmt: %w", cerr)
 		}
 	}
+	if q.getSessionByIDStmt != nil {
+		if cerr := q.getSessionByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getSessionByIDStmt: %w", cerr)
+		}
+	}
 	if q.getTotalClickCountStmt != nil {
 		if cerr := q.getTotalClickCountStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getTotalClickCountStmt: %w", cerr)
@@ -116,6 +170,11 @@ func (q *Queries) Close() error {
 	if q.getTotalClickCountInTimeRangeStmt != nil {
 		if cerr := q.getTotalClickCountInTimeRangeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getTotalClickCountInTimeRangeStmt: %w", cerr)
+		}
+	}
+	if q.listSessionsByUserIDStmt != nil {
+		if cerr := q.listSessionsByUserIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listSessionsByUserIDStmt: %w", cerr)
 		}
 	}
 	if q.listURLsStmt != nil {
@@ -131,6 +190,11 @@ func (q *Queries) Close() error {
 	if q.recordClickStmt != nil {
 		if cerr := q.recordClickStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing recordClickStmt: %w", cerr)
+		}
+	}
+	if q.updateSessionActivityStmt != nil {
+		if cerr := q.updateSessionActivityStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateSessionActivityStmt: %w", cerr)
 		}
 	}
 	return err
@@ -172,7 +236,12 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 type Queries struct {
 	db                                  DBTX
 	tx                                  *sql.Tx
+	createSessionStmt                   *sql.Stmt
 	createURLStmt                       *sql.Stmt
+	deleteExpiredSessionsStmt           *sql.Stmt
+	deleteIdleSessionsStmt              *sql.Stmt
+	deleteSessionStmt                   *sql.Stmt
+	deleteSessionsByUserIDStmt          *sql.Stmt
 	deleteURLByShortCodeStmt            *sql.Stmt
 	findURLByShortCodeStmt              *sql.Stmt
 	getClicksByCountryStmt              *sql.Stmt
@@ -180,18 +249,26 @@ type Queries struct {
 	getClicksByDateStmt                 *sql.Stmt
 	getClicksByReferrerStmt             *sql.Stmt
 	getClicksByReferrerInTimeRangeStmt  *sql.Stmt
+	getSessionByIDStmt                  *sql.Stmt
 	getTotalClickCountStmt              *sql.Stmt
 	getTotalClickCountInTimeRangeStmt   *sql.Stmt
+	listSessionsByUserIDStmt            *sql.Stmt
 	listURLsStmt                        *sql.Stmt
 	listURLsByCreatedByAndTimeRangeStmt *sql.Stmt
 	recordClickStmt                     *sql.Stmt
+	updateSessionActivityStmt           *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
 		db:                                  tx,
 		tx:                                  tx,
+		createSessionStmt:                   q.createSessionStmt,
 		createURLStmt:                       q.createURLStmt,
+		deleteExpiredSessionsStmt:           q.deleteExpiredSessionsStmt,
+		deleteIdleSessionsStmt:              q.deleteIdleSessionsStmt,
+		deleteSessionStmt:                   q.deleteSessionStmt,
+		deleteSessionsByUserIDStmt:          q.deleteSessionsByUserIDStmt,
 		deleteURLByShortCodeStmt:            q.deleteURLByShortCodeStmt,
 		findURLByShortCodeStmt:              q.findURLByShortCodeStmt,
 		getClicksByCountryStmt:              q.getClicksByCountryStmt,
@@ -199,10 +276,13 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getClicksByDateStmt:                 q.getClicksByDateStmt,
 		getClicksByReferrerStmt:             q.getClicksByReferrerStmt,
 		getClicksByReferrerInTimeRangeStmt:  q.getClicksByReferrerInTimeRangeStmt,
+		getSessionByIDStmt:                  q.getSessionByIDStmt,
 		getTotalClickCountStmt:              q.getTotalClickCountStmt,
 		getTotalClickCountInTimeRangeStmt:   q.getTotalClickCountInTimeRangeStmt,
+		listSessionsByUserIDStmt:            q.listSessionsByUserIDStmt,
 		listURLsStmt:                        q.listURLsStmt,
 		listURLsByCreatedByAndTimeRangeStmt: q.listURLsByCreatedByAndTimeRangeStmt,
 		recordClickStmt:                     q.recordClickStmt,
+		updateSessionActivityStmt:           q.updateSessionActivityStmt,
 	}
 }

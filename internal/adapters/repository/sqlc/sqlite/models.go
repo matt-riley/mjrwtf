@@ -17,6 +17,16 @@ type Click struct {
 	UserAgent *string   `json:"user_agent"`
 }
 
+type Session struct {
+	ID             string    `json:"id"`
+	UserID         string    `json:"user_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	LastActivityAt time.Time `json:"last_activity_at"`
+	IpAddress      *string   `json:"ip_address"`
+	UserAgent      *string   `json:"user_agent"`
+}
+
 type Url struct {
 	ID          int64     `json:"id"`
 	ShortCode   string    `json:"short_code"`

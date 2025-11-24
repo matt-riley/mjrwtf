@@ -98,3 +98,44 @@ WHERE url_id = ?
   AND referrer != ''
 GROUP BY referrer
 ORDER BY count DESC;
+
+-- ============================================================================
+-- Session Queries
+-- ============================================================================
+
+-- name: CreateSession :one
+INSERT INTO sessions (id, user_id, created_at, expires_at, last_activity_at, ip_address, user_agent)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, user_id, created_at, expires_at, last_activity_at, ip_address, user_agent;
+
+-- name: GetSessionByID :one
+SELECT id, user_id, created_at, expires_at, last_activity_at, ip_address, user_agent
+FROM sessions
+WHERE id = ?;
+
+-- name: ListSessionsByUserID :many
+SELECT id, user_id, created_at, expires_at, last_activity_at, ip_address, user_agent
+FROM sessions
+WHERE user_id = ?
+ORDER BY last_activity_at DESC;
+
+-- name: UpdateSessionActivity :exec
+UPDATE sessions
+SET last_activity_at = ?
+WHERE id = ?;
+
+-- name: DeleteSession :exec
+DELETE FROM sessions
+WHERE id = ?;
+
+-- name: DeleteSessionsByUserID :exec
+DELETE FROM sessions
+WHERE user_id = ?;
+
+-- name: DeleteExpiredSessions :execrows
+DELETE FROM sessions
+WHERE expires_at < datetime('now');
+
+-- name: DeleteIdleSessions :execrows
+DELETE FROM sessions
+WHERE last_activity_at < ?;

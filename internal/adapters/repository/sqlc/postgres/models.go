@@ -7,6 +7,8 @@ package postgresrepo
 import (
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Click struct {
@@ -16,6 +18,16 @@ type Click struct {
 	Referrer  sql.NullString `json:"referrer"`
 	Country   sql.NullString `json:"country"`
 	UserAgent sql.NullString `json:"user_agent"`
+}
+
+type Session struct {
+	ID             uuid.UUID      `json:"id"`
+	UserID         string         `json:"user_id"`
+	CreatedAt      time.Time      `json:"created_at"`
+	ExpiresAt      time.Time      `json:"expires_at"`
+	LastActivityAt time.Time      `json:"last_activity_at"`
+	IpAddress      sql.NullString `json:"ip_address"`
+	UserAgent      sql.NullString `json:"user_agent"`
 }
 
 type Url struct {

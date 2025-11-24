@@ -10,6 +10,49 @@ import (
 	"time"
 )
 
+const createSession = `-- name: CreateSession :one
+
+INSERT INTO sessions (id, user_id, created_at, expires_at, last_activity_at, ip_address, user_agent)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, user_id, created_at, expires_at, last_activity_at, ip_address, user_agent
+`
+
+type CreateSessionParams struct {
+	ID             string    `json:"id"`
+	UserID         string    `json:"user_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	LastActivityAt time.Time `json:"last_activity_at"`
+	IpAddress      *string   `json:"ip_address"`
+	UserAgent      *string   `json:"user_agent"`
+}
+
+// ============================================================================
+// Session Queries
+// ============================================================================
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
+	row := q.queryRow(ctx, q.createSessionStmt, createSession,
+		arg.ID,
+		arg.UserID,
+		arg.CreatedAt,
+		arg.ExpiresAt,
+		arg.LastActivityAt,
+		arg.IpAddress,
+		arg.UserAgent,
+	)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.LastActivityAt,
+		&i.IpAddress,
+		&i.UserAgent,
+	)
+	return i, err
+}
+
 const createURL = `-- name: CreateURL :one
 
 INSERT INTO urls (short_code, original_url, created_at, created_by)
@@ -43,6 +86,52 @@ func (q *Queries) CreateURL(ctx context.Context, arg CreateURLParams) (Url, erro
 		&i.CreatedBy,
 	)
 	return i, err
+}
+
+const deleteExpiredSessions = `-- name: DeleteExpiredSessions :execrows
+DELETE FROM sessions
+WHERE expires_at < datetime('now')
+`
+
+func (q *Queries) DeleteExpiredSessions(ctx context.Context) (int64, error) {
+	result, err := q.exec(ctx, q.deleteExpiredSessionsStmt, deleteExpiredSessions)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteIdleSessions = `-- name: DeleteIdleSessions :execrows
+DELETE FROM sessions
+WHERE last_activity_at < ?
+`
+
+func (q *Queries) DeleteIdleSessions(ctx context.Context, lastActivityAt time.Time) (int64, error) {
+	result, err := q.exec(ctx, q.deleteIdleSessionsStmt, deleteIdleSessions, lastActivityAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteSession = `-- name: DeleteSession :exec
+DELETE FROM sessions
+WHERE id = ?
+`
+
+func (q *Queries) DeleteSession(ctx context.Context, id string) error {
+	_, err := q.exec(ctx, q.deleteSessionStmt, deleteSession, id)
+	return err
+}
+
+const deleteSessionsByUserID = `-- name: DeleteSessionsByUserID :exec
+DELETE FROM sessions
+WHERE user_id = ?
+`
+
+func (q *Queries) DeleteSessionsByUserID(ctx context.Context, userID string) error {
+	_, err := q.exec(ctx, q.deleteSessionsByUserIDStmt, deleteSessionsByUserID, userID)
+	return err
 }
 
 const deleteURLByShortCode = `-- name: DeleteURLByShortCode :exec
@@ -278,6 +367,27 @@ func (q *Queries) GetClicksByReferrerInTimeRange(ctx context.Context, arg GetCli
 	return items, nil
 }
 
+const getSessionByID = `-- name: GetSessionByID :one
+SELECT id, user_id, created_at, expires_at, last_activity_at, ip_address, user_agent
+FROM sessions
+WHERE id = ?
+`
+
+func (q *Queries) GetSessionByID(ctx context.Context, id string) (Session, error) {
+	row := q.queryRow(ctx, q.getSessionByIDStmt, getSessionByID, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.LastActivityAt,
+		&i.IpAddress,
+		&i.UserAgent,
+	)
+	return i, err
+}
+
 const getTotalClickCount = `-- name: GetTotalClickCount :one
 SELECT COUNT(*) as count
 FROM clicks
@@ -310,6 +420,44 @@ func (q *Queries) GetTotalClickCountInTimeRange(ctx context.Context, arg GetTota
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const listSessionsByUserID = `-- name: ListSessionsByUserID :many
+SELECT id, user_id, created_at, expires_at, last_activity_at, ip_address, user_agent
+FROM sessions
+WHERE user_id = ?
+ORDER BY last_activity_at DESC
+`
+
+func (q *Queries) ListSessionsByUserID(ctx context.Context, userID string) ([]Session, error) {
+	rows, err := q.query(ctx, q.listSessionsByUserIDStmt, listSessionsByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Session{}
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.LastActivityAt,
+			&i.IpAddress,
+			&i.UserAgent,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listURLs = `-- name: ListURLs :many
@@ -441,4 +589,20 @@ func (q *Queries) RecordClick(ctx context.Context, arg RecordClickParams) (Click
 		&i.UserAgent,
 	)
 	return i, err
+}
+
+const updateSessionActivity = `-- name: UpdateSessionActivity :exec
+UPDATE sessions
+SET last_activity_at = ?
+WHERE id = ?
+`
+
+type UpdateSessionActivityParams struct {
+	LastActivityAt time.Time `json:"last_activity_at"`
+	ID             string    `json:"id"`
+}
+
+func (q *Queries) UpdateSessionActivity(ctx context.Context, arg UpdateSessionActivityParams) error {
+	_, err := q.exec(ctx, q.updateSessionActivityStmt, updateSessionActivity, arg.LastActivityAt, arg.ID)
+	return err
 }
