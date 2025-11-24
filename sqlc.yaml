@@ -2,7 +2,9 @@ version: "2"
 sql:
   - name: "sqlite"
     engine: "sqlite"
-    schema: "internal/migrations/sqlite/00001_initial_schema.sql"
+    schema: 
+      - "internal/migrations/sqlite/00001_initial_schema.sql"
+      - "internal/migrations/sqlite/00002_add_referrer_domain.sql"
     queries: "internal/adapters/repository/sqlc/sqlite/queries.sql"
     gen:
       go:
@@ -17,7 +19,9 @@ sql:
         emit_pointers_for_null_types: true
   - name: "postgres"
     engine: "postgresql"
-    schema: "internal/migrations/postgres/00001_initial_schema.sql"
+    schema: 
+      - "internal/migrations/postgres/00001_initial_schema.sql"
+      - "internal/migrations/postgres/00002_add_referrer_domain.sql"
     queries: "internal/adapters/repository/sqlc/postgres/queries.sql"
     gen:
       go:

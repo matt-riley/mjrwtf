@@ -10,12 +10,13 @@ import (
 )
 
 type Click struct {
-	ID        int32          `json:"id"`
-	UrlID     int32          `json:"url_id"`
-	ClickedAt time.Time      `json:"clicked_at"`
-	Referrer  sql.NullString `json:"referrer"`
-	Country   sql.NullString `json:"country"`
-	UserAgent sql.NullString `json:"user_agent"`
+	ID             int32          `json:"id"`
+	UrlID          int32          `json:"url_id"`
+	ClickedAt      time.Time      `json:"clicked_at"`
+	Referrer       sql.NullString `json:"referrer"`
+	Country        sql.NullString `json:"country"`
+	UserAgent      sql.NullString `json:"user_agent"`
+	ReferrerDomain sql.NullString `json:"referrer_domain"`
 }
 
 type Url struct {

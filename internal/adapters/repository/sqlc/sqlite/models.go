@@ -9,12 +9,13 @@ import (
 )
 
 type Click struct {
-	ID        int64     `json:"id"`
-	UrlID     int64     `json:"url_id"`
-	ClickedAt time.Time `json:"clicked_at"`
-	Referrer  *string   `json:"referrer"`
-	Country   *string   `json:"country"`
-	UserAgent *string   `json:"user_agent"`
+	ID             int64     `json:"id"`
+	UrlID          int64     `json:"url_id"`
+	ClickedAt      time.Time `json:"clicked_at"`
+	Referrer       *string   `json:"referrer"`
+	Country        *string   `json:"country"`
+	UserAgent      *string   `json:"user_agent"`
+	ReferrerDomain *string   `json:"referrer_domain"`
 }
 
 type Url struct {

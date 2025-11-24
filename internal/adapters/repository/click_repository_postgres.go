@@ -26,11 +26,12 @@ func NewPostgresClickRepository(db *sql.DB) *PostgresClickRepository {
 // Record records a new click event
 func (r *PostgresClickRepository) Record(ctx context.Context, c *click.Click) error {
 	result, err := r.queries.RecordClick(ctx, postgresrepo.RecordClickParams{
-		UrlID:     int32(c.URLID),
-		ClickedAt: c.ClickedAt,
-		Referrer:  stringToNullString(c.Referrer),
-		Country:   stringToNullString(c.Country),
-		UserAgent: stringToNullString(c.UserAgent),
+		UrlID:          int32(c.URLID),
+		ClickedAt:      c.ClickedAt,
+		Referrer:       stringToNullString(c.Referrer),
+		ReferrerDomain: stringToNullString(c.ReferrerDomain),
+		Country:        stringToNullString(c.Country),
+		UserAgent:      stringToNullString(c.UserAgent),
 	})
 
 	if err != nil {
