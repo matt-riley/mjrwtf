@@ -300,7 +300,7 @@ func TestSQLiteClickRepository_ReferrerDomainExtraction(t *testing.T) {
 			{"https://google.com/search", "google.com"},
 			{"https://www.reddit.com/r/golang", "www.reddit.com"},
 			{"http://example.com", "example.com"},
-			{"", ""}, // Direct navigation
+			{"", ""},              // Direct navigation
 			{"malformed-url", ""}, // Malformed URL
 		}
 
@@ -386,10 +386,10 @@ func TestSQLiteClickRepository_Top10ReferrersLimit(t *testing.T) {
 			{"https://pinterest.com", 7},
 			{"https://tumblr.com", 6},
 			{"https://snapchat.com", 5}, // Should not appear (rank 11)
-			{"https://whatsapp.com", 4},  // Should not appear (rank 12)
-			{"https://telegram.com", 3},  // Should not appear (rank 13)
-			{"https://discord.com", 2},   // Should not appear (rank 14)
-			{"https://slack.com", 1},     // Should not appear (rank 15)
+			{"https://whatsapp.com", 4}, // Should not appear (rank 12)
+			{"https://telegram.com", 3}, // Should not appear (rank 13)
+			{"https://discord.com", 2},  // Should not appear (rank 14)
+			{"https://slack.com", 1},    // Should not appear (rank 15)
 		}
 
 		// Record clicks
