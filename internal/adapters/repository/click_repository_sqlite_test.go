@@ -280,3 +280,169 @@ func TestSQLiteClickRepository_GetStatsByURLAndTimeRange(t *testing.T) {
 		}
 	})
 }
+
+func TestSQLiteClickRepository_ReferrerDomainExtraction(t *testing.T) {
+	db, cleanup := setupSQLiteTestDB(t)
+	defer cleanup()
+
+	urlRepo := NewSQLiteURLRepository(db)
+	clickRepo := NewSQLiteClickRepository(db)
+
+	// Create a URL
+	u, _ := url.NewURL("test", "https://example.com", "testuser")
+	urlRepo.Create(context.Background(), u)
+
+	t.Run("referrer domain is stored correctly", func(t *testing.T) {
+		testCases := []struct {
+			referrer       string
+			expectedDomain string
+		}{
+			{"https://google.com/search", "google.com"},
+			{"https://www.reddit.com/r/golang", "www.reddit.com"},
+			{"http://example.com", "example.com"},
+			{"", ""}, // Direct navigation
+			{"malformed-url", ""}, // Malformed URL
+		}
+
+		for _, tc := range testCases {
+			c, err := click.NewClick(u.ID, tc.referrer, "US", "Mozilla/5.0")
+			if err != nil {
+				t.Fatalf("NewClick() error = %v", err)
+			}
+
+			if c.ReferrerDomain != tc.expectedDomain {
+				t.Errorf("NewClick() ReferrerDomain = %q, want %q for referrer %q",
+					c.ReferrerDomain, tc.expectedDomain, tc.referrer)
+			}
+
+			err = clickRepo.Record(context.Background(), c)
+			if err != nil {
+				t.Fatalf("Record() error = %v", err)
+			}
+
+			if c.ID == 0 {
+				t.Error("Record() should set ID")
+			}
+		}
+	})
+
+	t.Run("stats aggregate by full referrer URL", func(t *testing.T) {
+		// Record multiple clicks with different paths but same domain
+		clicks := []string{
+			"https://twitter.com/user1/status/123",
+			"https://twitter.com/user2/status/456",
+			"https://twitter.com/search?q=golang",
+		}
+
+		for _, ref := range clicks {
+			c, _ := click.NewClick(u.ID, ref, "US", "Mozilla/5.0")
+			clickRepo.Record(context.Background(), c)
+		}
+
+		stats, err := clickRepo.GetStatsByURL(context.Background(), u.ID)
+		if err != nil {
+			t.Fatalf("GetStatsByURL() error = %v", err)
+		}
+
+		// Verify that we get stats for each unique full referrer URL
+		// (not aggregated by domain)
+		if stats.ByReferrer["https://twitter.com/user1/status/123"] != 1 {
+			t.Errorf("Expected 1 click from twitter.com/user1/status/123")
+		}
+		if stats.ByReferrer["https://twitter.com/user2/status/456"] != 1 {
+			t.Errorf("Expected 1 click from twitter.com/user2/status/456")
+		}
+		if stats.ByReferrer["https://twitter.com/search?q=golang"] != 1 {
+			t.Errorf("Expected 1 click from twitter.com/search?q=golang")
+		}
+	})
+}
+
+func TestSQLiteClickRepository_Top10ReferrersLimit(t *testing.T) {
+	db, cleanup := setupSQLiteTestDB(t)
+	defer cleanup()
+
+	urlRepo := NewSQLiteURLRepository(db)
+	clickRepo := NewSQLiteClickRepository(db)
+
+	// Create a URL
+	u, _ := url.NewURL("test", "https://example.com", "testuser")
+	urlRepo.Create(context.Background(), u)
+
+	t.Run("returns only top 10 referrers", func(t *testing.T) {
+		// Create 15 different referrers with different click counts
+		referrers := []struct {
+			url   string
+			count int
+		}{
+			{"https://google.com", 15},
+			{"https://facebook.com", 14},
+			{"https://twitter.com", 13},
+			{"https://reddit.com", 12},
+			{"https://linkedin.com", 11},
+			{"https://instagram.com", 10},
+			{"https://tiktok.com", 9},
+			{"https://youtube.com", 8},
+			{"https://pinterest.com", 7},
+			{"https://tumblr.com", 6},
+			{"https://snapchat.com", 5}, // Should not appear (rank 11)
+			{"https://whatsapp.com", 4},  // Should not appear (rank 12)
+			{"https://telegram.com", 3},  // Should not appear (rank 13)
+			{"https://discord.com", 2},   // Should not appear (rank 14)
+			{"https://slack.com", 1},     // Should not appear (rank 15)
+		}
+
+		// Record clicks
+		for _, ref := range referrers {
+			for i := 0; i < ref.count; i++ {
+				c, _ := click.NewClick(u.ID, ref.url, "US", "Mozilla/5.0")
+				clickRepo.Record(context.Background(), c)
+			}
+		}
+
+		stats, err := clickRepo.GetStatsByURL(context.Background(), u.ID)
+		if err != nil {
+			t.Fatalf("GetStatsByURL() error = %v", err)
+		}
+
+		// Should only return top 10 referrers
+		if len(stats.ByReferrer) != 10 {
+			t.Errorf("GetStatsByURL() returned %d referrers, want 10", len(stats.ByReferrer))
+		}
+
+		// Verify top 10 are present
+		expectedTop10 := []string{
+			"https://google.com",
+			"https://facebook.com",
+			"https://twitter.com",
+			"https://reddit.com",
+			"https://linkedin.com",
+			"https://instagram.com",
+			"https://tiktok.com",
+			"https://youtube.com",
+			"https://pinterest.com",
+			"https://tumblr.com",
+		}
+
+		for _, ref := range expectedTop10 {
+			if _, exists := stats.ByReferrer[ref]; !exists {
+				t.Errorf("Expected referrer %s to be in top 10", ref)
+			}
+		}
+
+		// Verify bottom 5 are not present
+		notExpected := []string{
+			"https://snapchat.com",
+			"https://whatsapp.com",
+			"https://telegram.com",
+			"https://discord.com",
+			"https://slack.com",
+		}
+
+		for _, ref := range notExpected {
+			if _, exists := stats.ByReferrer[ref]; exists {
+				t.Errorf("Expected referrer %s to NOT be in top 10", ref)
+			}
+		}
+	})
+}
