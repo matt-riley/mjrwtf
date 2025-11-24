@@ -55,7 +55,7 @@ func extractDomain(referrer string) string {
 		return ""
 	}
 
-	// Return the hostname (which includes the domain and port if present)
+	// Return the hostname (excluding port if present)
 	// This handles http, https, and other schemes
 	return parsedURL.Hostname()
 }
