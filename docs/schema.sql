@@ -169,8 +169,6 @@ CREATE INDEX IF NOT EXISTS idx_clicks_referrer_domain ON clicks(referrer_domain)
 --   GROUP BY referrer_domain
 --   ORDER BY click_count DESC
 --   LIMIT 10;
---   GROUP BY country
---   ORDER BY click_count DESC;
 --
 -- Get daily click analytics (SQLite):
 --   SELECT DATE(clicked_at) as date, COUNT(*) as clicks
