@@ -72,9 +72,9 @@ func (h *AnalyticsHandler) GetAnalytics(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Validate that start_time is before end_time
-	if startTime != nil && endTime != nil && startTime.After(*endTime) {
-		respondError(w, "start_time must be before end_time", http.StatusBadRequest)
+	// Validate that start_time is strictly before end_time (equality not allowed)
+	if startTime != nil && endTime != nil && !startTime.Before(*endTime) {
+		respondError(w, "start_time must be strictly before end_time (equality not allowed)", http.StatusBadRequest)
 		return
 	}
 
