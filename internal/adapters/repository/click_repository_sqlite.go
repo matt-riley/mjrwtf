@@ -26,11 +26,12 @@ func NewSQLiteClickRepository(db *sql.DB) *SQLiteClickRepository {
 // Record records a new click event
 func (r *SQLiteClickRepository) Record(ctx context.Context, c *click.Click) error {
 	result, err := r.queries.RecordClick(ctx, sqliterepo.RecordClickParams{
-		UrlID:     c.URLID,
-		ClickedAt: c.ClickedAt,
-		Referrer:  stringToStringPtr(c.Referrer),
-		Country:   stringToStringPtr(c.Country),
-		UserAgent: stringToStringPtr(c.UserAgent),
+		UrlID:          c.URLID,
+		ClickedAt:      c.ClickedAt,
+		Referrer:       stringToStringPtr(c.Referrer),
+		ReferrerDomain: stringToStringPtr(c.ReferrerDomain),
+		Country:        stringToStringPtr(c.Country),
+		UserAgent:      stringToStringPtr(c.UserAgent),
 	})
 
 	if err != nil {

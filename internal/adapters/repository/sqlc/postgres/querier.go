@@ -27,7 +27,7 @@ type Querier interface {
 	// ============================================================================
 	// Click Queries
 	// ============================================================================
-	RecordClick(ctx context.Context, arg RecordClickParams) (Click, error)
+	RecordClick(ctx context.Context, arg RecordClickParams) (RecordClickRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

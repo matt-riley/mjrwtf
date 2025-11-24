@@ -36,9 +36,9 @@ ORDER BY created_at DESC;
 -- ============================================================================
 
 -- name: RecordClick :one
-INSERT INTO clicks (url_id, clicked_at, referrer, country, user_agent)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, url_id, clicked_at, referrer, country, user_agent;
+INSERT INTO clicks (url_id, clicked_at, referrer, referrer_domain, country, user_agent)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, url_id, clicked_at, referrer, referrer_domain, country, user_agent;
 
 -- name: GetTotalClickCount :one
 SELECT COUNT(*) as count
@@ -61,7 +61,8 @@ WHERE url_id = $1
   AND referrer IS NOT NULL
   AND referrer != ''
 GROUP BY referrer
-ORDER BY count DESC;
+ORDER BY count DESC
+LIMIT 10;
 
 -- name: GetClicksByDate :many
 SELECT DATE(clicked_at) as date, COUNT(*) as count
@@ -97,4 +98,5 @@ WHERE url_id = $1
   AND referrer IS NOT NULL
   AND referrer != ''
 GROUP BY referrer
-ORDER BY count DESC;
+ORDER BY count DESC
+LIMIT 10;

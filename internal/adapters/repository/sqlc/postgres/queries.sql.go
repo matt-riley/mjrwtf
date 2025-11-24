@@ -203,6 +203,7 @@ WHERE url_id = $1
   AND referrer != ''
 GROUP BY referrer
 ORDER BY count DESC
+LIMIT 10
 `
 
 type GetClicksByReferrerRow struct {
@@ -243,6 +244,7 @@ WHERE url_id = $1
   AND referrer != ''
 GROUP BY referrer
 ORDER BY count DESC
+LIMIT 10
 `
 
 type GetClicksByReferrerInTimeRangeParams struct {
@@ -408,36 +410,49 @@ func (q *Queries) ListURLsByCreatedByAndTimeRange(ctx context.Context, arg ListU
 
 const recordClick = `-- name: RecordClick :one
 
-INSERT INTO clicks (url_id, clicked_at, referrer, country, user_agent)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, url_id, clicked_at, referrer, country, user_agent
+INSERT INTO clicks (url_id, clicked_at, referrer, referrer_domain, country, user_agent)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, url_id, clicked_at, referrer, referrer_domain, country, user_agent
 `
 
 type RecordClickParams struct {
-	UrlID     int32          `json:"url_id"`
-	ClickedAt time.Time      `json:"clicked_at"`
-	Referrer  sql.NullString `json:"referrer"`
-	Country   sql.NullString `json:"country"`
-	UserAgent sql.NullString `json:"user_agent"`
+	UrlID          int32          `json:"url_id"`
+	ClickedAt      time.Time      `json:"clicked_at"`
+	Referrer       sql.NullString `json:"referrer"`
+	ReferrerDomain sql.NullString `json:"referrer_domain"`
+	Country        sql.NullString `json:"country"`
+	UserAgent      sql.NullString `json:"user_agent"`
+}
+
+type RecordClickRow struct {
+	ID             int32          `json:"id"`
+	UrlID          int32          `json:"url_id"`
+	ClickedAt      time.Time      `json:"clicked_at"`
+	Referrer       sql.NullString `json:"referrer"`
+	ReferrerDomain sql.NullString `json:"referrer_domain"`
+	Country        sql.NullString `json:"country"`
+	UserAgent      sql.NullString `json:"user_agent"`
 }
 
 // ============================================================================
 // Click Queries
 // ============================================================================
-func (q *Queries) RecordClick(ctx context.Context, arg RecordClickParams) (Click, error) {
+func (q *Queries) RecordClick(ctx context.Context, arg RecordClickParams) (RecordClickRow, error) {
 	row := q.queryRow(ctx, q.recordClickStmt, recordClick,
 		arg.UrlID,
 		arg.ClickedAt,
 		arg.Referrer,
+		arg.ReferrerDomain,
 		arg.Country,
 		arg.UserAgent,
 	)
-	var i Click
+	var i RecordClickRow
 	err := row.Scan(
 		&i.ID,
 		&i.UrlID,
 		&i.ClickedAt,
 		&i.Referrer,
+		&i.ReferrerDomain,
 		&i.Country,
 		&i.UserAgent,
 	)
