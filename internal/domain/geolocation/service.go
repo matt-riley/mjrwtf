@@ -11,8 +11,13 @@ import "context"
 type LookupService interface {
 	// LookupCountry returns the ISO 3166-1 alpha-2 country code for the given IP address.
 	// Returns an empty string if the lookup fails or the IP is invalid.
-	// This is a best-effort operation - failures are not considered errors.
-	LookupCountry(ctx context.Context, ipAddress string) (string, error)
+	// This is a best-effort operation - lookup failures are handled gracefully
+	// by returning an empty string rather than propagating errors.
+	//
+	// Note: The context parameter is included for API consistency and future
+	// extensibility, but current implementations may not use it for cancellation
+	// since local database lookups are expected to be fast.
+	LookupCountry(ctx context.Context, ipAddress string) string
 
 	// Close releases any resources held by the service.
 	Close() error

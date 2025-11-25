@@ -43,11 +43,7 @@ func TestNoopService_LookupCountry(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := service.LookupCountry(context.Background(), tt.ipAddress)
-			if err != nil {
-				t.Errorf("LookupCountry() error = %v, want no error", err)
-				return
-			}
+			got := service.LookupCountry(context.Background(), tt.ipAddress)
 			if got != tt.want {
 				t.Errorf("LookupCountry() = %v, want %v", got, tt.want)
 			}

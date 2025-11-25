@@ -29,21 +29,25 @@ func NewGeoIP2Service(databasePath string) (geolocation.LookupService, error) {
 
 // LookupCountry returns the ISO 3166-1 alpha-2 country code for the given IP address.
 // Returns an empty string if the lookup fails or the IP is invalid.
-// This is a best-effort operation - failures result in empty string, not errors.
-func (s *geoIP2Service) LookupCountry(_ context.Context, ipAddress string) (string, error) {
+// This is a best-effort operation - failures result in empty string.
+//
+// Note: The context parameter is intentionally not used because the underlying
+// geoip2-golang library does not support context-aware operations. The lookup
+// is performed against a local in-memory database and is expected to be fast.
+func (s *geoIP2Service) LookupCountry(_ context.Context, ipAddress string) string {
 	ip := net.ParseIP(ipAddress)
 	if ip == nil {
 		// Invalid IP address format, return empty string
-		return "", nil
+		return ""
 	}
 
 	record, err := s.db.Country(ip)
 	if err != nil {
 		// Lookup failed, return empty string (best effort)
-		return "", nil
+		return ""
 	}
 
-	return record.Country.IsoCode, nil
+	return record.Country.IsoCode
 }
 
 // Close releases the GeoIP2 database resources.
