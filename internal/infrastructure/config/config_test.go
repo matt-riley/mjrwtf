@@ -243,4 +243,56 @@ func cleanEnv() {
 	os.Unsetenv("DISCORD_WEBHOOK_URL")
 	os.Unsetenv("GEOIP_ENABLED")
 	os.Unsetenv("GEOIP_DATABASE")
+	os.Unsetenv("LOG_LEVEL")
+	os.Unsetenv("LOG_FORMAT")
+}
+
+func TestLoadConfig_LoggingDefaults(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.LogLevel != "info" {
+		t.Errorf("Expected default LogLevel 'info', got: %s", config.LogLevel)
+	}
+	if config.LogFormat != "json" {
+		t.Errorf("Expected default LogFormat 'json', got: %s", config.LogFormat)
+	}
+}
+
+func TestLoadConfig_CustomLogLevel(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("LOG_LEVEL", "debug")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.LogLevel != "debug" {
+		t.Errorf("Expected LogLevel 'debug', got: %s", config.LogLevel)
+	}
+}
+
+func TestLoadConfig_CustomLogFormat(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("LOG_FORMAT", "pretty")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.LogFormat != "pretty" {
+		t.Errorf("Expected LogFormat 'pretty', got: %s", config.LogFormat)
+	}
 }

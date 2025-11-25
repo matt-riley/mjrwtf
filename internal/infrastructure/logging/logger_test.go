@@ -52,7 +52,7 @@ func TestNew_InvalidLevelDefaultsToInfo(t *testing.T) {
 
 func TestNew_JSONFormat(t *testing.T) {
 	var buf bytes.Buffer
-	logger := zerolog.New(&buf).With().Timestamp().Logger()
+	logger := New("info", "json", WithOutput(&buf))
 
 	logger.Info().Msg("test message")
 
@@ -64,6 +64,25 @@ func TestNew_JSONFormat(t *testing.T) {
 
 	if logEntry["message"] != "test message" {
 		t.Errorf("expected message 'test message', got %v", logEntry["message"])
+	}
+}
+
+func TestNew_PrettyFormat(t *testing.T) {
+	var buf bytes.Buffer
+	logger := New("info", "pretty", WithOutput(&buf))
+
+	logger.Info().Msg("test message")
+
+	// Pretty format should not be valid JSON
+	var logEntry map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &logEntry); err == nil {
+		t.Error("expected non-JSON output for pretty format, but got valid JSON")
+	}
+
+	// Check that output contains the message
+	output := buf.String()
+	if !bytes.Contains(buf.Bytes(), []byte("test message")) {
+		t.Errorf("expected output to contain 'test message', got: %s", output)
 	}
 }
 

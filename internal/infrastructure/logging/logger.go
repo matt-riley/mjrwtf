@@ -20,15 +20,38 @@ const (
 	RequestIDKey contextKey = "requestID"
 )
 
+// Option is a functional option for configuring the logger.
+type Option func(*loggerConfig)
+
+type loggerConfig struct {
+	output io.Writer
+}
+
+// WithOutput sets a custom output writer for the logger.
+// This is primarily useful for testing.
+func WithOutput(w io.Writer) Option {
+	return func(c *loggerConfig) {
+		c.output = w
+	}
+}
+
 // New creates a new zerolog logger with the specified configuration.
 // level can be: debug, info, warn, error (default: info)
 // format can be: json, pretty (default: json)
-func New(level, format string) zerolog.Logger {
-	var output io.Writer = os.Stdout
+func New(level, format string, opts ...Option) zerolog.Logger {
+	cfg := &loggerConfig{
+		output: os.Stdout,
+	}
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	var output io.Writer = cfg.output
 
 	// Set pretty format for development
 	if format == "pretty" {
-		output = zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+		output = zerolog.ConsoleWriter{Out: cfg.output, TimeFormat: time.RFC3339}
 	}
 
 	// Parse log level
