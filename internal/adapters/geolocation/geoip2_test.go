@@ -48,11 +48,7 @@ func TestGeoIP2Service_LookupCountry_InvalidIP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := service.LookupCountry(context.Background(), tt.ipAddress)
-			if err != nil {
-				t.Errorf("LookupCountry() error = %v, want no error", err)
-				return
-			}
+			got := service.LookupCountry(context.Background(), tt.ipAddress)
 			if got != tt.want {
 				t.Errorf("LookupCountry() = %v, want %v", got, tt.want)
 			}
@@ -105,11 +101,7 @@ func TestGeoIP2Service_LookupCountry_WithDatabase(t *testing.T) {
 
 	// Test with localhost IP - should return empty (private IP)
 	t.Run("localhost IPv4", func(t *testing.T) {
-		got, err := service.LookupCountry(context.Background(), "127.0.0.1")
-		if err != nil {
-			t.Errorf("LookupCountry() error = %v, want no error", err)
-			return
-		}
+		got := service.LookupCountry(context.Background(), "127.0.0.1")
 		// Localhost typically doesn't have a country code in GeoIP databases
 		// We just verify it doesn't error
 		t.Logf("Localhost returned country: %q", got)
@@ -117,22 +109,14 @@ func TestGeoIP2Service_LookupCountry_WithDatabase(t *testing.T) {
 
 	// Test with private IP - should return empty
 	t.Run("private IPv4", func(t *testing.T) {
-		got, err := service.LookupCountry(context.Background(), "192.168.1.1")
-		if err != nil {
-			t.Errorf("LookupCountry() error = %v, want no error", err)
-			return
-		}
+		got := service.LookupCountry(context.Background(), "192.168.1.1")
 		// Private IPs typically don't have a country code in GeoIP databases
 		t.Logf("Private IP returned country: %q", got)
 	})
 
 	// Test with valid IPv6 localhost
 	t.Run("localhost IPv6", func(t *testing.T) {
-		got, err := service.LookupCountry(context.Background(), "::1")
-		if err != nil {
-			t.Errorf("LookupCountry() error = %v, want no error", err)
-			return
-		}
+		got := service.LookupCountry(context.Background(), "::1")
 		// Localhost typically doesn't have a country code
 		t.Logf("IPv6 localhost returned country: %q", got)
 	})

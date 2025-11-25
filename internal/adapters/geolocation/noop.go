@@ -17,8 +17,8 @@ func NewNoopService() geolocation.LookupService {
 }
 
 // LookupCountry always returns an empty string since this is a no-op implementation.
-func (s *noopService) LookupCountry(_ context.Context, _ string) (string, error) {
-	return "", nil
+func (s *noopService) LookupCountry(_ context.Context, _ string) string {
+	return ""
 }
 
 // Close is a no-op for this implementation.
