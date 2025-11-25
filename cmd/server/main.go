@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -19,20 +19,32 @@ func main() {
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		// Use a basic logger for startup errors before full config is loaded
+		logger := logging.New("error", "json")
+		logger.Fatal().Err(err).Msg("failed to load configuration")
 	}
+
+	// Initialize logger with configured level and format
+	logger := logging.New(cfg.LogLevel, cfg.LogFormat)
+	logger.Info().
+		Str("log_level", cfg.LogLevel).
+		Str("log_format", cfg.LogFormat).
+		Int("port", cfg.ServerPort).
+		Msg("configuration loaded")
 
 	// Open database connection
 	db, err := openDatabase(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		logger.Fatal().Err(err).Msg("failed to open database")
 	}
 	defer db.Close()
 
+	logger.Info().Msg("database connection established")
+
 	// Create server
-	srv, err := server.New(cfg, db)
+	srv, err := server.New(cfg, db, logger)
 	if err != nil {
-		log.Fatalf("Failed to create server: %v", err)
+		logger.Fatal().Err(err).Msg("failed to create server")
 	}
 
 	// Channel to listen for errors from the server
@@ -50,9 +62,9 @@ func main() {
 	// Block until we receive a signal or an error
 	select {
 	case err := <-serverErrors:
-		log.Fatalf("Server error: %v", err)
+		logger.Fatal().Err(err).Msg("server error")
 	case sig := <-shutdown:
-		log.Printf("Received signal: %s. Starting graceful shutdown...", sig)
+		logger.Info().Str("signal", sig.String()).Msg("received shutdown signal")
 
 		// Graceful shutdown with timeout context
 		// Match server's ShutdownTimeout to ensure process eventually terminates
@@ -60,10 +72,10 @@ func main() {
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Fatalf("Error during shutdown: %v", err)
+			logger.Fatal().Err(err).Msg("error during shutdown")
 		}
 
-		log.Println("Server shutdown complete")
+		logger.Info().Msg("server shutdown complete")
 	}
 }
 

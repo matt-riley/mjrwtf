@@ -10,7 +10,13 @@ import (
 	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
+	"github.com/rs/zerolog"
 )
+
+// testLogger returns a disabled logger for tests
+func testLogger() zerolog.Logger {
+	return zerolog.Nop()
+}
 
 func TestNew_CreatesServerWithMiddleware(t *testing.T) {
 	db := setupTestDB(t)
@@ -24,7 +30,7 @@ func TestNew_CreatesServerWithMiddleware(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -54,7 +60,7 @@ func TestHealthCheckHandler(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -91,7 +97,7 @@ func TestServer_MiddlewareOrder(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -124,7 +130,7 @@ func TestServer_CORSMiddleware(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -154,7 +160,7 @@ func TestServer_GracefulShutdown(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -200,7 +206,7 @@ func TestServer_Timeouts(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -243,7 +249,7 @@ func TestServer_ListenAddress(t *testing.T) {
 				AllowedOrigins: "*",
 			}
 
-			srv, err := New(cfg, db)
+			srv, err := New(cfg, db, testLogger())
 			if err != nil {
 				t.Fatalf("failed to create server: %v", err)
 			}
@@ -267,7 +273,7 @@ func TestServer_Router(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -293,7 +299,8 @@ func ExampleServer_Start() {
 	db, _ := sql.Open("sqlite3", cfg.DatabaseURL)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	logger := zerolog.Nop()
+	srv, err := New(cfg, db, logger)
 	if err != nil {
 		fmt.Printf("Server creation error: %v\n", err)
 		return

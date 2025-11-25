@@ -77,7 +77,7 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 			db := setupTestDB(t)
 			defer db.Close()
 
-			srv, err := New(cfg, db)
+			srv, err := New(cfg, db, testLogger())
 			if err != nil {
 				t.Fatalf("failed to create server: %v", err)
 			}
@@ -131,7 +131,7 @@ func TestServer_RedirectWithAnalytics(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestServer_RedirectPreservesURL(t *testing.T) {
 			db := setupTestDB(t)
 			defer db.Close()
 
-			srv, err := New(cfg, db)
+			srv, err := New(cfg, db, testLogger())
 			if err != nil {
 				t.Fatalf("failed to create server: %v", err)
 			}
@@ -272,7 +272,7 @@ func TestServer_RedirectVsAPIRoutes(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
