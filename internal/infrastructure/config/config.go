@@ -29,6 +29,10 @@ type Config struct {
 	// GeoIP configuration
 	GeoIPEnabled  bool
 	GeoIPDatabase string
+
+	// Logging configuration
+	LogLevel  string // debug, info, warn, error (default: info)
+	LogFormat string // json, pretty (default: json)
 }
 
 // LoadConfig loads configuration from environment variables and .env file
@@ -46,6 +50,8 @@ func LoadConfig() (*Config, error) {
 		DiscordWebhookURL: getEnv("DISCORD_WEBHOOK_URL", ""),
 		GeoIPEnabled:      getEnvAsBool("GEOIP_ENABLED", false),
 		GeoIPDatabase:     getEnv("GEOIP_DATABASE", ""),
+		LogLevel:          getEnv("LOG_LEVEL", "info"),
+		LogFormat:         getEnv("LOG_FORMAT", "json"),
 	}
 
 	// Validate required configuration

@@ -2,10 +2,12 @@ package middleware
 
 import (
 	"bufio"
-	"log"
 	"net"
 	"net/http"
 	"runtime/debug"
+
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
+	"github.com/rs/zerolog"
 )
 
 // recoveryWriter wraps http.ResponseWriter to track if headers have been written
@@ -51,16 +53,52 @@ func (rw *recoveryWriter) Push(target string, opts *http.PushOptions) error {
 	return http.ErrNotSupported
 }
 
-// Recovery recovers from panics and logs the error
+// RecoveryWithLogger returns a recovery middleware that uses the provided logger.
+// This ensures panics are logged even if the context-based logger isn't available.
+func RecoveryWithLogger(logger zerolog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			rw := &recoveryWriter{ResponseWriter: w}
+			defer func() {
+				if err := recover(); err != nil {
+					// Try to get logger from context first, fall back to provided logger
+					ctxLogger := logging.FromContext(r.Context())
+					if ctxLogger.GetLevel() == zerolog.Disabled {
+						ctxLogger = logger
+					}
+
+					ctxLogger.Error().
+						Interface("panic", err).
+						Str("stack", string(debug.Stack())).
+						Msg("panic recovered")
+
+					if !rw.wroteHeader {
+						rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
+						rw.WriteHeader(http.StatusInternalServerError)
+						_, _ = rw.Write([]byte("Internal Server Error"))
+					}
+					// If headers already sent, we can't write error response
+				}
+			}()
+			next.ServeHTTP(rw, r)
+		})
+	}
+}
+
+// Recovery recovers from panics and logs the error using structured logging.
+// It uses the logger from context if available, otherwise logs nothing.
+// For full logging support, use RecoveryWithLogger instead.
 func Recovery(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := &recoveryWriter{ResponseWriter: w}
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("panic recovered: %v", err)
-				// Only log stack trace in detailed format if needed for debugging
-				// For production, consider logging to a secure location
-				log.Printf("stack trace:\n%s", debug.Stack())
+				logger := logging.FromContext(r.Context())
+
+				logger.Error().
+					Interface("panic", err).
+					Str("stack", string(debug.Stack())).
+					Msg("panic recovered")
 
 				if !rw.wroteHeader {
 					rw.Header().Set("Content-Type", "text/plain; charset=utf-8")

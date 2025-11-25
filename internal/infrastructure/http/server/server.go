@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/handlers"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -34,17 +34,20 @@ type Server struct {
 	router          *chi.Mux
 	config          *config.Config
 	db              *sql.DB
+	logger          zerolog.Logger
 	redirectUseCase *application.RedirectURLUseCase
 }
 
 // New creates a new HTTP server with configured middleware and dependencies
 // Returns an error if the server cannot be initialized properly
-func New(cfg *config.Config, db *sql.DB) (*Server, error) {
+func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error) {
 	r := chi.NewRouter()
 
 	// Middleware stack (order matters)
-	r.Use(middleware.Recovery) // Recover from panics
-	r.Use(middleware.Logger)   // Log all requests
+	r.Use(middleware.RecoveryWithLogger(logger)) // Recover from panics first, with fallback logger
+	r.Use(middleware.RequestID)                  // Generate/propagate request ID
+	r.Use(middleware.InjectLogger(logger))       // Inject logger with request context
+	r.Use(middleware.Logger)                     // Log all requests
 
 	// Parse CORS allowed origins (supports comma-separated list)
 	origins := strings.Split(cfg.AllowedOrigins, ",")
@@ -57,8 +60,8 @@ func New(cfg *config.Config, db *sql.DB) (*Server, error) {
 		// Configure ALLOWED_ORIGINS environment variable to restrict access to known domains.
 		AllowedOrigins:   origins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
-		ExposedHeaders:   []string{"Link"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+		ExposedHeaders:   []string{"Link", "X-Request-ID"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
@@ -67,6 +70,7 @@ func New(cfg *config.Config, db *sql.DB) (*Server, error) {
 		router: r,
 		config: cfg,
 		db:     db,
+		logger: logger,
 		httpServer: &http.Server{
 			Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
 			Handler:      r,
@@ -153,13 +157,13 @@ func (s *Server) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 // Start starts the HTTP server
 func (s *Server) Start() error {
-	log.Printf("Starting HTTP server on %s", s.httpServer.Addr)
+	s.logger.Info().Str("addr", s.httpServer.Addr).Msg("starting HTTP server")
 	return s.httpServer.ListenAndServe()
 }
 
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(ctx context.Context) error {
-	log.Println("Shutting down HTTP server...")
+	s.logger.Info().Msg("shutting down HTTP server")
 
 	// Shutdown redirect use case workers first
 	if s.redirectUseCase != nil {
@@ -170,7 +174,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("failed to shutdown server: %w", err)
 	}
 
-	log.Println("HTTP server stopped")
+	s.logger.Info().Msg("HTTP server stopped")
 	return nil
 }
 

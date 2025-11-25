@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
+	"github.com/rs/zerolog"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -31,7 +31,11 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	// Create a buffer to capture log output
+	var logBuf bytes.Buffer
+	logger := zerolog.New(&logBuf)
+
+	srv, err := New(cfg, db, logger)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -42,12 +46,6 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	// Capture log output to verify logging middleware executed
-	var logBuf bytes.Buffer
-	originalOutput := log.Writer()
-	log.SetOutput(&logBuf)
-	defer log.SetOutput(originalOutput)
-
 	req := httptest.NewRequest(http.MethodGet, "/test-order", nil)
 	rec := httptest.NewRecorder()
 
@@ -57,9 +55,9 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
 	}
 
-	// Verify logging middleware executed
+	// Verify logging middleware executed (zerolog outputs JSON)
 	logOutput := logBuf.String()
-	if !strings.Contains(logOutput, "GET /test-order 200") {
+	if !strings.Contains(logOutput, "request completed") {
 		t.Errorf("expected log entry for request, got: %s", logOutput)
 	}
 }
@@ -77,7 +75,11 @@ func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	// Create a buffer to capture log output
+	var logBuf bytes.Buffer
+	logger := zerolog.New(&logBuf)
+
+	srv, err := New(cfg, db, logger)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -85,12 +87,6 @@ func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 	srv.router.Get("/panic-test", func(w http.ResponseWriter, r *http.Request) {
 		panic("intentional panic for testing")
 	})
-
-	// Capture log output
-	var logBuf bytes.Buffer
-	originalOutput := log.Writer()
-	log.SetOutput(&logBuf)
-	defer log.SetOutput(originalOutput)
 
 	req := httptest.NewRequest(http.MethodGet, "/panic-test", nil)
 	rec := httptest.NewRecorder()
@@ -102,7 +98,7 @@ func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 		t.Errorf("expected status %d from recovery, got %d", http.StatusInternalServerError, rec.Code)
 	}
 
-	// Logging middleware should still execute and log the request
+	// Logging middleware should still execute and log the panic recovery
 	logOutput := logBuf.String()
 	if !strings.Contains(logOutput, "panic recovered") {
 		t.Error("expected panic recovery log entry")
@@ -122,7 +118,7 @@ func TestServer_NotFoundHandler(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -150,7 +146,7 @@ func TestServer_MethodNotAllowed(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -179,7 +175,7 @@ func TestServer_ConcurrentRequests(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -217,7 +213,7 @@ func TestServer_ContextCancellation(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -275,13 +271,13 @@ func BenchmarkServer_HealthCheck(b *testing.B) {
 	db := setupTestDB(b)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	// Use a nop logger for benchmarks
+	logger := zerolog.New(io.Discard)
+
+	srv, err := New(cfg, db, logger)
 	if err != nil {
 		b.Fatalf("failed to create server: %v", err)
 	}
-	originalOutput := log.Writer()
-	log.SetOutput(io.Discard) // Disable logging for benchmark
-	defer log.SetOutput(originalOutput)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -304,13 +300,13 @@ func BenchmarkServer_WithMiddleware(b *testing.B) {
 	db := setupTestDB(b)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	// Use a nop logger for benchmarks
+	logger := zerolog.New(io.Discard)
+
+	srv, err := New(cfg, db, logger)
 	if err != nil {
 		b.Fatalf("failed to create server: %v", err)
 	}
-	originalOutput := log.Writer()
-	log.SetOutput(io.Discard) // Disable logging for benchmark
-	defer log.SetOutput(originalOutput)
 
 	srv.router.Get("/bench", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -339,7 +335,8 @@ func ExampleServer_Shutdown() {
 	db, _ := sql.Open("sqlite3", cfg.DatabaseURL)
 	defer db.Close()
 
-	srv, err := New(cfg, db)
+	logger := zerolog.Nop()
+	srv, err := New(cfg, db, logger)
 	if err != nil {
 		fmt.Printf("Server creation error: %v\n", err)
 		return

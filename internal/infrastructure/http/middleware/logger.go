@@ -2,10 +2,12 @@ package middleware
 
 import (
 	"bufio"
-	"log"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
+	"github.com/rs/zerolog"
 )
 
 // responseWriter wraps http.ResponseWriter to capture status code and response size
@@ -56,7 +58,8 @@ func (rw *responseWriter) Push(target string, opts *http.PushOptions) error {
 	return http.ErrNotSupported
 }
 
-// Logger logs HTTP requests with method, path, status, and duration
+// Logger logs HTTP requests with structured logging using zerolog.
+// It logs method, path, status, response size, and duration.
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -70,6 +73,28 @@ func Logger(next http.Handler) http.Handler {
 		next.ServeHTTP(wrapped, r)
 
 		duration := time.Since(start)
-		log.Printf("%s %s %d %dB %s", r.Method, r.URL.Path, wrapped.status, wrapped.size, duration)
+
+		// Get logger from context (or use a disabled logger if not present)
+		logger := logging.FromContext(r.Context())
+
+		// Determine log level based on status code
+		var event *zerolog.Event
+		switch {
+		case wrapped.status >= 500:
+			event = logger.Error()
+		case wrapped.status >= 400:
+			event = logger.Warn()
+		default:
+			event = logger.Info()
+		}
+
+		event.
+			Str("method", r.Method).
+			Str("path", r.URL.Path).
+			Int("status", wrapped.status).
+			Int("size", wrapped.size).
+			Dur("duration", duration).
+			Msg("request completed")
 	})
 }
+

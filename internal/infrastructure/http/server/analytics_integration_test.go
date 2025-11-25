@@ -47,7 +47,7 @@ func TestAnalyticsIntegration(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	server, err := New(cfg, db)
+	server, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}

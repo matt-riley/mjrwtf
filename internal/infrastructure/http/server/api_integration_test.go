@@ -23,7 +23,7 @@ func TestAPIEndpoints_CreateURL(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestAPIEndpoints_ListURLs(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -273,7 +273,7 @@ func TestAPIEndpoints_DeleteURL(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -373,7 +373,7 @@ func TestAPIEndpoints_FullWorkflow(t *testing.T) {
 		AllowedOrigins: "*",
 	}
 
-	srv, err := New(cfg, db)
+	srv, err := New(cfg, db, testLogger())
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
