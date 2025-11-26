@@ -288,6 +288,94 @@ func TestServer_Router(t *testing.T) {
 	}
 }
 
+func TestMetricsEndpoint(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := &config.Config{
+		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
+	}
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	// First, make some requests to generate metrics
+	healthReq := httptest.NewRequest(http.MethodGet, "/health", nil)
+	healthRec := httptest.NewRecorder()
+	srv.router.ServeHTTP(healthRec, healthReq)
+
+	// Now test the /metrics endpoint
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	body := rec.Body.String()
+
+	// Verify expected Prometheus metrics are present
+	// Note: Counter vectors may not appear until they have values
+	expectedMetrics := []string{
+		"mjrwtf_http_requests_total",
+		"mjrwtf_http_request_duration_seconds",
+		"mjrwtf_urls_active_total",
+		"go_goroutines",
+		"go_gc_duration_seconds",
+	}
+
+	for _, metric := range expectedMetrics {
+		if !containsMetricName(body, metric) {
+			t.Errorf("expected metric %s in output", metric)
+		}
+	}
+}
+
+func TestServer_Metrics(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := &config.Config{
+		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
+	}
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	m := srv.Metrics()
+	if m == nil {
+		t.Error("expected metrics to be returned")
+	}
+
+	if m.Registry == nil {
+		t.Error("expected metrics registry to be initialized")
+	}
+}
+
+// containsMetricName checks if a metric name appears in the Prometheus output
+func containsMetricName(body, metric string) bool {
+	for i := 0; i <= len(body)-len(metric); i++ {
+		if body[i:i+len(metric)] == metric {
+			return true
+		}
+	}
+	return false
+}
+
 func ExampleServer_Start() {
 	cfg := &config.Config{
 		ServerPort:     8080,

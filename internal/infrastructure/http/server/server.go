@@ -17,6 +17,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/handlers"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/metrics"
 	"github.com/rs/zerolog"
 )
 
@@ -35,6 +36,7 @@ type Server struct {
 	config          *config.Config
 	db              *sql.DB
 	logger          zerolog.Logger
+	metrics         *metrics.Metrics
 	redirectUseCase *application.RedirectURLUseCase
 }
 
@@ -43,11 +45,15 @@ type Server struct {
 func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error) {
 	r := chi.NewRouter()
 
+	// Initialize Prometheus metrics
+	m := metrics.New()
+
 	// Middleware stack (order matters)
 	r.Use(middleware.RecoveryWithLogger(logger)) // Recover from panics first, with fallback logger
 	r.Use(middleware.RequestID)                  // Generate/propagate request ID
 	r.Use(middleware.InjectLogger(logger))       // Inject logger with request context
 	r.Use(middleware.Logger)                     // Log all requests
+	r.Use(middleware.PrometheusMetrics(m))       // Record Prometheus metrics
 
 	// Parse CORS allowed origins (supports comma-separated list)
 	origins := strings.Split(cfg.AllowedOrigins, ",")
@@ -67,10 +73,11 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 	}))
 
 	server := &Server{
-		router: r,
-		config: cfg,
-		db:     db,
-		logger: logger,
+		router:  r,
+		config:  cfg,
+		db:      db,
+		logger:  logger,
+		metrics: m,
 		httpServer: &http.Server{
 			Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
 			Handler:      r,
@@ -92,6 +99,9 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 func (s *Server) setupRoutes() error {
 	// Health check endpoint
 	s.router.Get("/health", s.healthCheckHandler)
+
+	// Prometheus metrics endpoint
+	s.router.Handle("/metrics", s.metrics.Handler())
 
 	// Initialize repositories based on database driver
 	var urlRepo url.Repository
@@ -181,4 +191,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 // Router returns the chi router for testing purposes
 func (s *Server) Router() *chi.Mux {
 	return s.router
+}
+
+// Metrics returns the Prometheus metrics for the server
+func (s *Server) Metrics() *metrics.Metrics {
+	return s.metrics
 }
