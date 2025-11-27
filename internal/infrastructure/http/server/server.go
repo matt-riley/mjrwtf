@@ -101,6 +101,10 @@ func (s *Server) setupRoutes() error {
 	s.router.Get("/health", s.healthCheckHandler)
 
 	// Prometheus metrics endpoint
+	// Note: This endpoint is intentionally public for Prometheus scraping.
+	// In production, restrict access via network policies or a reverse proxy.
+	// The endpoint exposes operational metrics (request rates, error rates, etc.)
+	// which may be sensitive. Apply authentication if exposed to the public internet.
 	s.router.Handle("/metrics", s.metrics.Handler())
 
 	// Initialize repositories based on database driver

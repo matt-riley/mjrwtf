@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -103,35 +104,22 @@ func TestMetrics_Handler(t *testing.T) {
 	body := rec.Body.String()
 
 	// Check for expected metrics in output
-	if !containsMetric(body, "mjrwtf_http_requests_total") {
+	if !strings.Contains(body, "mjrwtf_http_requests_total") {
 		t.Error("expected http_requests_total metric in output")
 	}
-	if !containsMetric(body, "mjrwtf_http_request_duration_seconds") {
+	if !strings.Contains(body, "mjrwtf_http_request_duration_seconds") {
 		t.Error("expected http_request_duration_seconds metric in output")
 	}
-	if !containsMetric(body, "mjrwtf_url_clicks_total") {
+	if !strings.Contains(body, "mjrwtf_url_clicks_total") {
 		t.Error("expected url_clicks_total metric in output")
 	}
-	if !containsMetric(body, "mjrwtf_urls_active_total") {
+	if !strings.Contains(body, "mjrwtf_urls_active_total") {
 		t.Error("expected urls_active_total metric in output")
 	}
 	// Check for Go runtime metrics
-	if !containsMetric(body, "go_goroutines") {
+	if !strings.Contains(body, "go_goroutines") {
 		t.Error("expected go_goroutines metric in output")
 	}
-}
-
-func containsMetric(body, metric string) bool {
-	return len(body) > 0 && (containsSubstring(body, metric))
-}
-
-func containsSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
 
 func TestNew_MultipleInstances(t *testing.T) {

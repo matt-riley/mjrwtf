@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -333,7 +334,7 @@ func TestMetricsEndpoint(t *testing.T) {
 	}
 
 	for _, metric := range expectedMetrics {
-		if !containsMetricName(body, metric) {
+		if !strings.Contains(body, metric) {
 			t.Errorf("expected metric %s in output", metric)
 		}
 	}
@@ -364,16 +365,6 @@ func TestServer_Metrics(t *testing.T) {
 	if m.Registry == nil {
 		t.Error("expected metrics registry to be initialized")
 	}
-}
-
-// containsMetricName checks if a metric name appears in the Prometheus output
-func containsMetricName(body, metric string) bool {
-	for i := 0; i <= len(body)-len(metric); i++ {
-		if body[i:i+len(metric)] == metric {
-			return true
-		}
-	}
-	return false
 }
 
 func ExampleServer_Start() {

@@ -98,22 +98,26 @@ func (m *Metrics) RecordHTTPRequest(method, path, status string, duration float6
 	m.HTTPRequestDuration.WithLabelValues(method, path, status).Observe(duration)
 }
 
-// RecordURLClick records a URL click metric
+// RecordURLClick records a URL click metric.
+// Call this in the redirect handler after a successful redirect.
 func (m *Metrics) RecordURLClick(shortCode string) {
 	m.URLClicksTotal.WithLabelValues(shortCode).Inc()
 }
 
-// SetActiveURLs sets the current number of active URLs
+// SetActiveURLs sets the current number of active URLs.
+// Can be called periodically by querying the repository for total count.
 func (m *Metrics) SetActiveURLs(count float64) {
 	m.URLsActiveTotal.Set(count)
 }
 
-// IncrementActiveURLs increments the active URLs counter
+// IncrementActiveURLs increments the active URLs counter.
+// Call this when creating a new URL.
 func (m *Metrics) IncrementActiveURLs() {
 	m.URLsActiveTotal.Inc()
 }
 
-// DecrementActiveURLs decrements the active URLs counter
+// DecrementActiveURLs decrements the active URLs counter.
+// Call this when deleting a URL.
 func (m *Metrics) DecrementActiveURLs() {
 	m.URLsActiveTotal.Dec()
 }
