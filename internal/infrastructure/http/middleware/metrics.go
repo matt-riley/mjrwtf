@@ -60,9 +60,12 @@ func (rw *metricsResponseWriter) Write(b []byte) (int, error) {
 // normalizePath normalizes URL paths to reduce label cardinality
 // It replaces dynamic segments (like short codes) with placeholders
 func normalizePath(path string) string {
-	// Handle common static paths
+	// Handle common static paths - add new static routes here to prevent
+	// them from being incorrectly treated as short codes
 	switch path {
-	case "/", "/health", "/metrics", "/dashboard", "/create":
+	case "/", "/health", "/metrics", "/dashboard", "/create",
+		"/about", "/admin", "/api", "/login", "/logout",
+		"/register", "/settings", "/favicon.ico", "/robots.txt":
 		return path
 	}
 
