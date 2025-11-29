@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -55,6 +57,29 @@ func (rw *metricsResponseWriter) Write(b []byte) (int, error) {
 		rw.WriteHeader(http.StatusOK)
 	}
 	return rw.ResponseWriter.Write(b)
+}
+
+// Flush implements http.Flusher
+func (rw *metricsResponseWriter) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Hijack implements http.Hijacker
+func (rw *metricsResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := rw.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, http.ErrNotSupported
+}
+
+// Push implements http.Pusher
+func (rw *metricsResponseWriter) Push(target string, opts *http.PushOptions) error {
+	if p, ok := rw.ResponseWriter.(http.Pusher); ok {
+		return p.Push(target, opts)
+	}
+	return http.ErrNotSupported
 }
 
 // normalizePath normalizes URL paths to reduce label cardinality
