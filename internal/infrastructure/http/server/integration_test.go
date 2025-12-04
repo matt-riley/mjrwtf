@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
-	"github.com/rs/zerolog"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/rs/zerolog"
 )
 
 // TestMiddlewareExecutionOrder verifies that middleware executes in the correct order
