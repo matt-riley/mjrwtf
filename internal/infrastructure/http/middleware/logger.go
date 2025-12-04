@@ -97,4 +97,3 @@ func Logger(next http.Handler) http.Handler {
 			Msg("request completed")
 	})
 }
-

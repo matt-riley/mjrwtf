@@ -2,11 +2,14 @@ package middleware
 
 import (
 	"bytes"
+	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/matt-riley/mjrwtf/internal/adapters/notification"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
 	"github.com/rs/zerolog"
 )
@@ -175,4 +178,178 @@ func TestRecoveryWithLogger_NoPanic(t *testing.T) {
 	if logBuf.String() != "" {
 		t.Errorf("expected no log output when no panic, got: %s", logBuf.String())
 	}
+}
+
+func TestRecoveryWithNotifier_SendsDiscordNotification(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := zerolog.New(&logBuf)
+
+	// Track if Discord notification was sent
+	notificationSent := false
+
+	mockClient := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			notificationSent = true
+			// Read body to capture context (in real test, would parse JSON)
+			_, _ = io.ReadAll(req.Body)
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString("")),
+			}, nil
+		}),
+	}
+
+	notifier := notification.NewDiscordNotifier(
+		"https://discord.com/api/webhooks/test",
+		notification.WithHTTPClient(mockClient),
+		notification.WithAsyncSend(false),
+	)
+
+	handler := RecoveryWithNotifier(logger, notifier)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("test panic for Discord")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test-path", nil)
+	ctx := logging.WithRequestID(req.Context(), "test-req-123")
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	// Verify response status
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+	}
+
+	// Verify Discord notification was sent
+	if !notificationSent {
+		t.Error("expected Discord notification to be sent")
+	}
+
+	// Verify panic was also logged locally
+	logOutput := logBuf.String()
+	if !strings.Contains(logOutput, "panic recovered") {
+		t.Errorf("expected 'panic recovered' in log output, got: %s", logOutput)
+	}
+}
+
+func TestRecoveryWithNotifier_WithUserID(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := zerolog.New(&logBuf)
+
+	var capturedRequestPath string
+	mockClient := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			capturedRequestPath = req.URL.Path
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString("")),
+			}, nil
+		}),
+	}
+
+	notifier := notification.NewDiscordNotifier(
+		"https://discord.com/api/webhooks/test",
+		notification.WithHTTPClient(mockClient),
+		notification.WithAsyncSend(false),
+	)
+
+	handler := RecoveryWithNotifier(logger, notifier)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("test panic with user")
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/test", nil)
+	// Add user ID to context using the same pattern as auth middleware
+	ctx := context.WithValue(req.Context(), UserIDKey, "user-789")
+	ctx = logging.WithRequestID(ctx, "req-456")
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	// Verify notification was sent
+	if capturedRequestPath != "/api/webhooks/test" {
+		t.Error("expected Discord webhook to be called")
+	}
+}
+
+func TestRecoveryWithNotifier_NoNotifierConfigured(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := zerolog.New(&logBuf)
+
+	// nil notifier - should not crash
+	handler := RecoveryWithNotifier(logger, nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("test panic without notifier")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	// Should still recover and respond
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+	}
+
+	// Should still log
+	logOutput := logBuf.String()
+	if !strings.Contains(logOutput, "panic recovered") {
+		t.Errorf("expected 'panic recovered' in log output")
+	}
+}
+
+func TestRecoveryWithNotifier_DisabledNotifier(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := zerolog.New(&logBuf)
+
+	notificationSent := false
+	mockClient := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			notificationSent = true
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString("")),
+			}, nil
+		}),
+	}
+
+	// Empty webhook URL - notifier is disabled
+	notifier := notification.NewDiscordNotifier(
+		"",
+		notification.WithHTTPClient(mockClient),
+		notification.WithAsyncSend(false),
+	)
+
+	handler := RecoveryWithNotifier(logger, notifier)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("test panic with disabled notifier")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	// Should recover normally
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+	}
+
+	// Should NOT send notification
+	if notificationSent {
+		t.Error("expected no Discord notification when notifier is disabled")
+	}
+
+	// Should still log
+	logOutput := logBuf.String()
+	if !strings.Contains(logOutput, "panic recovered") {
+		t.Errorf("expected 'panic recovered' in log output")
+	}
+}
+
+// roundTripFunc is a helper type for mocking HTTP transport
+type roundTripFunc func(req *http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
