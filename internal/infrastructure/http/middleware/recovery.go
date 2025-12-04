@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 	"net/http"
 	"runtime/debug"
+	"time"
 
+	"github.com/matt-riley/mjrwtf/internal/adapters/notification"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
 	"github.com/rs/zerolog"
 )
@@ -56,6 +59,12 @@ func (rw *recoveryWriter) Push(target string, opts *http.PushOptions) error {
 // RecoveryWithLogger returns a recovery middleware that uses the provided logger.
 // This ensures panics are logged even if the context-based logger isn't available.
 func RecoveryWithLogger(logger zerolog.Logger) func(http.Handler) http.Handler {
+	return RecoveryWithNotifier(logger, nil)
+}
+
+// RecoveryWithNotifier returns a recovery middleware that uses the provided logger and Discord notifier.
+// This ensures panics are logged and optionally sent to Discord for critical errors.
+func RecoveryWithNotifier(logger zerolog.Logger, notifier *notification.DiscordNotifier) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			rw := &recoveryWriter{ResponseWriter: w}
@@ -67,10 +76,28 @@ func RecoveryWithLogger(logger zerolog.Logger) func(http.Handler) http.Handler {
 						ctxLogger = logger
 					}
 
+					stackTrace := string(debug.Stack())
+					errorMsg := fmt.Sprintf("%v", err)
+
 					ctxLogger.Error().
 						Interface("panic", err).
-						Str("stack", string(debug.Stack())).
+						Str("stack", stackTrace).
 						Msg("panic recovered")
+
+					// Send notification to Discord if notifier is configured
+					if notifier != nil && notifier.IsEnabled() {
+						userID, _ := GetUserID(r.Context())
+						errCtx := notification.ErrorContext{
+							ErrorMessage: errorMsg,
+							StackTrace:   stackTrace,
+							RequestID:    logging.GetRequestID(r.Context()),
+							Method:       r.Method,
+							Path:         r.URL.Path,
+							UserID:       userID,
+							Timestamp:    time.Now(),
+						}
+						notifier.NotifyError(r.Context(), errCtx)
+					}
 
 					if !rw.wroteHeader {
 						rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
