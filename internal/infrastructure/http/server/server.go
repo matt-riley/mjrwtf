@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/matt-riley/mjrwtf/internal/adapters/notification"
 	"github.com/matt-riley/mjrwtf/internal/adapters/repository"
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
@@ -48,12 +49,24 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 	// Initialize Prometheus metrics
 	m := metrics.New()
 
+	// Initialize Discord notifier for error notifications
+	var discordNotifier *notification.DiscordNotifier
+	if cfg.DiscordWebhookURL != "" {
+		discordNotifier = notification.NewDiscordNotifier(
+			cfg.DiscordWebhookURL,
+			notification.WithLogger(logger),
+		)
+		logger.Info().Msg("Discord error notifications enabled")
+	} else {
+		logger.Info().Msg("Discord error notifications disabled (no webhook URL configured)")
+	}
+
 	// Middleware stack (order matters)
-	r.Use(middleware.RecoveryWithLogger(logger)) // Recover from panics first, with fallback logger
-	r.Use(middleware.RequestID)                  // Generate/propagate request ID
-	r.Use(middleware.InjectLogger(logger))       // Inject logger with request context
-	r.Use(middleware.Logger)                     // Log all requests
-	r.Use(middleware.PrometheusMetrics(m))       // Record Prometheus metrics
+	r.Use(middleware.RecoveryWithNotifier(logger, discordNotifier)) // Recover from panics first, with Discord notifications
+	r.Use(middleware.RequestID)                                     // Generate/propagate request ID
+	r.Use(middleware.InjectLogger(logger))                          // Inject logger with request context
+	r.Use(middleware.Logger)                                        // Log all requests
+	r.Use(middleware.PrometheusMetrics(m))                          // Record Prometheus metrics
 
 	// Parse CORS allowed origins (supports comma-separated list)
 	origins := strings.Split(cfg.AllowedOrigins, ",")
