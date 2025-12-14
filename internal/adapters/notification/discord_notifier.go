@@ -25,13 +25,11 @@ type ErrorContext struct {
 
 // DiscordNotifier sends error notifications to Discord via webhooks
 type DiscordNotifier struct {
-	webhookURL    string
-	client        *http.Client
-	logger        zerolog.Logger
-	rateLimiter   *rateLimiter
-	sendAsync     bool
-	errorTypeHash map[string]time.Time
-	mu            sync.RWMutex
+	webhookURL  string
+	client      *http.Client
+	logger      zerolog.Logger
+	rateLimiter *rateLimiter
+	sendAsync   bool
 }
 
 // rateLimiter implements rate limiting per error type
@@ -94,12 +92,11 @@ func WithAsyncSend(async bool) DiscordNotifierOption {
 // NewDiscordNotifier creates a new Discord notifier
 func NewDiscordNotifier(webhookURL string, opts ...DiscordNotifierOption) *DiscordNotifier {
 	notifier := &DiscordNotifier{
-		webhookURL:    webhookURL,
-		client:        &http.Client{Timeout: 10 * time.Second},
-		logger:        zerolog.Nop(),
-		rateLimiter:   newRateLimiter(1 * time.Minute),
-		sendAsync:     true,
-		errorTypeHash: make(map[string]time.Time),
+		webhookURL:  webhookURL,
+		client:      &http.Client{Timeout: 10 * time.Second},
+		logger:      zerolog.Nop(),
+		rateLimiter: newRateLimiter(1 * time.Minute),
+		sendAsync:   true,
 	}
 
 	for _, opt := range opts {
@@ -128,14 +125,17 @@ func (n *DiscordNotifier) NotifyError(ctx context.Context, errCtx ErrorContext) 
 	}
 
 	if n.sendAsync {
-		go n.sendNotification(errCtx)
+		// For async mode, create a detached context with timeout
+		// since the goroutine may outlive the original context
+		go n.sendNotification(context.Background(), errCtx)
 	} else {
-		n.sendNotification(errCtx)
+		// For sync mode, use the original context
+		n.sendNotification(ctx, errCtx)
 	}
 }
 
 // sendNotification sends the actual notification to Discord
-func (n *DiscordNotifier) sendNotification(errCtx ErrorContext) {
+func (n *DiscordNotifier) sendNotification(ctx context.Context, errCtx ErrorContext) {
 	payload := n.formatMessage(errCtx)
 
 	payloadBytes, err := json.Marshal(payload)
@@ -144,7 +144,7 @@ func (n *DiscordNotifier) sendNotification(errCtx ErrorContext) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", n.webhookURL, bytes.NewBuffer(payloadBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", n.webhookURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		n.logger.Error().Err(err).Msg("failed to create Discord webhook request")
 		return
