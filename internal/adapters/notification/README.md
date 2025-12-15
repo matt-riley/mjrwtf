@@ -129,7 +129,7 @@ Error notifications are sent as Discord embeds with the following structure:
   - Request ID (if available)
   - Request Method and Path (if available)
   - User ID (if available)
-  - Stack Trace (truncated to 1000 chars, formatted as code block)
+  - Stack Trace (truncated to 1014 chars, formatted as code block)
 - **Timestamp**: ISO 8601 format
 - **Footer**: "mjr.wtf Error Notification"
 
