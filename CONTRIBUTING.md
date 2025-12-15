@@ -17,9 +17,6 @@ cd mjrwtf
 # Copy environment configuration
 cp .env.example .env
 
-# Generate database code (CRITICAL - required before building)
-sqlc generate
-
 # Build migration tool
 make build-migrate
 
@@ -41,7 +38,8 @@ Follow these guidelines when making changes:
 
 - **Hexagonal Architecture**: Keep domain logic in `internal/domain/`, implementations in `internal/adapters/`
 - **Run sqlc generate**: After modifying SQL queries in `sqlc/*/queries.sql`
-- **Run make check**: Before committing (`sqlc generate && make check`)
+- **Run templ generate**: After modifying templates in `internal/adapters/http/templates/`
+- **Run make check**: Before committing (`sqlc generate && templ generate && make check`)
 - **Write tests**: All new features and bug fixes require tests
 
 ### 5. Commit Your Changes
