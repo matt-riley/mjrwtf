@@ -228,8 +228,7 @@ func (n *DiscordNotifier) formatMessage(errCtx ErrorContext) map[string]interfac
 
 	if errCtx.StackTrace != "" {
 		// Truncate stack trace to fit Discord's field limit (1024 chars)
-		// Account for code block markers: ```\n (4 chars) + \n``` (4 chars) = 8 chars
-		// Plus 2 newlines = 10 chars total overhead
+		// Account for code block markers: ```\n (4 chars) + \n``` (4 chars) = 8 chars total overhead
 		// Truncate to 1014 to leave room for markers and stay under 1024 limit
 		stackTrace := truncate(errCtx.StackTrace, 1014)
 		fields = append(fields, map[string]interface{}{
