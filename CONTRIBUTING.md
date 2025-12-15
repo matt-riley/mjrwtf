@@ -17,6 +17,10 @@ cd mjrwtf
 # Copy environment configuration
 cp .env.example .env
 
+# Generate database code (required for build/test)
+sqlc generate
+# (Optional) Generate templates if using templ
+templ generate
 # Build migration tool
 make build-migrate
 
