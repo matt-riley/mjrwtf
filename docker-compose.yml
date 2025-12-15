@@ -9,7 +9,7 @@ services:
       - "8080:8080"
     environment:
       # Database connection
-      - DATABASE_URL=postgresql://mjrwtf:mjrwtf_password@postgres:5432/mjrwtf
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-mjrwtf}:${POSTGRES_PASSWORD:-change-this-password}@postgres:5432/${POSTGRES_DB:-mjrwtf}
       
       # Authentication (CHANGE THIS!)
       - AUTH_TOKEN=${AUTH_TOKEN:-change-me-in-production}
@@ -40,14 +40,14 @@ services:
     image: postgres:16-alpine
     container_name: mjrwtf-postgres
     environment:
-      - POSTGRES_DB=mjrwtf
-      - POSTGRES_USER=mjrwtf
-      - POSTGRES_PASSWORD=mjrwtf_password
+      - POSTGRES_DB=${POSTGRES_DB:-mjrwtf}
+      - POSTGRES_USER=${POSTGRES_USER:-mjrwtf}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-this-password}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mjrwtf"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mjrwtf}"]
       interval: 10s
       timeout: 5s
       retries: 5
