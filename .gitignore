@@ -31,7 +31,6 @@ go.work
 .env
 .env.local
 
-# Generated Templ files
-*_templ.go
+# Test databases
 test_database.db
 *.db
