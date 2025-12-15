@@ -2,6 +2,41 @@
 
 A simple URL shortener, written in Go.
 
+## Quick Start
+
+### Docker (Recommended)
+
+The easiest way to run mjr.wtf is using Docker:
+
+```bash
+# Build the Docker image
+make docker-build
+
+# Copy and configure environment variables
+cp .env.example .env
+# Edit .env to set your configuration (especially AUTH_TOKEN and DATABASE_URL)
+
+# Run the container
+make docker-run
+```
+
+See [docs/docker.md](docs/docker.md) for comprehensive Docker documentation, including Docker Compose examples and production deployment guidelines.
+
+### Local Development
+
+```bash
+# Install dependencies
+go mod download
+
+# Run database migrations
+export DATABASE_URL=./database.db
+make migrate-up
+
+# Build and run the server
+make build-server
+./bin/server
+```
+
 ## Authentication
 
 The API uses token-based authentication to protect URL creation and deletion endpoints. Authentication is implemented using Bearer tokens.

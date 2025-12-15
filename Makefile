@@ -1,4 +1,4 @@
-.PHONY: help test lint fmt vet build build-server build-migrate clean migrate-up migrate-down migrate-status migrate-create migrate-reset templ-generate templ-watch
+.PHONY: help test lint fmt vet build build-server build-migrate clean migrate-up migrate-down migrate-status migrate-create migrate-reset templ-generate templ-watch docker-build docker-run
 
 # Default target
 help:
@@ -20,6 +20,10 @@ help:
 	@echo "  migrate-status    - Show migration status"
 	@echo "  migrate-create NAME=<name> - Create a new migration"
 	@echo "  migrate-reset     - Rollback all migrations"
+	@echo ""
+	@echo "Docker targets:"
+	@echo "  docker-build      - Build Docker image"
+	@echo "  docker-run        - Run Docker container (requires .env file)"
 
 # Run all tests
 test:
@@ -101,3 +105,18 @@ templ-watch:
 		echo "  go install github.com/a-h/templ/cmd/templ@latest"; \
 		exit 1; \
 	fi
+
+# Docker targets
+docker-build:
+	docker build -t mjrwtf:latest .
+
+docker-run:
+	@if [ ! -f .env ]; then \
+		echo "Error: .env file not found. Copy .env.example to .env and configure it."; \
+		exit 1; \
+	fi
+	docker run -d \
+		--name mjrwtf \
+		-p 8080:8080 \
+		--env-file .env \
+		mjrwtf:latest

@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  mjrwtf:
+    build: .
+    image: mjrwtf:latest
+    container_name: mjrwtf
+    ports:
+      - "8080:8080"
+    environment:
+      # Database connection
+      - DATABASE_URL=postgresql://mjrwtf:mjrwtf_password@postgres:5432/mjrwtf
+      
+      # Authentication (CHANGE THIS!)
+      - AUTH_TOKEN=${AUTH_TOKEN:-change-me-in-production}
+      
+      # Server configuration
+      - SERVER_PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      
+      # CORS configuration
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      
+      # GeoIP (optional)
+      - GEOIP_ENABLED=${GEOIP_ENABLED:-false}
+      - GEOIP_DATABASE=${GEOIP_DATABASE:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: mjrwtf-postgres
+    environment:
+      - POSTGRES_DB=mjrwtf
+      - POSTGRES_USER=mjrwtf
+      - POSTGRES_PASSWORD=mjrwtf_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mjrwtf"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
