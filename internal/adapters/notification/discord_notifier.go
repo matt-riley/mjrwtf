@@ -127,7 +127,11 @@ func (n *DiscordNotifier) NotifyError(ctx context.Context, errCtx ErrorContext) 
 	if n.sendAsync {
 		// For async mode, create a detached context with timeout
 		// since the goroutine may outlive the original context
-		go n.sendNotification(context.Background(), errCtx)
+		ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		go func() {
+			defer cancel()
+			n.sendNotification(ctxWithTimeout, errCtx)
+		}()
 	} else {
 		// For sync mode, use the original context
 		n.sendNotification(ctx, errCtx)
