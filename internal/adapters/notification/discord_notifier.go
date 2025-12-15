@@ -50,12 +50,26 @@ func (rl *rateLimiter) allow(errorType string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
+	// Clean up old entries to prevent unbounded map growth
+	rl.cleanup()
+
 	lastSent, exists := rl.lastSent[errorType]
 	if !exists || time.Since(lastSent) >= rl.interval {
 		rl.lastSent[errorType] = time.Now()
 		return true
 	}
 	return false
+}
+
+// cleanup removes entries older than 2x the rate limit interval to prevent memory leaks
+// This is called while the lock is already held by allow()
+func (rl *rateLimiter) cleanup() {
+	threshold := time.Now().Add(-2 * rl.interval)
+	for errorType, lastSent := range rl.lastSent {
+		if lastSent.Before(threshold) {
+			delete(rl.lastSent, errorType)
+		}
+	}
 }
 
 // DiscordNotifierOption is a functional option for configuring the notifier
@@ -213,8 +227,11 @@ func (n *DiscordNotifier) formatMessage(errCtx ErrorContext) map[string]interfac
 	}
 
 	if errCtx.StackTrace != "" {
-		// Truncate stack trace to fit Discord's limits
-		stackTrace := truncate(errCtx.StackTrace, 1000)
+		// Truncate stack trace to fit Discord's field limit (1024 chars)
+		// Account for code block markers: ```\n (4 chars) + \n``` (4 chars) = 8 chars
+		// Plus 2 newlines = 10 chars total overhead
+		// Truncate to 1014 to leave room for markers and stay under 1024 limit
+		stackTrace := truncate(errCtx.StackTrace, 1014)
 		fields = append(fields, map[string]interface{}{
 			"name":   "Stack Trace",
 			"value":  fmt.Sprintf("```\n%s\n```", stackTrace),
