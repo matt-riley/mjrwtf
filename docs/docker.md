@@ -59,7 +59,7 @@ docker run -d \
 docker run -d \
   --name mjrwtf \
   -p 8080:8080 \
-  -e DATABASE_URL=postgresql://user:password@postgres:5432/mjrwtf \
+  -e DATABASE_URL=postgresql://user:YOUR_DB_PASSWORD@postgres:5432/mjrwtf \
   -e AUTH_TOKEN=your-secret-token \
   --network mynetwork \
   mjrwtf:latest
@@ -106,7 +106,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=postgresql://mjrwtf:password@postgres:5432/mjrwtf
+      - DATABASE_URL=postgresql://mjrwtf:CHANGE_ME_DB_PASSWORD@postgres:5432/mjrwtf
       - AUTH_TOKEN=${AUTH_TOKEN}
       - SERVER_PORT=8080
       - LOG_LEVEL=info
@@ -128,7 +128,7 @@ services:
     environment:
       - POSTGRES_DB=mjrwtf
       - POSTGRES_USER=mjrwtf
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_PASSWORD=CHANGE_ME_DB_PASSWORD
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
