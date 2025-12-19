@@ -1,4 +1,9 @@
-.PHONY: help test lint fmt vet build build-server build-migrate clean migrate-up migrate-down migrate-status migrate-create migrate-reset templ-generate templ-watch docker-build docker-run
+.PHONY: \
+    help test lint fmt vet clean \
+    build build-server build-migrate \
+    migrate-up migrate-down migrate-status migrate-create migrate-reset \
+    templ-generate templ-watch \
+    docker-build docker-run
 
 # Default target
 help:
