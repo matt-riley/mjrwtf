@@ -9,12 +9,25 @@ A simple URL shortener, written in Go.
 The easiest way to run mjr.wtf with PostgreSQL is using Docker Compose:
 
 ```bash
-# Copy and configure environment variables (optional - has defaults)
+# 1. Copy and configure environment variables (optional - has defaults)
 cp .env.example .env
 # Edit .env to set your configuration (especially AUTH_TOKEN and POSTGRES_PASSWORD)
 
-# Start all services (app + PostgreSQL)
+# 2. Start all services (app + PostgreSQL)
 make docker-compose-up
+
+# 3. Run database migrations (required on first start)
+# Build the migrate tool
+make build-migrate
+
+# Run migrations against the PostgreSQL database
+export DATABASE_URL=postgresql://mjrwtf:INSECURE_CHANGE_ME@localhost:5432/mjrwtf
+# Or use your custom credentials from .env:
+# export DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+./bin/migrate up
+
+# 4. Verify the application is running
+curl http://localhost:8080/health
 
 # View logs
 make docker-compose-logs
@@ -22,6 +35,8 @@ make docker-compose-logs
 # Stop all services
 make docker-compose-down
 ```
+
+**Note:** Database migrations must be run before the application can create or retrieve URLs. The migrate tool is run from your host machine and connects to PostgreSQL through the exposed port 5432.
 
 The docker-compose configuration includes:
 - Go application server

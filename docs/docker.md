@@ -98,13 +98,27 @@ The project includes a `docker-compose.yml` file that sets up the complete appli
 ### Quick Start
 
 ```bash
-# Copy environment variables (optional - has sensible defaults)
+# 1. Copy environment variables (optional - has sensible defaults)
 cp .env.example .env
 # Edit .env to customize AUTH_TOKEN and database credentials
 
-# Start all services
+# 2. Start all services
 make docker-compose-up
 # or: docker compose up -d
+
+# 3. Run database migrations (REQUIRED on first start)
+# The migrate binary is not included in the Docker image, so run it from the host
+make build-migrate
+
+# Run migrations using the default credentials
+export DATABASE_URL=postgresql://mjrwtf:INSECURE_CHANGE_ME@localhost:5432/mjrwtf
+# Or if you changed the credentials in .env, use those:
+# export DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+./bin/migrate up
+
+# 4. Verify the application is ready
+curl http://localhost:8080/health
+# Expected output: {"status":"ok"}
 
 # View logs
 make docker-compose-logs
@@ -119,6 +133,8 @@ make docker-compose-down
 # or: docker compose down
 ```
 
+**Important:** The database migrations step (step 3) is required before the application can function. Without migrations, the database tables won't exist and the application will fail when trying to create or retrieve URLs.
+
 ### Services Included
 
 The Docker Compose stack includes:
@@ -131,6 +147,7 @@ The Docker Compose stack includes:
 
 2. **postgres** - PostgreSQL 16 database
    - Data persisted in named volume `postgres-data`
+   - Exposed on port 5432 for running migrations from host
    - Includes health checks
    - Automatically restarts on failure
 
@@ -175,8 +192,9 @@ docker compose exec -T postgres psql -U mjrwtf mjrwtf < backup.sql
 
 Services communicate over an automatic Docker network:
 - The app connects to PostgreSQL using the hostname `postgres`
-- PostgreSQL is not exposed to the host (only accessible from containers in the Docker network)
-- Only port 8080 (app) is exposed to the host
+- PostgreSQL port 5432 is exposed to the host for running migrations
+- Port 8080 (app) is exposed to the host for accessing the application
+- For production deployments, you can remove the PostgreSQL port exposure after initial setup
 
 ### Testing the Stack
 
@@ -186,6 +204,11 @@ docker compose up -d
 
 # Wait for services to be healthy
 docker compose ps
+
+# Run database migrations (required on first start)
+make build-migrate
+export DATABASE_URL=postgresql://mjrwtf:INSECURE_CHANGE_ME@localhost:5432/mjrwtf
+./bin/migrate up
 
 # Test the health endpoint
 curl http://localhost:8080/health
@@ -268,13 +291,19 @@ For production use:
    - Use nginx, Traefik, or Caddy for TLS termination
    - Don't expose port 8080 directly to the internet
 
-5. **Regular backups:**
+5. **Secure PostgreSQL access (optional):**
+   - After running initial migrations, you can remove the PostgreSQL port exposure
+   - Comment out the `ports` section in the postgres service in docker-compose.yml
+   - This prevents external access to the database
+   - Migrations can still be run from within the Docker network if needed
+
+6. **Regular backups:**
    ```bash
    # Automated backup script
    docker compose exec postgres pg_dump -U mjrwtf mjrwtf | gzip > backup-$(date +%Y%m%d).sql.gz
    ```
 
-6. **Monitor logs:**
+7. **Monitor logs:**
    ```bash
    docker compose logs -f --tail=100
    ```
@@ -367,14 +396,18 @@ docker run -p 9090:8080 mjrwtf:latest
 
 The container doesn't automatically run migrations. You need to run migrations separately before starting the application.
 
-**Option 1: Run migrations locally before deploying**
+**For Docker Compose:** See the Quick Start section above for step-by-step migration instructions. PostgreSQL is exposed on port 5432 to allow running migrations from the host.
+
+**For other deployments:**
+
+**Option 1: Run migrations from host**
 
 ```bash
-# Install the migrate tool locally
+# Build the migrate tool
 make build-migrate
 
-# Run migrations
-export DATABASE_URL=your-db-url
+# Run migrations (adjust DATABASE_URL for your setup)
+export DATABASE_URL=postgresql://user:password@host:5432/dbname
 ./bin/migrate up
 ```
 
