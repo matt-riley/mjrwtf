@@ -3,7 +3,7 @@
     build build-server build-migrate \
     migrate-up migrate-down migrate-status migrate-create migrate-reset \
     templ-generate templ-watch \
-    docker-build docker-run
+    docker-build docker-run docker-compose-up docker-compose-down docker-compose-logs docker-compose-ps
 
 # Default target
 help:
@@ -29,6 +29,12 @@ help:
 	@echo "Docker targets:"
 	@echo "  docker-build      - Build Docker image"
 	@echo "  docker-run        - Run Docker container (requires .env file)"
+	@echo ""
+	@echo "Docker Compose targets:"
+	@echo "  docker-compose-up - Start all services with Docker Compose"
+	@echo "  docker-compose-down - Stop all services and remove containers"
+	@echo "  docker-compose-logs - View logs from all services"
+	@echo "  docker-compose-ps - List running services"
 
 # Run all tests
 test:
@@ -125,3 +131,20 @@ docker-run:
 		-p 8080:8080 \
 		--env-file .env \
 		mjrwtf:latest
+
+# Docker Compose targets
+docker-compose-up:
+	@if [ ! -f .env ]; then \
+		echo "Warning: .env file not found. Using defaults from docker-compose.yml"; \
+		echo "For production, copy .env.example to .env and configure it."; \
+	fi
+	docker compose up -d
+
+docker-compose-down:
+	docker compose down
+
+docker-compose-logs:
+	docker compose logs -f
+
+docker-compose-ps:
+	docker compose ps

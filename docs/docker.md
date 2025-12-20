@@ -93,55 +93,191 @@ docker run -d \
 
 ## Docker Compose
 
-Example `docker-compose.yml`:
+The project includes a `docker-compose.yml` file that sets up the complete application stack with PostgreSQL.
 
-```yaml
-version: '3.8'
-
-services:
-  mjrwtf:
-    build: .
-    image: mjrwtf:latest
-    container_name: mjrwtf
-    ports:
-      - "8080:8080"
-    environment:
-      - DATABASE_URL=postgresql://mjrwtf:CHANGE_ME_DB_PASSWORD@postgres:5432/mjrwtf
-      - AUTH_TOKEN=${AUTH_TOKEN}
-      - SERVER_PORT=8080
-      - LOG_LEVEL=info
-      - LOG_FORMAT=json
-      - GEOIP_ENABLED=false
-    depends_on:
-      - postgres
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: mjrwtf-postgres
-    environment:
-      - POSTGRES_DB=mjrwtf
-      - POSTGRES_USER=mjrwtf
-      - POSTGRES_PASSWORD=CHANGE_ME_DB_PASSWORD
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-volumes:
-  postgres-data:
-```
-
-Start with Docker Compose:
+### Quick Start
 
 ```bash
-docker-compose up -d
+# Copy environment variables (optional - has sensible defaults)
+cp .env.example .env
+# Edit .env to customize AUTH_TOKEN and database credentials
+
+# Start all services
+make docker-compose-up
+# or: docker compose up -d
+
+# View logs
+make docker-compose-logs
+# or: docker compose logs -f
+
+# Check service status
+make docker-compose-ps
+# or: docker compose ps
+
+# Stop all services
+make docker-compose-down
+# or: docker compose down
 ```
+
+### Services Included
+
+The Docker Compose stack includes:
+
+1. **mjrwtf** - The Go application server
+   - Exposed on port 8080
+   - Automatically builds from the Dockerfile
+   - Waits for PostgreSQL to be healthy before starting
+   - Includes health checks and automatic restart
+
+2. **postgres** - PostgreSQL 16 database
+   - Data persisted in named volume `postgres-data`
+   - Includes health checks
+   - Automatically restarts on failure
+
+### Configuration
+
+The docker-compose.yml uses environment variables with sensible defaults:
+
+```bash
+# Database credentials (set in .env or use defaults)
+POSTGRES_DB=mjrwtf
+POSTGRES_USER=mjrwtf
+POSTGRES_PASSWORD=INSECURE_CHANGE_ME  # CHANGE THIS!
+
+# Application configuration
+AUTH_TOKEN=INSECURE_CHANGE_ME  # CHANGE THIS!
+LOG_LEVEL=info
+LOG_FORMAT=json
+ALLOWED_ORIGINS=*
+```
+
+**Important:** The default passwords are insecure. Always change `AUTH_TOKEN` and `POSTGRES_PASSWORD` in production.
+
+### Data Persistence
+
+Database data is stored in a named Docker volume (`postgres-data`) that persists across container restarts:
+
+```bash
+# List volumes
+docker volume ls
+
+# Inspect the postgres data volume
+docker volume inspect mjrwtf_postgres-data
+
+# Backup the database
+docker compose exec postgres pg_dump -U mjrwtf mjrwtf > backup.sql
+
+# Restore from backup
+docker compose exec -T postgres psql -U mjrwtf mjrwtf < backup.sql
+```
+
+### Networking
+
+Services communicate over an automatic Docker network:
+- The app connects to PostgreSQL using the hostname `postgres`
+- PostgreSQL is not exposed to the host (only accessible from app container)
+- Only port 8080 (app) is exposed to the host
+
+### Testing the Stack
+
+```bash
+# Start services
+docker compose up -d
+
+# Wait for services to be healthy
+docker compose ps
+
+# Test the health endpoint
+curl http://localhost:8080/health
+
+# Create a short URL (requires AUTH_TOKEN)
+curl -X POST http://localhost:8080/api/urls \
+  -H "Authorization: Bearer INSECURE_CHANGE_ME" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com", "short_code": "test123"}'
+
+# Test redirect
+curl -L http://localhost:8080/test123
+
+# View logs
+docker compose logs -f mjrwtf
+
+# Stop services
+docker compose down
+```
+
+### Troubleshooting
+
+**Services won't start:**
+```bash
+# Check service status
+docker compose ps
+
+# View logs
+docker compose logs
+
+# Rebuild containers
+docker compose up -d --build
+```
+
+**Database connection errors:**
+```bash
+# Verify postgres is healthy
+docker compose ps postgres
+
+# Check postgres logs
+docker compose logs postgres
+
+# Connect to postgres directly
+docker compose exec postgres psql -U mjrwtf -d mjrwtf
+```
+
+**Port already in use:**
+```bash
+# Check what's using port 8080
+lsof -i :8080
+
+# Use a different port (edit docker-compose.yml)
+# Change "8080:8080" to "9090:8080"
+```
+
+### Production Deployment
+
+For production use:
+
+1. **Change default credentials:**
+   ```bash
+   # Set in .env file
+   AUTH_TOKEN=<strong-random-token>
+   POSTGRES_PASSWORD=<strong-random-password>
+   ```
+
+2. **Configure CORS:**
+   ```bash
+   ALLOWED_ORIGINS=https://yourdomain.com
+   ```
+
+3. **Use specific image tags:**
+   ```yaml
+   services:
+     mjrwtf:
+       image: mjrwtf:v1.0.0  # not 'latest'
+   ```
+
+4. **Run behind a reverse proxy:**
+   - Use nginx, Traefik, or Caddy for TLS termination
+   - Don't expose port 8080 directly to the internet
+
+5. **Regular backups:**
+   ```bash
+   # Automated backup script
+   docker compose exec postgres pg_dump -U mjrwtf mjrwtf | gzip > backup-$(date +%Y%m%d).sql.gz
+   ```
+
+6. **Monitor logs:**
+   ```bash
+   docker compose logs -f --tail=100
+   ```
 
 ## Environment Variables
 
