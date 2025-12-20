@@ -4,9 +4,34 @@ A simple URL shortener, written in Go.
 
 ## Quick Start
 
-### Docker (Recommended)
+### Docker Compose (Recommended)
 
-The easiest way to run mjr.wtf is using Docker:
+The easiest way to run mjr.wtf with PostgreSQL is using Docker Compose:
+
+```bash
+# Copy and configure environment variables (optional - has defaults)
+cp .env.example .env
+# Edit .env to set your configuration (especially AUTH_TOKEN and POSTGRES_PASSWORD)
+
+# Start all services (app + PostgreSQL)
+make docker-compose-up
+
+# View logs
+make docker-compose-logs
+
+# Stop all services
+make docker-compose-down
+```
+
+The docker-compose configuration includes:
+- Go application server
+- PostgreSQL database with persistent storage
+- Automatic health checks and restart policies
+- Networked services with proper dependencies
+
+### Docker (Single Container)
+
+To run just the application container:
 
 ```bash
 # Build the Docker image
@@ -20,7 +45,7 @@ cp .env.example .env
 make docker-run
 ```
 
-See [docs/docker.md](docs/docker.md) for comprehensive Docker documentation, including Docker Compose examples and production deployment guidelines.
+See [docs/docker.md](docs/docker.md) for comprehensive Docker documentation, including advanced configurations and production deployment guidelines.
 
 ### Local Development
 
