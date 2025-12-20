@@ -248,8 +248,8 @@ For production use:
 1. **Change default credentials:**
    ```bash
    # Set in .env file
-   AUTH_TOKEN=<strong-random-token>
-   POSTGRES_PASSWORD=<strong-random-password>
+   AUTH_TOKEN=your-strong-random-token-here
+   POSTGRES_PASSWORD=your-strong-random-password-here
    ```
 
 2. **Configure CORS:**
