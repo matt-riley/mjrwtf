@@ -112,8 +112,8 @@ make build-migrate
 
 # Run migrations using the default credentials
 export DATABASE_URL=postgresql://mjrwtf:INSECURE_CHANGE_ME@localhost:5432/mjrwtf
-# Or if you changed the credentials in .env, use those:
-# export DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+# Or if you changed the credentials in .env, replace the values manually:
+# export DATABASE_URL=postgresql://your-user:your-password@localhost:5432/your-db
 ./bin/migrate up
 
 # 4. Verify the application is ready
