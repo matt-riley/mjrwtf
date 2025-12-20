@@ -175,7 +175,7 @@ docker compose exec -T postgres psql -U mjrwtf mjrwtf < backup.sql
 
 Services communicate over an automatic Docker network:
 - The app connects to PostgreSQL using the hostname `postgres`
-- PostgreSQL is not exposed to the host (only accessible from app container)
+- PostgreSQL is not exposed to the host (only accessible from containers in the Docker network)
 - Only port 8080 (app) is exposed to the host
 
 ### Testing the Stack
@@ -261,7 +261,7 @@ For production use:
    ```yaml
    services:
      mjrwtf:
-       image: mjrwtf:v1.0.0  # not 'latest'
+       image: mjrwtf:x.y.z  # Use actual version tag, not 'latest'
    ```
 
 4. **Run behind a reverse proxy:**
