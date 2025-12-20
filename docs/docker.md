@@ -59,7 +59,7 @@ docker run -d \
 docker run -d \
   --name mjrwtf \
   -p 8080:8080 \
-  -e DATABASE_URL=postgresql://user:YOUR_DB_PASSWORD@postgres:5432/mjrwtf \
+  -e DATABASE_URL=postgresql://user:CHANGE_ME_DB_PASSWORD@postgres:5432/mjrwtf \
   -e AUTH_TOKEN=your-secret-token \
   --network mynetwork \
   mjrwtf:latest
@@ -229,17 +229,24 @@ docker run -p 9090:8080 mjrwtf:latest
 
 ### Database Migrations
 
-The container doesn't automatically run migrations. Run them before starting:
+The container doesn't automatically run migrations. You need to run migrations separately before starting the application.
+
+**Option 1: Run migrations locally before deploying**
 
 ```bash
-# Build and run migrate tool
-docker run --rm \
-  -e DATABASE_URL=your-db-url \
-  mjrwtf:latest \
-  ./migrate up
+# Install the migrate tool locally
+make build-migrate
+
+# Run migrations
+export DATABASE_URL=your-db-url
+./bin/migrate up
 ```
 
-Or include migration in your entrypoint script.
+**Option 2: Use a separate migration job**
+
+Create a separate Docker image or Kubernetes Job that includes the migrate binary, or run migrations as part of your deployment pipeline before starting the application containers.
+
+The main application container only includes the server binary for security and minimal image size.
 
 ## Development
 

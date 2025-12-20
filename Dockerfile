@@ -17,7 +17,8 @@ RUN go mod download
 COPY . .
 
 # Generate templ templates
-RUN go install github.com/a-h/templ/cmd/templ@latest && \
+# Pin to specific version to ensure reproducible builds and reduce supply chain risk
+RUN go install github.com/a-h/templ/cmd/templ@v0.3.960 && \
     templ generate
 
 # Build the server binary
