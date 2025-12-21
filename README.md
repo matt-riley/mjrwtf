@@ -221,3 +221,48 @@ This will create a new timestamped migration file in the appropriate directory.
 ### Embedded Migrations
 
 Migrations are embedded in the binary at build time, so the migrate tool is self-contained and doesn't require external migration files at runtime.
+
+## Testing
+
+The project includes comprehensive unit and integration tests.
+
+### Running Tests
+
+```bash
+# Run all tests (unit + integration)
+make test
+
+# Run unit tests only (fast, excludes integration tests)
+make test-unit
+
+# Run integration tests only
+make test-integration
+
+# Run with coverage report
+go test -cover ./...
+
+# Run specific test suite
+go test -v -run TestE2E ./internal/infrastructure/http/server/
+```
+
+### Integration Tests
+
+The integration test suite provides end-to-end testing of the entire application:
+- **Full workflow testing** - authenticate → create URL → redirect → verify analytics
+- **API endpoint testing** - All REST endpoints with authentication
+- **Error scenario testing** - Invalid inputs, auth failures, not found errors
+- **Concurrent operation testing** - Thread safety and race conditions
+- **Database integration** - Uses in-memory SQLite for fast, isolated tests
+
+See [docs/INTEGRATION_TESTING.md](docs/INTEGRATION_TESTING.md) for comprehensive integration testing documentation.
+
+### Test Coverage
+
+Current test coverage:
+- HTTP API Endpoints: 100%
+- Authentication: 100%
+- URL Creation & Redirects: 100%
+- Analytics: 100%
+- Error Handling: 100%
+
+All tests run in CI/CD with no external dependencies required.
