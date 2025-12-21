@@ -65,7 +65,7 @@ docker compose config --volumes
 
 - [ ] App can resolve `postgres` hostname
 - [ ] App can connect to postgres:5432
-- [ ] PostgreSQL is NOT exposed to host (only app container can access)
+- [ ] PostgreSQL port 5432 is exposed to host for running migrations
 - [ ] Port 8080 is exposed to host
 - [ ] Test creating URL: 
   ```bash
