@@ -29,6 +29,9 @@ func setupSQLiteTestDB(t *testing.T) (*sql.DB, func()) {
 		t.Fatalf("failed to open database: %v", err)
 	}
 
+	// Limit to 1 connection to prevent SQLITE_BUSY errors during concurrent operations
+	db.SetMaxOpenConns(1)
+
 	// Enable foreign keys
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
