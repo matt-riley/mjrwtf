@@ -92,31 +92,50 @@ func TestE2E_FullWorkflow(t *testing.T) {
 
 		// Step 3: Verify analytics were recorded
 		t.Run("verify_analytics", func(t *testing.T) {
-			// Wait a moment for async click recording
+			// Give initial time for async workers to process  
 			time.Sleep(100 * time.Millisecond)
+			
+			// Poll for async click recording instead of using only a fixed sleep
+			const (
+				analyticsTimeout      = 5 * time.Second
+				analyticsPollInterval = 50 * time.Millisecond
+			)
 
-			analyticsReq := httptest.NewRequest(http.MethodGet, "/api/urls/"+shortCode+"/analytics", nil)
-			analyticsReq.Header.Set("Authorization", "Bearer test-secret-token")
+			deadline := time.Now().Add(analyticsTimeout)
+			var (
+				lastStatus int
+				lastBody   string
+			)
 
-			analyticsRec := httptest.NewRecorder()
-			srv.router.ServeHTTP(analyticsRec, analyticsReq)
+			for time.Now().Before(deadline) {
+				analyticsReq := httptest.NewRequest(http.MethodGet, "/api/urls/"+shortCode+"/analytics", nil)
+				analyticsReq.Header.Set("Authorization", "Bearer test-secret-token")
 
-			if analyticsRec.Code != http.StatusOK {
-				t.Fatalf("expected status %d, got %d. Body: %s", http.StatusOK, analyticsRec.Code, analyticsRec.Body.String())
+				analyticsRec := httptest.NewRecorder()
+				srv.router.ServeHTTP(analyticsRec, analyticsReq)
+
+				lastStatus = analyticsRec.Code
+				lastBody = analyticsRec.Body.String()
+
+				if analyticsRec.Code == http.StatusOK {
+					var analytics map[string]interface{}
+					if err := json.Unmarshal(analyticsRec.Body.Bytes(), &analytics); err != nil {
+						// If parsing fails, keep retrying until timeout
+						time.Sleep(analyticsPollInterval)
+						continue
+					}
+
+					// Verify click count is at least 1
+					if totalClicks, ok := analytics["total_clicks"].(float64); ok && totalClicks >= 1 {
+						t.Logf("Analytics verified: %d total clicks", int(totalClicks))
+						return
+					}
+				}
+
+				time.Sleep(analyticsPollInterval)
 			}
 
-			var analytics map[string]interface{}
-			if err := json.Unmarshal(analyticsRec.Body.Bytes(), &analytics); err != nil {
-				t.Fatalf("failed to parse analytics response: %v", err)
-			}
-
-			// Verify click count is at least 1
-			totalClicks, ok := analytics["total_clicks"].(float64)
-			if !ok || totalClicks < 1 {
-				t.Errorf("expected at least 1 click, got %v", analytics["total_clicks"])
-			}
-
-			t.Logf("Analytics verified: %d total clicks", int(totalClicks))
+			t.Fatalf("expected analytics to be recorded within %s, last status %d, last body: %s", analyticsTimeout, lastStatus, lastBody)
 		})
 	})
 }
@@ -430,7 +449,9 @@ func TestE2E_MultipleClicks(t *testing.T) {
 	}
 
 	var response map[string]interface{}
-	json.Unmarshal(rec.Body.Bytes(), &response)
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to unmarshal create URL response: %v", err)
+	}
 	shortCode := response["short_code"].(string)
 
 	// Perform multiple clicks from different sources (sequentially to avoid race conditions)
@@ -454,28 +475,48 @@ func TestE2E_MultipleClicks(t *testing.T) {
 			t.Errorf("click %d: expected status %d, got %d. Body: %s", i, http.StatusFound, clickRec.Code, clickRec.Body.String())
 		}
 		
-		// Small delay between clicks to ensure async processing completes
+		// Small delay to avoid overwhelming async workers
+		// TODO: Investigate if there's a race condition in click recording
+		time.Sleep(30 * time.Millisecond)
+	}
+
+	// Give initial time for async workers to process
+	time.Sleep(100 * time.Millisecond)
+
+	// Poll for async click recording to complete, waiting until all clicks are recorded or timeout
+	deadline := time.Now().Add(5 * time.Second)
+
+	var (
+		analytics    map[string]interface{}
+		totalClicks  float64
+		ok           bool
+		analyticsRec *httptest.ResponseRecorder
+	)
+
+	for {
+		analyticsReq := httptest.NewRequest(http.MethodGet, "/api/urls/"+shortCode+"/analytics", nil)
+		analyticsReq.Header.Set("Authorization", "Bearer test-token")
+
+		analyticsRec = httptest.NewRecorder()
+		srv.router.ServeHTTP(analyticsRec, analyticsReq)
+
+		if analyticsRec.Code == http.StatusOK {
+			analytics = make(map[string]interface{})
+			if err := json.Unmarshal(analyticsRec.Body.Bytes(), &analytics); err == nil {
+				if totalClicks, ok = analytics["total_clicks"].(float64); ok && int(totalClicks) >= len(referrers) {
+					break
+				}
+			}
+		}
+
+		if time.Now().After(deadline) {
+			t.Fatalf("timeout waiting for analytics to record %d clicks; last response code=%d body=%s", len(referrers), analyticsRec.Code, analyticsRec.Body.String())
+		}
+
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	// Wait for async click recording to complete
-	time.Sleep(200 * time.Millisecond)
-
-	// Verify analytics show all clicks
-	analyticsReq := httptest.NewRequest(http.MethodGet, "/api/urls/"+shortCode+"/analytics", nil)
-	analyticsReq.Header.Set("Authorization", "Bearer test-token")
-
-	analyticsRec := httptest.NewRecorder()
-	srv.router.ServeHTTP(analyticsRec, analyticsReq)
-
-	if analyticsRec.Code != http.StatusOK {
-		t.Fatalf("failed to get analytics: %s", analyticsRec.Body.String())
-	}
-
-	var analytics map[string]interface{}
-	json.Unmarshal(analyticsRec.Body.Bytes(), &analytics)
-
-	totalClicks, ok := analytics["total_clicks"].(float64)
+	totalClicks, ok = analytics["total_clicks"].(float64)
 	if !ok {
 		t.Fatal("expected total_clicks in analytics")
 	}
@@ -512,7 +553,9 @@ func TestE2E_ConcurrentCreation(t *testing.T) {
 
 	for i := 0; i < numRequests; i++ {
 		go func(index int) {
-			// Add small stagger to reduce contention
+			// Small stagger to avoid overwhelming SQLite with concurrent writes
+			// TODO: This masks a potential race condition in the application
+			// that should be investigated and fixed
 			time.Sleep(time.Duration(index) * 5 * time.Millisecond)
 			
 			reqBody := fmt.Sprintf(`{"original_url":"https://example.com/concurrent-%d"}`, index)

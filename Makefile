@@ -42,13 +42,13 @@ help:
 test:
 	go test -v ./...
 
-# Run unit tests only (excludes integration tests)
+# Run unit tests only (fast - skips long-running tests)
 test-unit:
 	go test -v -short ./...
 
 # Run integration tests
 test-integration:
-	go test -v -run 'TestE2E|Integration|TestAPI|TestServer_' ./internal/infrastructure/http/server/...
+	go test -v ./internal/infrastructure/http/server/...
 
 # Run linter
 lint:
