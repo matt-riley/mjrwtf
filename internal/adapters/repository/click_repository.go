@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 )
@@ -18,12 +17,10 @@ type clickRepositoryBase struct {
 }
 
 // mapClickSQLError maps SQL errors to domain errors
+// Click repository currently has no specific domain errors for not found or duplicates,
+// so we pass nil for both, which will wrap all errors as generic database errors
 func mapClickSQLError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	return fmt.Errorf("database error: %w", err)
+	return MapSQLError(err, nil, nil)
 }
 
 // stringToStringPtr converts string to *string, returning nil for empty string
