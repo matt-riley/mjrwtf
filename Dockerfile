@@ -23,7 +23,10 @@ RUN go install github.com/a-h/templ/cmd/templ@v0.3.960 && \
 
 # Build the server binary
 # CGO_ENABLED=1 is required for go-sqlite3
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o server ./cmd/server
+# TARGETOS and TARGETARCH are automatically set by buildx for multi-arch builds
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -installsuffix cgo -o server ./cmd/server
 
 # Runtime stage
 FROM alpine:latest
