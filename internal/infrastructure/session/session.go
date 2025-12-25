@@ -20,6 +20,8 @@ type Store struct {
 	sessions map[string]*Session
 	mu       sync.RWMutex
 	ttl      time.Duration
+	done     chan struct{}
+	once     sync.Once
 }
 
 // NewStore creates a new session store with the given TTL
@@ -27,6 +29,7 @@ func NewStore(ttl time.Duration) *Store {
 	store := &Store{
 		sessions: make(map[string]*Session),
 		ttl:      ttl,
+		done:     make(chan struct{}),
 	}
 	
 	// Start background cleanup goroutine
@@ -54,7 +57,9 @@ func (s *Store) Create(userID string) (*Session, error) {
 	s.sessions[sessionID] = session
 	s.mu.Unlock()
 	
-	return session, nil
+	// Return a copy to prevent external modifications
+	sessionCopy := *session
+	return &sessionCopy, nil
 }
 
 // Get retrieves a session by ID
@@ -72,7 +77,9 @@ func (s *Store) Get(sessionID string) (*Session, bool) {
 		return nil, false
 	}
 	
-	return session, true
+	// Return a copy to prevent external modifications
+	sessionCopy := *session
+	return &sessionCopy, true
 }
 
 // Delete removes a session by ID
@@ -101,16 +108,28 @@ func (s *Store) cleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 	
-	for range ticker.C {
-		s.mu.Lock()
-		now := time.Now()
-		for id, session := range s.sessions {
-			if now.After(session.ExpiresAt) {
-				delete(s.sessions, id)
+	for {
+		select {
+		case <-ticker.C:
+			s.mu.Lock()
+			now := time.Now()
+			for id, session := range s.sessions {
+				if now.After(session.ExpiresAt) {
+					delete(s.sessions, id)
+				}
 			}
+			s.mu.Unlock()
+		case <-s.done:
+			return
 		}
-		s.mu.Unlock()
 	}
+}
+
+// Shutdown stops the cleanup goroutine
+func (s *Store) Shutdown() {
+	s.once.Do(func() {
+		close(s.done)
+	})
 }
 
 // generateSessionID generates a cryptographically secure random session ID

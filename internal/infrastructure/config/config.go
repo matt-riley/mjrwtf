@@ -23,6 +23,9 @@ type Config struct {
 	// Authentication
 	AuthToken string
 
+	// Session configuration
+	SecureCookies bool // Set to true in production with HTTPS
+
 	// Discord webhook configuration
 	DiscordWebhookURL string
 
@@ -47,6 +50,7 @@ func LoadConfig() (*Config, error) {
 		BaseURL:           getEnv("BASE_URL", "http://localhost:8080"),
 		AllowedOrigins:    getEnv("ALLOWED_ORIGINS", "*"),
 		AuthToken:         getEnv("AUTH_TOKEN", ""),
+		SecureCookies:     getEnvAsBool("SECURE_COOKIES", false),
 		DiscordWebhookURL: getEnv("DISCORD_WEBHOOK_URL", ""),
 		GeoIPEnabled:      getEnvAsBool("GEOIP_ENABLED", false),
 		GeoIPDatabase:     getEnv("GEOIP_DATABASE", ""),

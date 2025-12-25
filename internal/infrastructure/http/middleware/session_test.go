@@ -181,53 +181,85 @@ func TestRequireSession_NoSession(t *testing.T) {
 }
 
 func TestSetSessionCookie(t *testing.T) {
-	rr := httptest.NewRecorder()
-	
-	SetSessionCookie(rr, "test-session-id", 3600)
-	
-	cookies := rr.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("expected 1 cookie, got %d", len(cookies))
+	tests := []struct {
+		name   string
+		secure bool
+	}{
+		{"with secure flag", true},
+		{"without secure flag", false},
 	}
-	
-	cookie := cookies[0]
-	if cookie.Name != SessionCookieName {
-		t.Errorf("expected cookie name %s, got %s", SessionCookieName, cookie.Name)
-	}
-	
-	if cookie.Value != "test-session-id" {
-		t.Errorf("expected cookie value test-session-id, got %s", cookie.Value)
-	}
-	
-	if !cookie.HttpOnly {
-		t.Error("expected HttpOnly cookie")
-	}
-	
-	if cookie.MaxAge != 3600 {
-		t.Errorf("expected MaxAge 3600, got %d", cookie.MaxAge)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+
+			SetSessionCookie(rr, "test-session-id", 3600, tt.secure)
+
+			cookies := rr.Result().Cookies()
+			if len(cookies) != 1 {
+				t.Fatalf("expected 1 cookie, got %d", len(cookies))
+			}
+
+			cookie := cookies[0]
+			if cookie.Name != SessionCookieName {
+				t.Errorf("expected cookie name %s, got %s", SessionCookieName, cookie.Name)
+			}
+
+			if cookie.Value != "test-session-id" {
+				t.Errorf("expected cookie value test-session-id, got %s", cookie.Value)
+			}
+
+			if !cookie.HttpOnly {
+				t.Error("expected HttpOnly cookie")
+			}
+
+			if cookie.Secure != tt.secure {
+				t.Errorf("expected Secure %v, got %v", tt.secure, cookie.Secure)
+			}
+
+			if cookie.MaxAge != 3600 {
+				t.Errorf("expected MaxAge 3600, got %d", cookie.MaxAge)
+			}
+		})
 	}
 }
 
 func TestClearSessionCookie(t *testing.T) {
-	rr := httptest.NewRecorder()
-	
-	ClearSessionCookie(rr)
-	
-	cookies := rr.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("expected 1 cookie, got %d", len(cookies))
+	tests := []struct {
+		name   string
+		secure bool
+	}{
+		{"with secure flag", true},
+		{"without secure flag", false},
 	}
-	
-	cookie := cookies[0]
-	if cookie.Name != SessionCookieName {
-		t.Errorf("expected cookie name %s, got %s", SessionCookieName, cookie.Name)
-	}
-	
-	if cookie.Value != "" {
-		t.Errorf("expected empty cookie value, got %s", cookie.Value)
-	}
-	
-	if cookie.MaxAge != -1 {
-		t.Errorf("expected MaxAge -1, got %d", cookie.MaxAge)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+
+			ClearSessionCookie(rr, tt.secure)
+
+			cookies := rr.Result().Cookies()
+			if len(cookies) != 1 {
+				t.Fatalf("expected 1 cookie, got %d", len(cookies))
+			}
+
+			cookie := cookies[0]
+			if cookie.Name != SessionCookieName {
+				t.Errorf("expected cookie name %s, got %s", SessionCookieName, cookie.Name)
+			}
+
+			if cookie.Value != "" {
+				t.Errorf("expected empty cookie value, got %s", cookie.Value)
+			}
+
+			if cookie.Secure != tt.secure {
+				t.Errorf("expected Secure %v, got %v", tt.secure, cookie.Secure)
+			}
+
+			if cookie.MaxAge != -1 {
+				t.Errorf("expected MaxAge -1, got %d", cookie.MaxAge)
+			}
+		})
 	}
 }

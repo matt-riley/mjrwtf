@@ -157,7 +157,7 @@ func (s *Server) setupRoutes() error {
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
 	analyticsHandler := handlers.NewAnalyticsHandler(getAnalyticsUseCase)
 	redirectHandler := handlers.NewRedirectHandler(s.redirectUseCase)
-	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, s.config.AuthToken, s.sessionStore)
+	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, s.config.AuthToken, s.sessionStore, s.config.SecureCookies)
 
 	// HTML page routes
 	s.router.Get("/", pageHandler.Home)
@@ -181,8 +181,9 @@ func (s *Server) setupRoutes() error {
 				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 					// Check for session first
 					if userID, ok := middleware.GetSessionUserID(req.Context()); ok && userID != "" {
-						// Valid session, continue
-						next.ServeHTTP(w, req)
+						// Valid session, set UserIDKey for API handlers
+						ctx := context.WithValue(req.Context(), middleware.UserIDKey, userID)
+						next.ServeHTTP(w, req.WithContext(ctx))
 						return
 					}
 					
@@ -218,7 +219,12 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info().Msg("shutting down HTTP server")
 
-	// Shutdown redirect use case workers first
+	// Shutdown session store cleanup goroutine
+	if s.sessionStore != nil {
+		s.sessionStore.Shutdown()
+	}
+
+	// Shutdown redirect use case workers
 	if s.redirectUseCase != nil {
 		s.redirectUseCase.Shutdown()
 	}

@@ -20,6 +20,7 @@ type PageHandler struct {
 	listUseCase   ListURLsUseCase
 	authToken     string
 	sessionStore  *session.Store
+	secureCookies bool
 }
 
 // NewPageHandler creates a new PageHandler
@@ -28,12 +29,14 @@ func NewPageHandler(
 	listUseCase ListURLsUseCase,
 	authToken string,
 	sessionStore *session.Store,
+	secureCookies bool,
 ) *PageHandler {
 	return &PageHandler{
 		createUseCase: createUseCase,
 		listUseCase:   listUseCase,
 		authToken:     authToken,
 		sessionStore:  sessionStore,
+		secureCookies: secureCookies,
 	}
 }
 
@@ -332,7 +335,7 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set session cookie (24 hours)
-	middleware.SetSessionCookie(w, sess.ID, 24*60*60)
+	middleware.SetSessionCookie(w, sess.ID, 24*60*60, h.secureCookies)
 
 	// Redirect to dashboard
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
@@ -348,7 +351,7 @@ func (h *PageHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Clear session cookie
-	middleware.ClearSessionCookie(w)
+	middleware.ClearSessionCookie(w, h.secureCookies)
 
 	// Redirect to home page
 	http.Redirect(w, r, "/", http.StatusSeeOther)

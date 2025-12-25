@@ -67,27 +67,27 @@ func GetSessionUserID(ctx context.Context) (string, bool) {
 }
 
 // SetSessionCookie sets the session cookie with secure defaults
-func SetSessionCookie(w http.ResponseWriter, sessionID string, maxAge int) {
+func SetSessionCookie(w http.ResponseWriter, sessionID string, maxAge int, secure bool) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     SessionCookieName,
 		Value:    sessionID,
 		Path:     "/",
 		MaxAge:   maxAge,
 		HttpOnly: true,
-		Secure:   false, // Set to true in production with HTTPS
+		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
 
 // ClearSessionCookie removes the session cookie
-func ClearSessionCookie(w http.ResponseWriter) {
+func ClearSessionCookie(w http.ResponseWriter, secure bool) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     SessionCookieName,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   false, // Set to true in production with HTTPS
+		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
