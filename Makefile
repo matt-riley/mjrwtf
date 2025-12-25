@@ -1,5 +1,5 @@
 .PHONY: \
-    help test lint fmt vet clean \
+    help test test-unit test-integration lint fmt vet clean \
     build build-server build-migrate \
     migrate-up migrate-down migrate-status migrate-create migrate-reset \
     templ-generate templ-watch \
@@ -8,7 +8,9 @@
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  test              - Run all tests"
+	@echo "  test              - Run all tests (unit + integration)"
+	@echo "  test-unit         - Run unit tests only (fast)"
+	@echo "  test-integration  - Run integration tests only"
 	@echo "  lint              - Run golangci-lint"
 	@echo "  fmt               - Format code with gofmt"
 	@echo "  vet               - Run go vet"
@@ -39,6 +41,14 @@ help:
 # Run all tests
 test:
 	go test -v ./...
+
+# Run unit tests only (fast - skips long-running tests)
+test-unit:
+	go test -v -short ./...
+
+# Run integration tests
+test-integration:
+	go test -v ./internal/infrastructure/http/server/...
 
 # Run linter
 lint:
