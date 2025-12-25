@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    name: Test, Vet, Lint, and Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      
+      - name: Install templ
+        run: |
+          go install github.com/a-h/templ/cmd/templ@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      
+      - name: Install sqlc
+        run: |
+          curl -sSfL https://github.com/sqlc-dev/sqlc/releases/download/v1.30.0/sqlc_1.30.0_linux_amd64.tar.gz | tar -xz -C /tmp
+          sudo mv /tmp/sqlc /usr/local/bin/
+          sqlc version
+      
+      - name: Download Go dependencies
+        run: go mod download
+      
+      - name: Generate templ templates
+        run: templ generate
+      
+      - name: Generate sqlc code
+        run: sqlc generate
+      
+      - name: Verify templ generated files are up to date
+        run: |
+          if [ -n "$(git status --porcelain internal/adapters/http/templates)" ]; then
+            echo "Error: templ generated files are out of date"
+            echo "Run 'templ generate' locally and commit the changes"
+            git status --porcelain internal/adapters/http/templates
+            exit 1
+          fi
+      
+      - name: Verify sqlc generated files are up to date
+        run: |
+          if [ -n "$(git status --porcelain internal/adapters/repository/sqlc)" ]; then
+            echo "Error: sqlc generated files are out of date"
+            echo "Run 'sqlc generate' locally and commit the changes"
+            git status --porcelain internal/adapters/repository/sqlc
+            exit 1
+          fi
+      
+      - name: Check code formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Error: Code is not formatted with gofmt"
+            echo "Run 'go fmt ./...' locally and commit the changes"
+            gofmt -l .
+            exit 1
+          fi
+      
+      - name: Run go vet
+        run: go vet ./...
+      
+      - name: Run tests
+        run: go test -v -race -short ./...
+      
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.56.0
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      
+      - name: Run golangci-lint
+        run: golangci-lint run --timeout=5m
+        continue-on-error: true
+      
+      - name: Build server
+        run: go build -v ./cmd/server
+      
+      - name: Build migrate tool
+        run: go build -v ./cmd/migrate
