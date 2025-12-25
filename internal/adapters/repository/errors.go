@@ -45,6 +45,19 @@ func IsNoRowsError(err error) bool {
 	return errors.Is(err, sql.ErrNoRows)
 }
 
+// IsSQLiteBusyError checks if the error is a SQLite BUSY or LOCKED error
+func IsSQLiteBusyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var sqliteErr sqlite3.Error
+	if errors.As(err, &sqliteErr) {
+		// SQLITE_BUSY (5) or SQLITE_LOCKED (6)
+		return sqliteErr.Code == sqlite3.ErrBusy || sqliteErr.Code == sqlite3.ErrLocked
+	}
+	return false
+}
+
 // MapSQLError maps SQL errors to domain errors.
 // It returns notFoundErr for sql.ErrNoRows, duplicateErr for unique constraint violations,
 // and wraps other errors as generic database errors.

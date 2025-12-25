@@ -87,9 +87,28 @@ func openDatabase(dbURL string) (*sql.DB, error) {
 		driver = "postgres"
 	}
 
+	// For SQLite, enable WAL mode for better concurrency
+	// WAL allows concurrent readers while a write is in progress
+	if driver == "sqlite3" && !strings.Contains(dbURL, "?") {
+		dbURL += "?_journal_mode=WAL&_busy_timeout=5000"
+	} else if driver == "sqlite3" && !strings.Contains(dbURL, "_journal_mode") {
+		dbURL += "&_journal_mode=WAL&_busy_timeout=5000"
+	}
+
 	db, err := sql.Open(driver, dbURL)
 	if err != nil {
 		return nil, err
+	}
+
+	// Configure connection pool based on database type
+	if driver == "sqlite3" {
+		// SQLite works best with a single write connection
+		// Multiple readers are fine, but limit concurrent writes
+		db.SetMaxOpenConns(1)
+	} else {
+		// PostgreSQL can handle multiple connections
+		db.SetMaxOpenConns(25)
+		db.SetMaxIdleConns(5)
 	}
 
 	// Verify connection
