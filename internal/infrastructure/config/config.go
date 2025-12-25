@@ -36,6 +36,13 @@ type Config struct {
 
 	// Metrics configuration
 	MetricsAuthEnabled bool // Enable authentication for /metrics endpoint (default: false)
+
+	// Rate limiting configuration
+	RateLimitEnabled       bool // Enable rate limiting (default: true)
+	RateLimitRedirectRPS   int  // Rate limit for redirect endpoint in requests per second (default: 10)
+	RateLimitRedirectBurst int  // Burst size for redirect endpoint (default: 20)
+	RateLimitAPIRPS        int  // Rate limit for API endpoints in requests per second (default: 5)
+	RateLimitAPIBurst      int  // Burst size for API endpoints (default: 10)
 }
 
 // LoadConfig loads configuration from environment variables and .env file
@@ -45,17 +52,22 @@ func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
 	config := &Config{
-		DatabaseURL:        getEnv("DATABASE_URL", ""),
-		ServerPort:         getEnvAsInt("SERVER_PORT", 8080),
-		BaseURL:            getEnv("BASE_URL", "http://localhost:8080"),
-		AllowedOrigins:     getEnv("ALLOWED_ORIGINS", "*"),
-		AuthToken:          getEnv("AUTH_TOKEN", ""),
-		DiscordWebhookURL:  getEnv("DISCORD_WEBHOOK_URL", ""),
-		GeoIPEnabled:       getEnvAsBool("GEOIP_ENABLED", false),
-		GeoIPDatabase:      getEnv("GEOIP_DATABASE", ""),
-		LogLevel:           getEnv("LOG_LEVEL", "info"),
-		LogFormat:          getEnv("LOG_FORMAT", "json"),
-		MetricsAuthEnabled: getEnvAsBool("METRICS_AUTH_ENABLED", false),
+		DatabaseURL:            getEnv("DATABASE_URL", ""),
+		ServerPort:             getEnvAsInt("SERVER_PORT", 8080),
+		BaseURL:                getEnv("BASE_URL", "http://localhost:8080"),
+		AllowedOrigins:         getEnv("ALLOWED_ORIGINS", "*"),
+		AuthToken:              getEnv("AUTH_TOKEN", ""),
+		DiscordWebhookURL:      getEnv("DISCORD_WEBHOOK_URL", ""),
+		GeoIPEnabled:           getEnvAsBool("GEOIP_ENABLED", false),
+		GeoIPDatabase:          getEnv("GEOIP_DATABASE", ""),
+		LogLevel:               getEnv("LOG_LEVEL", "info"),
+		LogFormat:              getEnv("LOG_FORMAT", "json"),
+		MetricsAuthEnabled:     getEnvAsBool("METRICS_AUTH_ENABLED", false),
+		RateLimitEnabled:       getEnvAsBool("RATE_LIMIT_ENABLED", true),
+		RateLimitRedirectRPS:   getEnvAsInt("RATE_LIMIT_REDIRECT_RPS", 10),
+		RateLimitRedirectBurst: getEnvAsInt("RATE_LIMIT_REDIRECT_BURST", 20),
+		RateLimitAPIRPS:        getEnvAsInt("RATE_LIMIT_API_RPS", 5),
+		RateLimitAPIBurst:      getEnvAsInt("RATE_LIMIT_API_BURST", 10),
 	}
 
 	// Validate required configuration
