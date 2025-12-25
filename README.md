@@ -335,3 +335,7 @@ Current test coverage:
 - Error Handling: 100%
 
 All tests run in CI/CD with no external dependencies required.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
