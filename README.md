@@ -205,6 +205,97 @@ location /metrics {
 
 **Security Note:** The metrics endpoint may expose sensitive operational information including request rates, error rates, and resource usage. Always restrict access in production environments.
 
+## Rate Limiting
+
+mjr.wtf includes built-in rate limiting to protect against abuse and accidental overload. Rate limiting uses a token bucket algorithm and can be configured per endpoint type.
+
+### Configuration
+
+Rate limiting is enabled by default and can be configured via environment variables:
+
+```bash
+# Enable/disable rate limiting (default: true)
+RATE_LIMIT_ENABLED=true
+
+# Public redirect endpoint rate limits
+RATE_LIMIT_REDIRECT_RPS=10      # Requests per second (default: 10)
+RATE_LIMIT_REDIRECT_BURST=20    # Burst size (default: 20)
+
+# API endpoint rate limits  
+RATE_LIMIT_API_RPS=5            # Requests per second (default: 5)
+RATE_LIMIT_API_BURST=10         # Burst size (default: 10)
+```
+
+Or add to your `.env` file:
+
+```
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REDIRECT_RPS=10
+RATE_LIMIT_REDIRECT_BURST=20
+RATE_LIMIT_API_RPS=5
+RATE_LIMIT_API_BURST=10
+```
+
+### How It Works
+
+**Public Redirect Endpoint (`GET /{shortCode}`):**
+- Rate limited per IP address
+- Allows `RATE_LIMIT_REDIRECT_BURST` requests immediately
+- Then refills at `RATE_LIMIT_REDIRECT_RPS` requests per second
+- Each IP address has an independent rate limit
+
+**Authenticated API Endpoints (`/api/*`):**
+- Global rate limit (shared across all clients)
+- Allows `RATE_LIMIT_API_BURST` requests immediately
+- Then refills at `RATE_LIMIT_API_RPS` requests per second
+- Applies to all authenticated API operations
+
+### Rate Limit Responses
+
+When a client exceeds the rate limit, the server responds with:
+- **429 Too Many Requests** - Standard HTTP status for rate limiting
+- **Retry-After** header - Number of seconds to wait before retrying
+- JSON error body with message
+
+Example response:
+
+```bash
+# Request that exceeds rate limit
+curl -i http://localhost:8080/abc123
+
+HTTP/1.1 429 Too Many Requests
+Retry-After: 1
+Content-Type: application/json
+
+{"error":"Rate limit exceeded"}
+```
+
+### Client IP Detection
+
+For IP-based rate limiting, the server checks headers in the following order:
+1. `X-Forwarded-For` (uses first IP in comma-separated list)
+2. `X-Real-IP`
+3. `RemoteAddr` (direct connection IP)
+
+This ensures rate limiting works correctly behind reverse proxies like nginx or Caddy.
+
+### Disabling Rate Limiting
+
+To disable rate limiting entirely (not recommended for production):
+
+```bash
+export RATE_LIMIT_ENABLED=false
+```
+
+### Performance Considerations
+
+- Rate limiting uses in-memory token buckets with minimal overhead
+- Automatic cleanup removes unused client buckets after 10 minutes
+- Thread-safe for concurrent requests
+- No external dependencies required
+
+**Production Note:** The default rate limits are conservative. Adjust `RPS` and `BURST` values based on your infrastructure capacity and expected traffic patterns.
+
 ## Database Migrations
 
 This project uses [goose](https://github.com/pressly/goose) for database migrations, supporting both SQLite and PostgreSQL.
