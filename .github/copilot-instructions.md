@@ -61,13 +61,11 @@ make clean                    # Removes bin/ directory
 # Build all binaries (server + migrate)
 make build                    # Builds both bin/server and bin/migrate
 
-# Build server binary
+# Build server binary (alternative: go build -o bin/server ./cmd/server)
 make build-server             # Builds the HTTP server (bin/server)
-go build -o bin/server ./cmd/server
 
-# Build migrate tool
+# Build migrate tool (alternative: go build -o bin/migrate ./cmd/migrate)
 make build-migrate            # Builds the migration tool (bin/migrate)
-go build -o bin/migrate ./cmd/migrate
 
 # Format code
 make fmt                      # Takes ~0.08s, runs go fmt ./...
