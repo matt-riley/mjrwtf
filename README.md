@@ -132,9 +132,53 @@ The following endpoints require authentication:
 - `POST /api/urls` - Create a new short URL
 - `DELETE /api/urls/:code` - Delete a short URL
 
-Public endpoints (no authentication required):
+Public endpoints (no authentication required by default):
 - `GET /:code` - Redirect to original URL
 - `GET /health` - Health check
+- `GET /metrics` - Prometheus metrics (can be optionally protected, see below)
+
+### Protecting the Metrics Endpoint
+
+The `/metrics` endpoint exposes operational metrics for Prometheus scraping. By default, it is publicly accessible to make local development easy. However, in production deployments, you may want to restrict access to this endpoint.
+
+#### Option 1: Enable Authentication (Recommended for Most Cases)
+
+Set the `METRICS_AUTH_ENABLED` environment variable to `true` to require Bearer token authentication for the `/metrics` endpoint:
+
+```bash
+export METRICS_AUTH_ENABLED=true
+```
+
+Or add it to your `.env` file:
+
+```
+METRICS_AUTH_ENABLED=true
+```
+
+When enabled, the `/metrics` endpoint will require the same Bearer token as other API endpoints:
+
+```bash
+curl -H "Authorization: Bearer your-secret-token-here" https://mjr.wtf/metrics
+```
+
+#### Option 2: Reverse Proxy Restrictions
+
+If you prefer to keep the endpoint public within your infrastructure but restrict external access, configure your reverse proxy (nginx, Caddy, etc.) to:
+- Only allow access to `/metrics` from specific IP addresses (e.g., your Prometheus server)
+- Serve `/metrics` on a separate port that's not publicly exposed
+- Use network policies to restrict access at the infrastructure level
+
+Example nginx configuration:
+
+```nginx
+location /metrics {
+    allow 10.0.0.0/8;  # Allow internal network
+    deny all;          # Deny everyone else
+    proxy_pass http://localhost:8080;
+}
+```
+
+**Security Note:** The metrics endpoint may expose sensitive operational information including request rates, error rates, and resource usage. Always restrict access in production environments.
 
 ## Database Migrations
 
