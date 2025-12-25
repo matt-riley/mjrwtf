@@ -552,10 +552,6 @@ func TestE2E_ConcurrentCreation(t *testing.T) {
 
 	for i := 0; i < numRequests; i++ {
 		go func(index int) {
-			// Small stagger to avoid overwhelming SQLite with concurrent writes
-			// See issue #XX for tracking investigation of potential race condition
-			time.Sleep(time.Duration(index) * 5 * time.Millisecond)
-
 			reqBody := fmt.Sprintf(`{"original_url":"https://example.com/concurrent-%d"}`, index)
 			req := httptest.NewRequest(http.MethodPost, "/api/urls", bytes.NewBufferString(reqBody))
 			req.Header.Set("Authorization", "Bearer test-token")
