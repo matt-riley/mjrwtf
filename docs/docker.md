@@ -19,7 +19,7 @@ docker run -d \
 ```
 
 Available image tags:
-- `latest` - Latest release from the default branch
+- `latest` - Latest published release
 - `v1.2.3` - Specific semantic version
 - `1.2` - Latest patch version in the 1.2.x series
 - `1` - Latest minor and patch version in the 1.x series

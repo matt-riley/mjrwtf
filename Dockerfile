@@ -26,7 +26,7 @@ RUN go install github.com/a-h/templ/cmd/templ@v0.3.960 && \
 # TARGETOS and TARGETARCH are automatically set by buildx for multi-arch builds
 ARG TARGETOS
 ARG TARGETARCH
-RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -installsuffix cgo -o server ./cmd/server
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -a -installsuffix cgo -o server ./cmd/server
 
 # Runtime stage
 FROM alpine:latest
