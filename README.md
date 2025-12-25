@@ -145,8 +145,29 @@ The web dashboard uses server-side session management with httpOnly cookies for 
 
 - **HttpOnly Cookies**: Session cookies cannot be accessed by JavaScript, protecting against XSS attacks
 - **SameSite Protection**: Cookies are set with `SameSite=Lax` to prevent CSRF attacks
+- **Secure Cookies**: Configure `SECURE_COOKIES=true` in production to ensure cookies are only sent over HTTPS
 - **Automatic Expiration**: Sessions expire after 24 hours of inactivity
 - **In-Memory Storage**: Sessions are stored in-memory on the server (lost on restart)
+
+#### Configuration
+
+Set the `SECURE_COOKIES` environment variable to enable secure cookies:
+
+```bash
+# For production with HTTPS
+export SECURE_COOKIES=true
+
+# For local development (default)
+export SECURE_COOKIES=false
+```
+
+Or add it to your `.env` file:
+
+```
+SECURE_COOKIES=true
+```
+
+**Important:** In production deployments with HTTPS, always set `SECURE_COOKIES=true` to prevent session hijacking over insecure connections.
 
 #### Dashboard Features
 
