@@ -11,6 +11,7 @@ import (
 
 func TestSessionMiddleware_ValidSession(t *testing.T) {
 	store := session.NewStore(24 * time.Hour)
+	defer store.Shutdown()
 	
 	// Create a session
 	sess, err := store.Create("test-user")
@@ -50,6 +51,7 @@ func TestSessionMiddleware_ValidSession(t *testing.T) {
 
 func TestSessionMiddleware_NoSession(t *testing.T) {
 	store := session.NewStore(24 * time.Hour)
+	defer store.Shutdown()
 	
 	// Create middleware
 	middleware := SessionMiddleware(store)
@@ -76,6 +78,7 @@ func TestSessionMiddleware_NoSession(t *testing.T) {
 
 func TestSessionMiddleware_ExpiredSession(t *testing.T) {
 	store := session.NewStore(1 * time.Millisecond)
+	defer store.Shutdown()
 	
 	// Create a session
 	sess, err := store.Create("test-user")
@@ -115,6 +118,7 @@ func TestSessionMiddleware_ExpiredSession(t *testing.T) {
 
 func TestRequireSession_ValidSession(t *testing.T) {
 	store := session.NewStore(24 * time.Hour)
+	defer store.Shutdown()
 	
 	// Create a session
 	sess, err := store.Create("test-user")
@@ -153,6 +157,7 @@ func TestRequireSession_ValidSession(t *testing.T) {
 
 func TestRequireSession_NoSession(t *testing.T) {
 	store := session.NewStore(24 * time.Hour)
+	defer store.Shutdown()
 	
 	// Create middleware chain
 	sessionMiddleware := SessionMiddleware(store)

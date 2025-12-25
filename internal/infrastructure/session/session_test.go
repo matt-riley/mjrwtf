@@ -7,6 +7,7 @@ import (
 
 func TestSession_Create(t *testing.T) {
 	store := NewStore(24 * time.Hour)
+	defer store.Shutdown()
 	
 	session, err := store.Create("user123")
 	if err != nil {
@@ -28,6 +29,7 @@ func TestSession_Create(t *testing.T) {
 
 func TestSession_Get(t *testing.T) {
 	store := NewStore(24 * time.Hour)
+	defer store.Shutdown()
 	
 	created, err := store.Create("user456")
 	if err != nil {
@@ -50,6 +52,7 @@ func TestSession_Get(t *testing.T) {
 
 func TestSession_Get_NotFound(t *testing.T) {
 	store := NewStore(24 * time.Hour)
+	defer store.Shutdown()
 	
 	_, exists := store.Get("nonexistent")
 	if exists {
@@ -59,6 +62,7 @@ func TestSession_Get_NotFound(t *testing.T) {
 
 func TestSession_Get_Expired(t *testing.T) {
 	store := NewStore(1 * time.Millisecond)
+	defer store.Shutdown()
 	
 	created, err := store.Create("user789")
 	if err != nil {
@@ -76,6 +80,7 @@ func TestSession_Get_Expired(t *testing.T) {
 
 func TestSession_Delete(t *testing.T) {
 	store := NewStore(24 * time.Hour)
+	defer store.Shutdown()
 	
 	created, err := store.Create("user999")
 	if err != nil {
@@ -100,6 +105,7 @@ func TestSession_Delete(t *testing.T) {
 
 func TestSession_Refresh(t *testing.T) {
 	store := NewStore(1 * time.Second)
+	defer store.Shutdown()
 	
 	created, err := store.Create("user111")
 	if err != nil {

@@ -26,7 +26,6 @@ func newTestSessionStore(t *testing.T) *session.Store {
 func TestPageHandler_Home(t *testing.T) {
 	mockUseCase := &mockCreateURLUseCase{}
 	sessionStore := newTestSessionStore(t)
-	defer sessionStore.Shutdown()
 	handler := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, "test-token", sessionStore, false)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
