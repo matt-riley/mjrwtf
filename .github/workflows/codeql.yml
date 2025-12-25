@@ -1,0 +1,107 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "**" ]
+  schedule:
+    # Run CodeQL analysis weekly on Mondays at 6:00 UTC
+    # Weekly scans help catch newly disclosed vulnerabilities in dependencies
+    - cron: '0 6 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze Go Code
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    
+    permissions:
+      # Required for all workflows
+      security-events: write
+      # Required to fetch internal or private CodeQL packs
+      packages: read
+      # Only required for workflows in private repositories
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'go' ]
+        # CodeQL supports: 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
+        # Learn more: https://aka.ms/codeql-docs/language-support
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24.2'
+        cache: true
+
+    # Install project-specific tools required for code generation
+    # CodeQL needs the complete build environment to analyze generated code
+    - name: Install sqlc
+      run: |
+        curl -sSfL https://github.com/sqlc-dev/sqlc/releases/download/v1.30.0/sqlc_1.30.0_linux_amd64.tar.gz | tar -xz -C /tmp
+        sudo mv /tmp/sqlc /usr/local/bin/
+        sqlc version
+
+    - name: Install templ
+      run: |
+        go install github.com/a-h/templ/cmd/templ@latest
+        echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+    - name: Download Go dependencies
+      run: go mod download
+
+    # Generate code before CodeQL analysis
+    # This ensures CodeQL analyzes the complete codebase including generated files
+    - name: Generate sqlc code
+      run: sqlc generate
+
+    - name: Generate templ code
+      run: templ generate
+
+    # Initialize CodeQL tools for scanning
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # CodeQL query suites to run
+        # security-extended: All default security queries plus additional checks
+        # security-and-quality: Includes code quality queries (may produce more results)
+        queries: security-extended
+        # For maximum security coverage, consider: security-and-quality
+        
+    # Autobuild attempts to build any compiled languages (Go, C/C++, C#, Java, Swift)
+    # If this step fails, remove it and uncomment the manual build commands below
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    # Manual build steps (use if autobuild fails)
+    # - name: Build project
+    #   run: |
+    #     make build-migrate
+    #     make build-server
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+        # Upload results even if there are errors (for partial results)
+        upload: true
+        # Generate SARIF output for additional processing
+        output: sarif-results
+        
+    # Optional: Upload SARIF file as artifact for external analysis
+    - name: Upload SARIF as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: codeql-sarif-results
+        path: sarif-results
+        retention-days: 30
