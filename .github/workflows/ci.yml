@@ -91,8 +91,11 @@ jobs:
         # with recognizing imports from goose, chi, and other external packages
         continue-on-error: true
       
+      - name: Create bin directory
+        run: mkdir -p bin
+      
       - name: Build server
-        run: mkdir -p bin && go build -v -o bin/server ./cmd/server
+        run: go build -v -o bin/server ./cmd/server
       
       - name: Build migrate tool
-        run: mkdir -p bin && go build -v -o bin/migrate ./cmd/migrate
+        run: go build -v -o bin/migrate ./cmd/migrate
