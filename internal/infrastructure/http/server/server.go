@@ -160,14 +160,32 @@ func (s *Server) setupRoutes() error {
 	s.router.Get("/dashboard", pageHandler.Dashboard)
 
 	// Public redirect endpoint (no authentication required)
+	// Apply IP-based rate limiting to prevent abuse
 	// Must come after specific routes to avoid capturing them
-	s.router.Get("/{shortCode}", redirectHandler.Redirect)
+	if s.config.RateLimitEnabled {
+		s.router.With(middleware.IPBasedRateLimit(
+			s.config.RateLimitRedirectRPS,
+			s.config.RateLimitRedirectBurst,
+			s.logger,
+		)).Get("/{shortCode}", redirectHandler.Redirect)
+	} else {
+		s.router.Get("/{shortCode}", redirectHandler.Redirect)
+	}
 
 	// API routes with authentication
 	s.router.Route("/api", func(r chi.Router) {
 		r.Route("/urls", func(r chi.Router) {
 			// Apply auth middleware to all URL endpoints
 			r.Use(middleware.Auth(s.config.AuthToken))
+
+			// Apply global rate limiting to authenticated API endpoints
+			if s.config.RateLimitEnabled {
+				r.Use(middleware.GlobalRateLimit(
+					s.config.RateLimitAPIRPS,
+					s.config.RateLimitAPIBurst,
+					s.logger,
+				))
+			}
 
 			r.Post("/", urlHandler.Create)
 			r.Get("/", urlHandler.List)
