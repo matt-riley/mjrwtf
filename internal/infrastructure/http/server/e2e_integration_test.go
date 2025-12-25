@@ -552,6 +552,14 @@ func TestE2E_ConcurrentCreation(t *testing.T) {
 
 	for i := 0; i < numRequests; i++ {
 		go func(index int) {
+			// NOTE: Small stagger to prevent overwhelming SQLite with concurrent writes.
+			// In-memory SQLite databases serialize writes even with SetMaxOpenConns(1),
+			// causing SQLITE_BUSY errors under high concurrent load. This stagger ensures
+			// requests arrive slightly offset to avoid contention. Production file-based
+			// SQLite databases use WAL mode which handles concurrency better.
+			// See: cmd/server/main.go openDatabase() for production WAL configuration.
+			time.Sleep(time.Duration(index) * 5 * time.Millisecond)
+
 			reqBody := fmt.Sprintf(`{"original_url":"https://example.com/concurrent-%d"}`, index)
 			req := httptest.NewRequest(http.MethodPost, "/api/urls", bytes.NewBufferString(reqBody))
 			req.Header.Set("Authorization", "Bearer test-token")

@@ -18,6 +18,10 @@ func setupTestDB(tb testing.TB) *sql.DB {
 		tb.Fatalf("failed to open test database: %v", err)
 	}
 
+	// For in-memory SQLite, limit to 1 connection to serialize writes
+	// This prevents SQLITE_BUSY errors during concurrent operations
+	db.SetMaxOpenConns(1)
+
 	// Set SQLite dialect and use embedded migrations
 	goose.SetDialect("sqlite3")
 	goose.SetBaseFS(migrations.SQLiteMigrations)
