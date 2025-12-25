@@ -46,7 +46,32 @@ The docker-compose configuration includes:
 
 ### Docker (Single Container)
 
-To run just the application container:
+#### Using Pre-built Images from GitHub Container Registry
+
+Production-ready multi-arch images (amd64/arm64) are available from GitHub Container Registry:
+
+```bash
+# Pull the latest version
+docker pull ghcr.io/matt-riley/mjrwtf:latest
+
+# Or pull a specific version
+docker pull ghcr.io/matt-riley/mjrwtf:v1.0.0
+
+# Copy and configure environment variables
+cp .env.example .env
+# Edit .env to set your configuration (especially AUTH_TOKEN and DATABASE_URL)
+
+# Run the container
+docker run -d \
+  --name mjrwtf \
+  -p 8080:8080 \
+  --env-file .env \
+  ghcr.io/matt-riley/mjrwtf:latest
+```
+
+#### Building Locally
+
+To build and run the image locally:
 
 ```bash
 # Build the Docker image
