@@ -248,15 +248,37 @@ Common test utilities:
 - Independent test execution
 
 ### Async Operations
-For async operations like click recording:
+For async operations like click recording, use polling with a deadline instead of a fixed sleep:
 ```go
 // Trigger redirect
 srv.router.ServeHTTP(rec, req)
 
-// Wait for async processing
-time.Sleep(100 * time.Millisecond)
+// Wait for async processing using polling with a deadline
+deadline := time.Now().Add(2 * time.Second)
 
-// Verify results
+for {
+    // Check condition (e.g., click recorded in analytics)
+    analyticsReq := httptest.NewRequest(http.MethodGet, "/api/urls/"+shortCode+"/analytics", nil)
+    analyticsReq.Header.Set("Authorization", "Bearer test-token")
+    
+    analyticsRec := httptest.NewRecorder()
+    srv.router.ServeHTTP(analyticsRec, analyticsReq)
+    
+    if analyticsRec.Code == http.StatusOK {
+        var analytics map[string]interface{}
+        if err := json.Unmarshal(analyticsRec.Body.Bytes(), &analytics); err == nil {
+            if totalClicks, ok := analytics["total_clicks"].(float64); ok && totalClicks > 0 {
+                break
+            }
+        }
+    }
+
+    if time.Now().After(deadline) {
+        t.Fatalf("timeout waiting for click to be recorded")
+    }
+
+    time.Sleep(10 * time.Millisecond)
+}
 ```
 
 ### Concurrent Tests
@@ -463,7 +485,7 @@ The integration testing suite provides:
 
 ✅ **Comprehensive Coverage** - All API endpoints and workflows tested
 ✅ **Fast Execution** - In-memory database, ~1 second total
-✅ **Reliable** - No flaky tests, deterministic results
+✅ **Reliable** - Designed to minimize flakiness with deterministic assertions (some tests use time-based polling and may be timing-sensitive on heavily loaded environments)
 ✅ **CI/CD Ready** - No external dependencies required
 ✅ **Well Organized** - Clear test structure and naming
 ✅ **Documented** - Examples and patterns for new tests

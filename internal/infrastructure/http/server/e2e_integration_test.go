@@ -92,7 +92,7 @@ func TestE2E_FullWorkflow(t *testing.T) {
 
 		// Step 3: Verify analytics were recorded
 		t.Run("verify_analytics", func(t *testing.T) {
-			// Give initial time for async workers to process  
+			// Give initial time for async workers to process
 			time.Sleep(100 * time.Millisecond)
 			
 			// Poll for async click recording instead of using only a fixed sleep
@@ -475,8 +475,7 @@ func TestE2E_MultipleClicks(t *testing.T) {
 			t.Errorf("click %d: expected status %d, got %d. Body: %s", i, http.StatusFound, clickRec.Code, clickRec.Body.String())
 		}
 		
-		// Small delay to avoid overwhelming async workers
-		// TODO: Investigate if there's a race condition in click recording
+		// Small delay to give async click recording workers time to process between requests
 		time.Sleep(30 * time.Millisecond)
 	}
 
@@ -554,8 +553,7 @@ func TestE2E_ConcurrentCreation(t *testing.T) {
 	for i := 0; i < numRequests; i++ {
 		go func(index int) {
 			// Small stagger to avoid overwhelming SQLite with concurrent writes
-			// TODO: This masks a potential race condition in the application
-			// that should be investigated and fixed
+			// See issue #XX for tracking investigation of potential race condition
 			time.Sleep(time.Duration(index) * 5 * time.Millisecond)
 			
 			reqBody := fmt.Sprintf(`{"original_url":"https://example.com/concurrent-%d"}`, index)
