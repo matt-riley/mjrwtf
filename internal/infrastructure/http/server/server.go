@@ -19,6 +19,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/handlers"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/metrics"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/session"
 	"github.com/rs/zerolog"
 )
 
@@ -38,6 +39,7 @@ type Server struct {
 	db              *sql.DB
 	logger          zerolog.Logger
 	metrics         *metrics.Metrics
+	sessionStore    *session.Store
 	redirectUseCase *application.RedirectURLUseCase
 }
 
@@ -68,6 +70,12 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 	r.Use(middleware.Logger)                                        // Log all requests
 	r.Use(middleware.PrometheusMetrics(m))                          // Record Prometheus metrics
 
+	// Initialize session store (24 hour session TTL)
+	sessionStore := session.NewStore(24 * time.Hour)
+	
+	// Add session middleware globally (checks for session, but doesn't require it)
+	r.Use(middleware.SessionMiddleware(sessionStore))
+
 	// Parse CORS allowed origins (supports comma-separated list)
 	origins := strings.Split(cfg.AllowedOrigins, ",")
 	for i := range origins {
@@ -86,11 +94,12 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 	}))
 
 	server := &Server{
-		router:  r,
-		config:  cfg,
-		db:      db,
-		logger:  logger,
-		metrics: m,
+		router:       r,
+		config:       cfg,
+		db:           db,
+		logger:       logger,
+		metrics:      m,
+		sessionStore: sessionStore,
 		httpServer: &http.Server{
 			Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
 			Handler:      r,
@@ -148,12 +157,16 @@ func (s *Server) setupRoutes() error {
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
 	analyticsHandler := handlers.NewAnalyticsHandler(getAnalyticsUseCase)
 	redirectHandler := handlers.NewRedirectHandler(s.redirectUseCase)
-	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, s.config.AuthToken)
+	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, s.config.AuthToken, s.sessionStore)
 
 	// HTML page routes
 	s.router.Get("/", pageHandler.Home)
 	s.router.HandleFunc("/create", pageHandler.CreatePage)
-	s.router.Get("/dashboard", pageHandler.Dashboard)
+	s.router.HandleFunc("/login", pageHandler.Login)
+	s.router.Get("/logout", pageHandler.Logout)
+	
+	// Protected dashboard route (requires session)
+	s.router.With(middleware.RequireSession(s.sessionStore, "/login")).Get("/dashboard", pageHandler.Dashboard)
 
 	// Public redirect endpoint (no authentication required)
 	// Must come after specific routes to avoid capturing them
@@ -163,7 +176,20 @@ func (s *Server) setupRoutes() error {
 	s.router.Route("/api", func(r chi.Router) {
 		r.Route("/urls", func(r chi.Router) {
 			// Apply auth middleware to all URL endpoints
-			r.Use(middleware.Auth(s.config.AuthToken))
+			// Support both Bearer token auth (for API) and session auth (for dashboard)
+			r.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+					// Check for session first
+					if userID, ok := middleware.GetSessionUserID(req.Context()); ok && userID != "" {
+						// Valid session, continue
+						next.ServeHTTP(w, req)
+						return
+					}
+					
+					// Fall back to Bearer token auth
+					middleware.Auth(s.config.AuthToken)(next).ServeHTTP(w, req)
+				})
+			})
 
 			r.Post("/", urlHandler.Create)
 			r.Get("/", urlHandler.List)

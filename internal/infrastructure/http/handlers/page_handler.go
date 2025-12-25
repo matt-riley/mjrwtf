@@ -11,6 +11,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/session"
 )
 
 // PageHandler handles HTML page rendering
@@ -18,6 +19,7 @@ type PageHandler struct {
 	createUseCase CreateURLUseCase
 	listUseCase   ListURLsUseCase
 	authToken     string
+	sessionStore  *session.Store
 }
 
 // NewPageHandler creates a new PageHandler
@@ -25,11 +27,13 @@ func NewPageHandler(
 	createUseCase CreateURLUseCase,
 	listUseCase ListURLsUseCase,
 	authToken string,
+	sessionStore *session.Store,
 ) *PageHandler {
 	return &PageHandler{
 		createUseCase: createUseCase,
 		listUseCase:   listUseCase,
 		authToken:     authToken,
+		sessionStore:  sessionStore,
 	}
 }
 
@@ -202,8 +206,7 @@ func (h *PageHandler) renderErrorPage(w http.ResponseWriter, r *http.Request, er
 //   - 400: Invalid pagination parameters
 //   - 500: Failed to load URLs
 //
-// Note: Currently uses a fixed user ID "authenticated-user".
-// In production, this should come from session authentication.
+// Note: Requires session authentication via RequireSession middleware.
 func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
@@ -221,9 +224,16 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For now, use a fixed user ID. In a real app, this would come from a session cookie.
-	// This matches the pattern used in the create page where the user provides an auth token.
-	userID := "authenticated-user"
+	// Get user ID from session (set by SessionMiddleware)
+	userID, ok := middleware.GetSessionUserID(r.Context())
+	if !ok {
+		// This shouldn't happen if RequireSession middleware is applied
+		w.WriteHeader(http.StatusUnauthorized)
+		if err := pages.DashboardWithError("Authentication required").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
 
 	// Fetch URLs using the list use case (includes click counts)
 	resp, err := h.listUseCase.Execute(r.Context(), application.ListURLsRequest{
@@ -253,4 +263,93 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write([]byte("Error rendering page"))
 	}
+}
+
+// Login handles GET and POST requests for the login page
+func (h *PageHandler) Login(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	// Handle GET request - show login form
+	if r.Method == http.MethodGet {
+		w.WriteHeader(http.StatusOK)
+		if err := pages.Login("").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
+
+	// Handle POST request - process login
+	if r.Method == http.MethodPost {
+		h.handleLogin(w, r)
+		return
+	}
+
+	// Method not allowed
+	w.WriteHeader(http.StatusMethodNotAllowed)
+}
+
+// handleLogin processes the login form submission
+func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		if err := pages.Login("Invalid form data").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
+
+	// Extract form values
+	authToken := strings.TrimSpace(r.FormValue("auth_token"))
+
+	// Validate auth token
+	if authToken == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		if err := pages.Login("Authentication token is required").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
+
+	// Validate auth token using constant-time comparison to prevent timing attacks
+	if subtle.ConstantTimeCompare([]byte(authToken), []byte(h.authToken)) != 1 {
+		w.WriteHeader(http.StatusUnauthorized)
+		if err := pages.Login("Invalid authentication token").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
+
+	// Create session
+	userID := "authenticated-user"
+	sess, err := h.sessionStore.Create(userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		if err := pages.Login("Failed to create session").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
+
+	// Set session cookie (24 hours)
+	middleware.SetSessionCookie(w, sess.ID, 24*60*60)
+
+	// Redirect to dashboard
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+// Logout handles the logout process
+func (h *PageHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	// Get session cookie
+	cookie, err := r.Cookie(middleware.SessionCookieName)
+	if err == nil && cookie.Value != "" {
+		// Delete session from store
+		h.sessionStore.Delete(cookie.Value)
+	}
+
+	// Clear session cookie
+	middleware.ClearSessionCookie(w)
+
+	// Redirect to home page
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
