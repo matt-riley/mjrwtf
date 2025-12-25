@@ -79,7 +79,7 @@ jobs:
         run: go vet ./...
       
       - name: Run tests
-        run: go test -v -race -short ./...
+        run: go test -v -race ./...
       
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
@@ -92,7 +92,7 @@ jobs:
         continue-on-error: true
       
       - name: Build server
-        run: go build -v ./cmd/server
+        run: mkdir -p bin && go build -v -o bin/server ./cmd/server
       
       - name: Build migrate tool
-        run: go build -v ./cmd/migrate
+        run: mkdir -p bin && go build -v -o bin/migrate ./cmd/migrate
