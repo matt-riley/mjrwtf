@@ -14,6 +14,8 @@
 
 # Build artifacts
 bin/
+/server
+/migrate
 
 # Test binary, built with `go test -c`
 *.test

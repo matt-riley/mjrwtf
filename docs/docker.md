@@ -2,6 +2,30 @@
 
 This guide explains how to build and run the mjr.wtf URL shortener using Docker.
 
+## Quick Start with Pre-built Images
+
+The easiest way to get started is using the pre-built multi-arch images from GitHub Container Registry:
+
+```bash
+# Pull the latest version
+docker pull ghcr.io/matt-riley/mjrwtf:latest
+
+# Run with environment file
+docker run -d \
+  --name mjrwtf \
+  -p 8080:8080 \
+  --env-file .env \
+  ghcr.io/matt-riley/mjrwtf:latest
+```
+
+Available image tags:
+- `latest` - Latest published release
+- `v1.2.3` - Specific semantic version
+- `1.2` - Latest patch version in the 1.2.x series
+- `1` - Latest minor and patch version in the 1.x series
+
+All images support both `linux/amd64` and `linux/arm64` architectures.
+
 ## Overview
 
 The project includes a multi-stage Dockerfile that:
@@ -12,6 +36,23 @@ The project includes a multi-stage Dockerfile that:
 - Includes health checks
 
 ## Building the Docker Image
+
+### Using Pre-built Images (Recommended)
+
+Production-ready images are automatically built and published to GitHub Container Registry on each release:
+
+```bash
+# Pull a specific version
+docker pull ghcr.io/matt-riley/mjrwtf:v1.0.0
+
+# Pull the latest version
+docker pull ghcr.io/matt-riley/mjrwtf:latest
+
+# Tag for local use
+docker tag ghcr.io/matt-riley/mjrwtf:latest mjrwtf:latest
+```
+
+### Building Locally
 
 ```bash
 # Build the image

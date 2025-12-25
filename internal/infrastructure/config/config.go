@@ -36,6 +36,9 @@ type Config struct {
 	// Logging configuration
 	LogLevel  string // debug, info, warn, error (default: info)
 	LogFormat string // json, pretty (default: json)
+
+	// Metrics configuration
+	MetricsAuthEnabled bool // Enable authentication for /metrics endpoint (default: false)
 }
 
 // LoadConfig loads configuration from environment variables and .env file
