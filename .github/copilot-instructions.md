@@ -17,6 +17,7 @@
 - `internal/infrastructure/` - Configuration and infrastructure concerns
 - `internal/migrations/` - Database migrations (SQLite and PostgreSQL)
 - `cmd/migrate/` - Migration CLI tool
+- `cmd/server/` - HTTP server application
 - `docs/` - Database schema documentation
 
 ## Critical Build Prerequisites
@@ -57,12 +58,16 @@
 # Clean build artifacts
 make clean                    # Removes bin/ directory
 
-# Build migrate tool (only executable in project currently)
-make build-migrate            # Takes ~18s first time, <1s after
-go build -o bin/migrate ./cmd/migrate
+# Build all binaries (server + migrate)
+make build                    # Builds both bin/server and bin/migrate
 
-# Note: make build (main app) will FAIL - no cmd/mjrwtf exists yet
-# Only cmd/migrate exists currently
+# Build server binary
+make build-server             # Builds the HTTP server (bin/server)
+go build -o bin/server ./cmd/server
+
+# Build migrate tool
+make build-migrate            # Builds the migration tool (bin/migrate)
+go build -o bin/migrate ./cmd/migrate
 
 # Format code
 make fmt                      # Takes ~0.08s, runs go fmt ./...
@@ -167,8 +172,9 @@ Review before committing:
 1. Clone repository: `git clone <repo>`
 2. Copy environment file: `cp .env.example .env`
 3. Generate database code: `sqlc generate`
-4. Build migrate tool: `make build-migrate`
-5. Run tests: `make test` (PostgreSQL tests will skip if database unavailable)
+4. Generate templates: `templ generate` (or install templ if needed)
+5. Build binaries: `make build` (builds both server and migrate tool)
+6. Run tests: `make test` (PostgreSQL tests will skip if database unavailable)
 
 ### Making Changes
 1. Create feature branch: `git checkout -b feature/your-feature`
@@ -243,10 +249,7 @@ go build ./...   # Should succeed
 go test ./...    # Should pass (with PostgreSQL tests skipped)
 ```
 
-### No Main Application Yet
-The Makefile has a `make build` target that tries to build `cmd/mjrwtf/main.go`, but this file doesn't exist yet. Only `cmd/migrate/main.go` exists.
 
-**Workaround:** Use `make build-migrate` instead, or ignore the build target.
 
 ## Project Structure
 
@@ -255,7 +258,9 @@ The Makefile has a `make build` target that tries to build `cmd/mjrwtf/main.go`,
 ├── .github/
 │   └── renovate.json          # Renovate dependency management config
 ├── cmd/
-│   └── migrate/               # Migration CLI tool (only executable)
+│   ├── migrate/               # Migration CLI tool
+│   │   └── main.go
+│   └── server/                # HTTP server application
 │       └── main.go
 ├── docs/
 │   ├── README.md              # Detailed database schema documentation
