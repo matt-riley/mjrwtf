@@ -31,6 +31,11 @@ WHERE created_by = ?
   AND created_at <= ?
 ORDER BY created_at DESC;
 
+-- name: CountURLsByCreatedBy :one
+SELECT COUNT(*) as count
+FROM urls
+WHERE (? = '' OR created_by = ?);
+
 -- ============================================================================
 -- Click Queries
 -- ============================================================================

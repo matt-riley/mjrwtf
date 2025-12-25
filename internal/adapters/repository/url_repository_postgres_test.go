@@ -332,3 +332,79 @@ func TestPostgresURLRepository_ListByCreatedByAndTimeRange(t *testing.T) {
 		}
 	})
 }
+
+func TestPostgresURLRepository_Count(t *testing.T) {
+	db, cleanup := setupPostgresTestDB(t)
+	if db == nil {
+		return // Test was skipped
+	}
+	defer cleanup()
+
+	repo := NewPostgresURLRepository(db)
+
+	t.Run("count zero URLs", func(t *testing.T) {
+		count, err := repo.Count(context.Background(), "user1")
+		if err != nil {
+			t.Fatalf("Count() error = %v", err)
+		}
+
+		if count != 0 {
+			t.Errorf("Count() = %d, want 0", count)
+		}
+	})
+
+	// Create test URLs
+	u1, _ := url.NewURL("count1", "https://example.com/1", "user1")
+	repo.Create(context.Background(), u1)
+
+	u2, _ := url.NewURL("count2", "https://example.com/2", "user1")
+	repo.Create(context.Background(), u2)
+
+	u3, _ := url.NewURL("count3", "https://example.com/3", "user2")
+	repo.Create(context.Background(), u3)
+
+	u4, _ := url.NewURL("count4", "https://example.com/4", "user1")
+	repo.Create(context.Background(), u4)
+
+	t.Run("count all URLs", func(t *testing.T) {
+		count, err := repo.Count(context.Background(), "")
+		if err != nil {
+			t.Fatalf("Count() error = %v", err)
+		}
+
+		if count != 4 {
+			t.Errorf("Count() = %d, want 4", count)
+		}
+	})
+
+	t.Run("count URLs by user", func(t *testing.T) {
+		count, err := repo.Count(context.Background(), "user1")
+		if err != nil {
+			t.Fatalf("Count() error = %v", err)
+		}
+
+		if count != 3 {
+			t.Errorf("Count() for user1 = %d, want 3", count)
+		}
+
+		count2, err := repo.Count(context.Background(), "user2")
+		if err != nil {
+			t.Fatalf("Count() error = %v", err)
+		}
+
+		if count2 != 1 {
+			t.Errorf("Count() for user2 = %d, want 1", count2)
+		}
+	})
+
+	t.Run("count for non-existent user", func(t *testing.T) {
+		count, err := repo.Count(context.Background(), "nonexistent")
+		if err != nil {
+			t.Fatalf("Count() error = %v", err)
+		}
+
+		if count != 0 {
+			t.Errorf("Count() for nonexistent user = %d, want 0", count)
+		}
+	})
+}

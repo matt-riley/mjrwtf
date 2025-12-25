@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,7 +13,8 @@ import (
 
 // mockURLRepository is a test double for URL repository
 type mockListURLRepository struct {
-	listFunc func(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error)
+	listFunc  func(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error)
+	countFunc func(ctx context.Context, createdBy string) (int, error)
 }
 
 func (m *mockListURLRepository) List(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error) {
@@ -20,6 +22,13 @@ func (m *mockListURLRepository) List(ctx context.Context, createdBy string, limi
 		return m.listFunc(ctx, createdBy, limit, offset)
 	}
 	return nil, nil
+}
+
+func (m *mockListURLRepository) Count(ctx context.Context, createdBy string) (int, error) {
+	if m.countFunc != nil {
+		return m.countFunc(ctx, createdBy)
+	}
+	return 0, nil
 }
 
 func (m *mockListURLRepository) Create(ctx context.Context, u *url.URL) error {
@@ -93,6 +102,12 @@ func TestListURLsUseCase_Execute_Success(t *testing.T) {
 				return nil, nil
 			}
 			return mockURLs, nil
+		},
+		countFunc: func(ctx context.Context, createdBy string) (int, error) {
+			if createdBy != "user1" {
+				return 0, nil
+			}
+			return 2, nil
 		},
 	}
 
@@ -262,6 +277,9 @@ func TestListURLsUseCase_Execute_EmptyList(t *testing.T) {
 		listFunc: func(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error) {
 			return []*url.URL{}, nil
 		},
+		countFunc: func(ctx context.Context, createdBy string) (int, error) {
+			return 0, nil
+		},
 	}
 
 	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
@@ -289,4 +307,120 @@ func TestListURLsUseCase_Execute_EmptyList(t *testing.T) {
 	if resp.Total != 0 {
 		t.Errorf("expected total to be 0, got %d", resp.Total)
 	}
+}
+
+func TestListURLsUseCase_Execute_PaginationTotal(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	// Simulate total of 25 URLs, but only return 10 per page
+	allURLs := make([]*url.URL, 25)
+	for i := 0; i < 25; i++ {
+		allURLs[i] = &url.URL{
+			ID:          int64(i + 1),
+			ShortCode:   fmt.Sprintf("url%d", i+1),
+			OriginalURL: fmt.Sprintf("https://example.com/%d", i+1),
+			CreatedAt:   now.Add(-time.Duration(i) * time.Hour),
+			CreatedBy:   "user1",
+		}
+	}
+
+	mockRepo := &mockListURLRepository{
+		listFunc: func(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error) {
+			if createdBy != "user1" {
+				return nil, nil
+			}
+			// Return the page of URLs based on limit and offset
+			end := offset + limit
+			if end > len(allURLs) {
+				end = len(allURLs)
+			}
+			if offset >= len(allURLs) {
+				return []*url.URL{}, nil
+			}
+			return allURLs[offset:end], nil
+		},
+		countFunc: func(ctx context.Context, createdBy string) (int, error) {
+			if createdBy != "user1" {
+				return 0, nil
+			}
+			return 25, nil
+		},
+	}
+
+	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
+
+	t.Run("first page", func(t *testing.T) {
+		req := ListURLsRequest{
+			CreatedBy: "user1",
+			Limit:     10,
+			Offset:    0,
+		}
+
+		resp, err := useCase.Execute(ctx, req)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if len(resp.URLs) != 10 {
+			t.Errorf("expected 10 URLs on first page, got %d", len(resp.URLs))
+		}
+
+		if resp.Total != 25 {
+			t.Errorf("expected total to be 25, got %d", resp.Total)
+		}
+
+		if resp.Limit != 10 {
+			t.Errorf("expected limit to be 10, got %d", resp.Limit)
+		}
+
+		if resp.Offset != 0 {
+			t.Errorf("expected offset to be 0, got %d", resp.Offset)
+		}
+	})
+
+	t.Run("second page", func(t *testing.T) {
+		req := ListURLsRequest{
+			CreatedBy: "user1",
+			Limit:     10,
+			Offset:    10,
+		}
+
+		resp, err := useCase.Execute(ctx, req)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if len(resp.URLs) != 10 {
+			t.Errorf("expected 10 URLs on second page, got %d", len(resp.URLs))
+		}
+
+		if resp.Total != 25 {
+			t.Errorf("expected total to be 25 (not 10), got %d", resp.Total)
+		}
+	})
+
+	t.Run("third page partial", func(t *testing.T) {
+		req := ListURLsRequest{
+			CreatedBy: "user1",
+			Limit:     10,
+			Offset:    20,
+		}
+
+		resp, err := useCase.Execute(ctx, req)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if len(resp.URLs) != 5 {
+			t.Errorf("expected 5 URLs on third page, got %d", len(resp.URLs))
+		}
+
+		if resp.Total != 25 {
+			t.Errorf("expected total to be 25 (not 5), got %d", resp.Total)
+		}
+	})
 }
