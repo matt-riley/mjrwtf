@@ -11,6 +11,24 @@ import (
 	"time"
 )
 
+const countURLsByCreatedBy = `-- name: CountURLsByCreatedBy :one
+SELECT COUNT(*) as count
+FROM urls
+WHERE ($1 = '' OR created_by = $2)
+`
+
+type CountURLsByCreatedByParams struct {
+	Column1   interface{} `json:"column_1"`
+	CreatedBy string      `json:"created_by"`
+}
+
+func (q *Queries) CountURLsByCreatedBy(ctx context.Context, arg CountURLsByCreatedByParams) (int64, error) {
+	row := q.queryRow(ctx, q.countURLsByCreatedByStmt, countURLsByCreatedBy, arg.Column1, arg.CreatedBy)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createURL = `-- name: CreateURL :one
 
 INSERT INTO urls (short_code, original_url, created_at, created_by)

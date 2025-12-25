@@ -123,3 +123,17 @@ func (r *SQLiteURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, c
 
 	return urls, nil
 }
+
+// Count returns the total count of URLs for a specific user
+func (r *SQLiteURLRepository) Count(ctx context.Context, createdBy string) (int, error) {
+	count, err := r.queries.CountURLsByCreatedBy(ctx, sqliterepo.CountURLsByCreatedByParams{
+		Column1:   createdBy,
+		CreatedBy: createdBy,
+	})
+
+	if err != nil {
+		return 0, mapURLSQLError(err)
+	}
+
+	return int(count), nil
+}

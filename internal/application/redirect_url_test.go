@@ -65,6 +65,10 @@ func (m *mockURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, cre
 	return []*url.URL{}, nil
 }
 
+func (m *mockURLRepository) Count(ctx context.Context, createdBy string) (int, error) {
+	return 0, nil
+}
+
 // Mock Click Repository
 type mockClickRepository struct {
 	clicks      []*click.Click

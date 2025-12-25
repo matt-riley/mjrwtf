@@ -31,6 +31,11 @@ WHERE created_by = $1
   AND created_at <= $3
 ORDER BY created_at DESC;
 
+-- name: CountURLsByCreatedBy :one
+SELECT COUNT(*) as count
+FROM urls
+WHERE ($1 = '' OR created_by = $2);
+
 -- ============================================================================
 -- Click Queries
 -- ============================================================================

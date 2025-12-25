@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CountURLsByCreatedBy(ctx context.Context, arg CountURLsByCreatedByParams) (int64, error)
 	// ============================================================================
 	// URL Queries
 	// ============================================================================

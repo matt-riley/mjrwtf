@@ -24,6 +24,9 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.countURLsByCreatedByStmt, err = db.PrepareContext(ctx, countURLsByCreatedBy); err != nil {
+		return nil, fmt.Errorf("error preparing query CountURLsByCreatedBy: %w", err)
+	}
 	if q.createURLStmt, err = db.PrepareContext(ctx, createURL); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateURL: %w", err)
 	}
@@ -68,6 +71,11 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.countURLsByCreatedByStmt != nil {
+		if cerr := q.countURLsByCreatedByStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countURLsByCreatedByStmt: %w", cerr)
+		}
+	}
 	if q.createURLStmt != nil {
 		if cerr := q.createURLStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createURLStmt: %w", cerr)
@@ -172,6 +180,7 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 type Queries struct {
 	db                                  DBTX
 	tx                                  *sql.Tx
+	countURLsByCreatedByStmt            *sql.Stmt
 	createURLStmt                       *sql.Stmt
 	deleteURLByShortCodeStmt            *sql.Stmt
 	findURLByShortCodeStmt              *sql.Stmt
@@ -191,6 +200,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
 		db:                                  tx,
 		tx:                                  tx,
+		countURLsByCreatedByStmt:            q.countURLsByCreatedByStmt,
 		createURLStmt:                       q.createURLStmt,
 		deleteURLByShortCodeStmt:            q.deleteURLByShortCodeStmt,
 		findURLByShortCodeStmt:              q.findURLByShortCodeStmt,
