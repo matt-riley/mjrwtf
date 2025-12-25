@@ -2,6 +2,38 @@
 
 A simple URL shortener, written in Go.
 
+## API Documentation
+
+The API is fully documented using OpenAPI 3.0. You can find the specification in [`openapi.yaml`](openapi.yaml) at the repository root.
+
+### Viewing the API Documentation
+
+**Interactive API Explorer:**
+- [SwaggerUI](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml) - Interactive API documentation
+- [ReDoc](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml) - Clean, responsive API reference
+
+**Local viewing:**
+```bash
+# Validate the OpenAPI spec
+make validate-openapi
+
+# Or validate manually with swagger-cli
+npm install -g @apidevtools/swagger-cli
+swagger-cli validate openapi.yaml
+```
+
+### API Endpoints
+
+- `POST /api/urls` - Create shortened URL (requires auth)
+- `GET /api/urls` - List user's URLs with pagination (requires auth)
+- `DELETE /api/urls/{shortCode}` - Delete URL (requires auth)
+- `GET /api/urls/{shortCode}/analytics` - Get analytics with optional time range (requires auth)
+- `GET /{shortCode}` - Redirect to original URL (public)
+- `GET /health` - Health check (public)
+- `GET /metrics` - Prometheus metrics (optional auth)
+
+See the [OpenAPI specification](openapi.yaml) for detailed request/response schemas, authentication, and error handling.
+
 ## Quick Start
 
 ### Docker Compose (Recommended)

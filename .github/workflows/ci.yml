@@ -91,6 +91,11 @@ jobs:
         # with recognizing imports from goose, chi, and other external packages
         continue-on-error: true
       
+      - name: Validate OpenAPI spec
+        run: |
+          npm install -g @apidevtools/swagger-cli
+          swagger-cli validate openapi.yaml
+      
       - name: Build server
         run: go build -v -o bin/server ./cmd/server
       
