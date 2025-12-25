@@ -79,9 +79,13 @@ make build-server
 
 ## Authentication
 
+The application supports two authentication methods:
+
+### 1. Bearer Token Authentication (API Endpoints)
+
 The API uses token-based authentication to protect URL creation and deletion endpoints. Authentication is implemented using Bearer tokens.
 
-### Configuration
+#### Configuration
 
 Set the `AUTH_TOKEN` environment variable to configure your authentication token:
 
@@ -97,7 +101,7 @@ AUTH_TOKEN=your-secret-token-here
 
 **Security Note:** The AUTH_TOKEN is required for the application to start. Choose a strong, randomly generated token for production deployments.
 
-### Making Authenticated Requests
+#### Making Authenticated Requests
 
 Include the token in the `Authorization` header with the `Bearer` scheme:
 
@@ -108,7 +112,7 @@ curl -X POST https://mjr.wtf/api/urls \
   -d '{"url": "https://example.com", "short_code": "abc123"}'
 ```
 
-### Authentication Responses
+#### Authentication Responses
 
 - **200 OK** - Request succeeded with valid token
 - **401 Unauthorized** - Missing, invalid, or malformed token
@@ -126,13 +130,45 @@ Unauthorized: invalid authorization format
 Unauthorized: invalid token
 ```
 
+### 2. Session-Based Authentication (Dashboard)
+
+The web dashboard uses server-side session management with httpOnly cookies for enhanced security.
+
+#### How It Works
+
+1. **Login**: Navigate to `/login` and enter your authentication token (the same `AUTH_TOKEN` configured above)
+2. **Session Creation**: Upon successful login, the server creates a session and sets an httpOnly cookie
+3. **Session Duration**: Sessions last for 24 hours and are automatically refreshed on each request
+4. **Logout**: Navigate to `/logout` or click the logout button to end your session
+
+#### Security Features
+
+- **HttpOnly Cookies**: Session cookies cannot be accessed by JavaScript, protecting against XSS attacks
+- **SameSite Protection**: Cookies are set with `SameSite=Lax` to prevent CSRF attacks
+- **Automatic Expiration**: Sessions expire after 24 hours of inactivity
+- **In-Memory Storage**: Sessions are stored in-memory on the server (lost on restart)
+
+#### Dashboard Features
+
+- View all your shortened URLs
+- See click statistics for each URL
+- Delete URLs you no longer need
+- Copy short URLs to clipboard
+- Pagination for large URL collections
+
+**Note:** For production deployments with multiple server instances, consider implementing a distributed session store (Redis, database, etc.) to maintain sessions across servers.
+
 ### Protected Endpoints
 
 The following endpoints require authentication:
-- `POST /api/urls` - Create a new short URL
-- `DELETE /api/urls/:code` - Delete a short URL
+- `POST /api/urls` - Create a new short URL (Bearer token)
+- `DELETE /api/urls/:code` - Delete a short URL (Bearer token or session)
+- `GET /dashboard` - View URL dashboard (session required)
 
 Public endpoints (no authentication required):
+- `GET /` - Home page
+- `GET /create` - URL creation form
+- `GET /login` - Login page
 - `GET /:code` - Redirect to original URL
 - `GET /health` - Health check
 
