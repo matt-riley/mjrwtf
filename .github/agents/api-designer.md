@@ -78,145 +78,71 @@ When working on the mjr.wtf URL shortener API:
 
 ## API Design for mjr.wtf
 
-### Core Endpoints
+### Current HTTP Surface Area (as implemented)
 
-**URL Management:**
+**Operational endpoints (no auth):**
 ```
-POST   /api/v1/urls              # Create shortened URL
-GET    /api/v1/urls/{shortCode}  # Get URL details
-GET    /api/v1/urls              # List user's URLs
-DELETE /api/v1/urls/{shortCode}  # Delete URL
+GET /health
+GET /metrics
 ```
 
-**Redirection:**
+**Public redirect (no auth):**
 ```
-GET    /{shortCode}              # Redirect to original URL
-```
-
-**Analytics:**
-```
-GET    /api/v1/urls/{shortCode}/stats        # Get URL statistics
-GET    /api/v1/urls/{shortCode}/clicks       # Get click history
-GET    /api/v1/urls/{shortCode}/clicks/country  # Clicks by country
+GET /{shortCode}
 ```
 
-**User Management:**
+**Authenticated API (Bearer token):**
 ```
-POST   /api/v1/auth/login        # Authenticate user
-POST   /api/v1/auth/register     # Register new user
-POST   /api/v1/auth/logout       # Logout user
-GET    /api/v1/users/me          # Get current user
+POST   /api/urls
+GET    /api/urls
+DELETE /api/urls/{shortCode}
+GET    /api/urls/{shortCode}/analytics
 ```
 
-### Request/Response Format
+Note: there are also HTML pages (`/`, `/create`, `/dashboard`) which share the same underlying use-cases.
+
+### Request/Response Format (current)
 
 **Create URL Request:**
 ```json
 {
-  "original_url": "https://example.com/very/long/url",
-  "short_code": "abc123",  // Optional, auto-generated if omitted
-  "expires_at": "2025-12-31T23:59:59Z"  // Optional
+  "original_url": "https://example.com"
 }
 ```
 
-**Success Response:**
+**Create URL Response:** `201 Created`
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
   "short_code": "abc123",
-  "original_url": "https://example.com/very/long/url",
-  "short_url": "https://mjr.wtf/abc123",
-  "created_at": "2025-01-08T13:00:00Z",
-  "created_by": "user123",
-  "expires_at": null,
-  "click_count": 0
+  "short_url": "http://localhost:8080/abc123",
+  "original_url": "https://example.com"
 }
 ```
 
-**Error Response:**
+**Error Response (current):**
 ```json
 {
-  "error": {
-    "code": "invalid_short_code",
-    "message": "Short code must be 3-20 alphanumeric characters",
-    "field": "short_code",
-    "details": {
-      "min_length": 3,
-      "max_length": 20,
-      "allowed_chars": "a-zA-Z0-9_-"
-    }
-  }
+  "error": "human-readable message"
 }
 ```
 
-### Authentication Design
+### Authentication (current)
 
-**API Key Authentication:**
+The API uses a single configured shared secret (`AUTH_TOKEN`) and expects:
 ```
-Authorization: Bearer <api_key>
-```
-
-**JWT Authentication:**
-```
-Authorization: Bearer <jwt_token>
+Authorization: Bearer <token>
 ```
 
-Consider:
-- API key for programmatic access
-- JWT for web application sessions
-- OAuth2 for third-party integrations
-- Rate limiting per API key
+### Pagination (current)
 
-### Pagination
-
-**Request:**
+List endpoints use `limit` and `offset` query params:
 ```
-GET /api/v1/urls?page=2&per_page=20&sort=created_at&order=desc
+GET /api/urls?limit=20&offset=0
 ```
 
-**Response:**
-```json
-{
-  "data": [...],
-  "pagination": {
-    "page": 2,
-    "per_page": 20,
-    "total_pages": 5,
-    "total_count": 100
-  },
-  "links": {
-    "self": "/api/v1/urls?page=2",
-    "first": "/api/v1/urls?page=1",
-    "prev": "/api/v1/urls?page=1",
-    "next": "/api/v1/urls?page=3",
-    "last": "/api/v1/urls?page=5"
-  }
-}
-```
+### API Versioning (future)
 
-### Filtering and Searching
-
-```
-GET /api/v1/urls?created_after=2025-01-01&created_before=2025-01-31
-GET /api/v1/urls?search=example
-GET /api/v1/urls?short_code=abc*
-```
-
-## API Versioning
-
-Strategy: URL path versioning (`/api/v1/`)
-
-Reasons:
-- Explicit and visible
-- Easy to route and proxy
-- Clear separation between versions
-- Industry standard
-
-Versioning policy:
-- Maintain previous version for deprecation period
-- Document breaking changes
-- Provide migration guides
-- Use semantic versioning
+The API is currently unversioned (`/api/...`). If/when a breaking change is needed, prefer introducing `/api/v1/...` and keeping the old routes during a deprecation period.
 
 ## Rate Limiting
 

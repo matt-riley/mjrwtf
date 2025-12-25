@@ -96,8 +96,7 @@ Always create issues using the repository's issue format, including:
 - Clear title (50 characters or less)
 - Description with context and motivation
 - Acceptance criteria (Given-When-Then)
-- Labels (bug, feature, task, epic, enhancement)
-- Priority (P0-P3)
+- Labels that exist in this repo (e.g. bug, enhancement, documentation, refactor, dependencies)
 - Dependencies and relationships
 
 Focus on requirements documentation and analysis—do not implement code unless specifically asked.

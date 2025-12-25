@@ -33,19 +33,18 @@ You are a senior database engineer specializing in SQL query optimization, sqlc 
 
 ### Database-Specific Considerations
 
+In this repository, primary keys are integer-based (`INTEGER AUTOINCREMENT` in SQLite, `SERIAL` in PostgreSQL).
+
 **SQLite:**
-- No UUID type (use TEXT)
 - Limited concurrent writes
-- AUTOINCREMENT for auto-incrementing IDs
-- INTEGER for Unix timestamps
-- Use sqlite_stat1 for query planning
+- `INTEGER PRIMARY KEY AUTOINCREMENT` for IDs
+- Beware ALTER TABLE limitations (especially dropping columns)
 
 **PostgreSQL:**
-- Native UUID type support
 - Better concurrency support
-- SERIAL/BIGSERIAL for auto-incrementing
-- TIMESTAMP WITH TIME ZONE for timestamps
-- Use EXPLAIN ANALYZE for query planning
+- `SERIAL`/`BIGSERIAL` for IDs
+- `TIMESTAMPTZ` for timestamps
+- Use `EXPLAIN (ANALYZE, BUFFERS)` for query planning
 
 ### Query Optimization Patterns
 
@@ -80,21 +79,28 @@ GROUP BY u.id;
 
 ### Insert
 ```sql
--- name: CreateURL :exec
-INSERT INTO urls (id, short_code, original_url, created_at, created_by)
-VALUES (?, ?, ?, ?, ?);
+-- name: CreateURL :one
+INSERT INTO urls (short_code, original_url, created_at, created_by)
+VALUES (?, ?, ?, ?)
+RETURNING id, short_code, original_url, created_at, created_by;
 ```
 
 ### Select One
 ```sql
--- name: GetURLByShortCode :one
-SELECT * FROM urls WHERE short_code = ? LIMIT 1;
+-- name: FindURLByShortCode :one
+SELECT id, short_code, original_url, created_at, created_by
+FROM urls
+WHERE short_code = ?;
 ```
 
 ### Select Many
 ```sql
--- name: ListURLsByCreatedBy :many
-SELECT * FROM urls WHERE created_by = ? ORDER BY created_at DESC;
+-- name: ListURLs :many
+SELECT id, short_code, original_url, created_at, created_by
+FROM urls
+WHERE (? = '' OR created_by = ?)
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
 ```
 
 ### Update

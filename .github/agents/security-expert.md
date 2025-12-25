@@ -55,12 +55,10 @@ When working on the mjr.wtf URL shortener:
 - Implement allowlist/blocklist for URLs
 
 **2. Authentication and Authorization**
-- Secure password storage (bcrypt/argon2)
-- Implement rate limiting on auth endpoints
-- Use secure session management
-- Implement API key rotation
-- Validate JWT tokens properly
-- Prevent privilege escalation
+- Current model is a single configured shared secret (`AUTH_TOKEN`) used as a Bearer token
+- Ensure constant-time token comparison (already implemented)
+- Add rate limiting on authenticated endpoints to reduce brute force attempts
+- Plan evolution to per-user API keys / JWT only when there is a user model
 
 **3. SQL Injection Prevention**
 - Use parameterized queries (sqlc handles this)
@@ -117,25 +115,18 @@ func (u *URL) Validate() error {
 }
 ```
 
-### Authentication
+### Authentication (current)
 ```go
-// Secure password hashing
-func HashPassword(password string) (string, error) {
-    // Use bcrypt with appropriate cost
-    hash, err := bcrypt.GenerateFromPassword(
-        []byte(password),
-        bcrypt.DefaultCost,
-    )
-    return string(hash), err
-}
-
-// Constant-time comparison
-func ComparePassword(hash, password string) bool {
-    err := bcrypt.CompareHashAndPassword(
-        []byte(hash),
-        []byte(password),
-    )
-    return err == nil
+// Static bearer token auth (current implementation pattern)
+func Auth(authToken string) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            // Expect: Authorization: Bearer <token>
+            // Compare using crypto/subtle.ConstantTimeCompare
+            // Attach a user identifier to context (currently a static value)
+            next.ServeHTTP(w, r)
+        })
+    }
 }
 ```
 

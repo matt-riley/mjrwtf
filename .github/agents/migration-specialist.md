@@ -113,7 +113,9 @@ ALTER TABLE urls_new RENAME TO urls;
 -- Add column with NOT NULL using default
 ALTER TABLE urls ADD COLUMN status TEXT DEFAULT 'active' NOT NULL;
 
--- Create index concurrently (doesn't lock table)
+-- Note: CREATE INDEX CONCURRENTLY cannot run inside a transaction.
+-- If you need it, use a separate migration file (or add `-- +goose NO TRANSACTION`).
+-- +goose NO TRANSACTION
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_urls_status ON urls(status);
 ```
 
