@@ -367,6 +367,107 @@ func TestServer_Metrics(t *testing.T) {
 	}
 }
 
+func TestMetricsEndpoint_WithAuthEnabled(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := &config.Config{
+		ServerPort:         8080,
+		BaseURL:            "http://localhost:8080",
+		DatabaseURL:        "test.db",
+		AuthToken:          "test-token",
+		AllowedOrigins:     "*",
+		MetricsAuthEnabled: true,
+	}
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	tests := []struct {
+		name           string
+		authHeader     string
+		expectedStatus int
+	}{
+		{
+			name:           "without auth header",
+			authHeader:     "",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "with invalid auth token",
+			authHeader:     "Bearer invalid-token",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "with valid auth token",
+			authHeader:     "Bearer test-token",
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+			rec := httptest.NewRecorder()
+
+			srv.router.ServeHTTP(rec, req)
+
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)
+			}
+
+			// For successful requests, verify metrics are present
+			if tt.expectedStatus == http.StatusOK {
+				body := rec.Body.String()
+				// Check for Go runtime metrics which should always be present
+				if !strings.Contains(body, "go_goroutines") {
+					t.Error("expected go_goroutines metric in response body")
+				}
+			}
+		})
+	}
+}
+
+func TestMetricsEndpoint_WithAuthDisabled(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := &config.Config{
+		ServerPort:         8080,
+		BaseURL:            "http://localhost:8080",
+		DatabaseURL:        "test.db",
+		AuthToken:          "test-token",
+		AllowedOrigins:     "*",
+		MetricsAuthEnabled: false,
+	}
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	// When auth is disabled, /metrics should be accessible without authentication
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	body := rec.Body.String()
+	// Check for Go runtime metrics which should always be present
+	if !strings.Contains(body, "go_goroutines") {
+		t.Error("expected go_goroutines metric in response body")
+	}
+}
+
 func ExampleServer_Start() {
 	cfg := &config.Config{
 		ServerPort:     8080,

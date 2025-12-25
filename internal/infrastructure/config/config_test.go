@@ -245,6 +245,7 @@ func cleanEnv() {
 	os.Unsetenv("GEOIP_DATABASE")
 	os.Unsetenv("LOG_LEVEL")
 	os.Unsetenv("LOG_FORMAT")
+	os.Unsetenv("METRICS_AUTH_ENABLED")
 }
 
 func TestLoadConfig_LoggingDefaults(t *testing.T) {
@@ -294,5 +295,36 @@ func TestLoadConfig_CustomLogFormat(t *testing.T) {
 
 	if config.LogFormat != "pretty" {
 		t.Errorf("Expected LogFormat 'pretty', got: %s", config.LogFormat)
+	}
+}
+
+func TestLoadConfig_MetricsAuthEnabled(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("METRICS_AUTH_ENABLED", "true")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if !config.MetricsAuthEnabled {
+		t.Error("Expected MetricsAuthEnabled to be true")
+	}
+}
+
+func TestLoadConfig_MetricsAuthDefaultFalse(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.MetricsAuthEnabled {
+		t.Error("Expected default MetricsAuthEnabled to be false")
 	}
 }
