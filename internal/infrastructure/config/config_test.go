@@ -328,4 +328,3 @@ func TestLoadConfig_MetricsAuthDefaultFalse(t *testing.T) {
 		t.Error("Expected default MetricsAuthEnabled to be false")
 	}
 }
-

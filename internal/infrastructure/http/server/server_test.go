@@ -468,7 +468,6 @@ func TestMetricsEndpoint_WithAuthDisabled(t *testing.T) {
 	}
 }
 
-
 func ExampleServer_Start() {
 	cfg := &config.Config{
 		ServerPort:     8080,
