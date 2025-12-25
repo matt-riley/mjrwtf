@@ -19,7 +19,6 @@ mjr.wtf implements multiple security controls to protect users and the system:
 - **URL Validation**: All URLs are validated and sanitized before shortening
 - **Short Code Validation**: Strict alphanumeric validation (3-20 characters, `[a-zA-Z0-9_-]`)
 - **Scheme Allowlist**: Only `http://` and `https://` schemes are permitted
-- **Private IP Protection**: URLs pointing to private IP ranges are rejected
 
 ### Authentication & Authorization
 - **Bearer Token Authentication**: API endpoints require valid authentication tokens
@@ -31,17 +30,9 @@ mjr.wtf implements multiple security controls to protect users and the system:
 - **Prepared Statements**: Type-safe, compiled SQL queries prevent injection attacks
 - **Input Sanitization**: All user inputs are validated before database operations
 
-### Rate Limiting & Abuse Prevention
-- **Request Rate Limiting**: Protects against DoS attacks and abuse
-- **Monitoring & Alerts**: Suspicious patterns are logged and monitored
-
-### Security Headers
-- `X-Content-Type-Options: nosniff` - Prevents MIME type sniffing
-- `X-Frame-Options: DENY` - Prevents clickjacking attacks
-- `X-XSS-Protection: 1; mode=block` - Enables browser XSS protection
-- `Strict-Transport-Security` - Enforces HTTPS connections
-- `Content-Security-Policy` - Restricts resource loading
-- `Referrer-Policy: strict-origin-when-cross-origin` - Controls referrer information
+### Logging & Monitoring
+- **Structured Logging**: All requests and errors are logged using zerolog
+- **Request Tracing**: Request IDs for tracking and debugging
 
 ### Secrets Management
 - **Environment Variables**: All secrets stored in environment variables
@@ -232,8 +223,6 @@ Custom queries are located in `.github/codeql/` (if present).
 - [ ] Database queries use parameterized statements (sqlc)
 - [ ] Error messages don't leak sensitive information
 - [ ] Authentication/authorization checks are in place
-- [ ] Rate limiting considered for new endpoints
-- [ ] Security headers configured for HTTP responses
 - [ ] Logging doesn't expose sensitive data (passwords, tokens, PII)
 - [ ] Dependencies are up-to-date (no known vulnerabilities)
 - [ ] Input validation uses allowlists, not denylists
@@ -320,12 +309,17 @@ func (s *URLService) Delete(ctx context.Context, shortCode, userID string) error
 5. **SQL Injection**: Database compromise via input fields
 6. **Cross-Site Scripting**: Script injection via user-generated content
 
-**Mitigations:**
+**Current Mitigations:**
 - URL validation and scheme allowlisting
-- Rate limiting and authentication
+- Authentication (Bearer token)
 - Parameterized queries (sqlc)
-- Output encoding and CSP headers
 - Authorization checks on all operations
+
+**Planned/Future Mitigations:**
+- Private IP protection (SSRF prevention)
+- Rate limiting for API endpoints
+- Security headers (CSP, X-Frame-Options, etc.)
+- Output encoding for user-generated content
 
 ## Incident Response
 
