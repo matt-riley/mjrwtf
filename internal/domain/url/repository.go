@@ -31,6 +31,6 @@ type Repository interface {
 	ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*URL, error)
 
 	// Count returns the total count of URLs for a specific user
-	// createdBy: filter by creator (empty string means count all URLs)
+	// createdBy: filter by creator (empty string returns count of all URLs)
 	Count(ctx context.Context, createdBy string) (int, error)
 }

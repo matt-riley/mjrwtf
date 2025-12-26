@@ -270,6 +270,49 @@ func TestListURLsUseCase_Execute_RepositoryError(t *testing.T) {
 	}
 }
 
+func TestListURLsUseCase_Execute_CountError(t *testing.T) {
+	ctx := context.Background()
+
+	expectedErr := errors.New("count database error")
+
+	mockRepo := &mockListURLRepository{
+		listFunc: func(ctx context.Context, createdBy string, limit, offset int) ([]*url.URL, error) {
+			// Return successful list
+			return []*url.URL{
+				{
+					ID:          1,
+					ShortCode:   "test123",
+					OriginalURL: "https://example.com",
+					CreatedAt:   time.Now(),
+					CreatedBy:   "user1",
+				},
+			}, nil
+		},
+		countFunc: func(ctx context.Context, createdBy string) (int, error) {
+			// Return error from count
+			return 0, expectedErr
+		},
+	}
+
+	useCase := NewListURLsUseCase(mockRepo, &mockListClickRepository{})
+
+	req := ListURLsRequest{
+		CreatedBy: "user1",
+		Limit:     20,
+		Offset:    0,
+	}
+
+	resp, err := useCase.Execute(ctx, req)
+
+	if !errors.Is(err, expectedErr) {
+		t.Errorf("expected error %v, got %v", expectedErr, err)
+	}
+
+	if resp != nil {
+		t.Error("expected nil response on error")
+	}
+}
+
 func TestListURLsUseCase_Execute_EmptyList(t *testing.T) {
 	ctx := context.Background()
 
