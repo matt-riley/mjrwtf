@@ -323,6 +323,12 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Invalidate any existing session to prevent session fixation attacks
+	cookie, err := r.Cookie(middleware.SessionCookieName)
+	if err == nil && cookie.Value != "" {
+		h.sessionStore.Delete(cookie.Value)
+	}
+
 	// Create session
 	userID := "authenticated-user"
 	sess, err := h.sessionStore.Create(userID)

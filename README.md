@@ -171,7 +171,7 @@ The web dashboard uses server-side session management with httpOnly cookies for 
 - **HttpOnly Cookies**: Session cookies cannot be accessed by JavaScript, protecting against XSS attacks
 - **SameSite Protection**: Cookies are set with `SameSite=Lax` to prevent CSRF attacks
 - **Secure Cookies**: Configure `SECURE_COOKIES=true` in production to ensure cookies are only sent over HTTPS
-- **Automatic Expiration**: Sessions expire after 24 hours of inactivity
+- **Automatic Expiration**: Sessions are valid for 24 hours and are automatically extended on each request
 - **In-Memory Storage**: Sessions are stored in-memory on the server (lost on restart)
 
 #### Configuration

@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+const (
+	// CleanupInterval is how often expired sessions are removed from the store
+	CleanupInterval = 1 * time.Hour
+)
+
 // Session represents a user session
 type Session struct {
 	ID        string
@@ -105,7 +110,7 @@ func (s *Store) Refresh(sessionID string) error {
 
 // cleanup removes expired sessions periodically
 func (s *Store) cleanup() {
-	ticker := time.NewTicker(1 * time.Hour)
+	ticker := time.NewTicker(CleanupInterval)
 	defer ticker.Stop()
 
 	for {
