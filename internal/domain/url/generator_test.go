@@ -56,6 +56,10 @@ func (m *MockRepository) ListByCreatedByAndTimeRange(ctx context.Context, create
 	return nil, errors.New("not implemented")
 }
 
+func (m *MockRepository) Count(ctx context.Context, createdBy string) (int, error) {
+	return 0, nil
+}
+
 func TestNewGenerator(t *testing.T) {
 	repo := NewMockRepository()
 
@@ -391,6 +395,10 @@ func (m *mockAlwaysCollisionRepo) List(ctx context.Context, createdBy string, li
 
 func (m *mockAlwaysCollisionRepo) ListByCreatedByAndTimeRange(ctx context.Context, createdBy string, startTime, endTime time.Time) ([]*URL, error) {
 	return m.wrapped.ListByCreatedByAndTimeRange(ctx, createdBy, startTime, endTime)
+}
+
+func (m *mockAlwaysCollisionRepo) Count(ctx context.Context, createdBy string) (int, error) {
+	return m.wrapped.Count(ctx, createdBy)
 }
 
 func TestGenerator_ShortenURL(t *testing.T) {
