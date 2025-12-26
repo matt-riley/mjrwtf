@@ -13,19 +13,19 @@ import (
 
 // mockURLRepository is a mock that can simulate slow operations
 type mockURLRepository struct {
-	createDelay                          time.Duration
-	findByShortCodeDelay                 time.Duration
-	deleteDelay                          time.Duration
-	listDelay                            time.Duration
-	listByCreatedByAndTimeRangeDelay     time.Duration
-	countDelay                           time.Duration
-	createErr                            error
-	findByShortCodeErr                   error
-	deleteErr                            error
-	listErr                              error
-	listByCreatedByAndTimeRangeErr       error
-	countErr                             error
-	lastCtxCancelled                     bool
+	createDelay                      time.Duration
+	findByShortCodeDelay             time.Duration
+	deleteDelay                      time.Duration
+	listDelay                        time.Duration
+	listByCreatedByAndTimeRangeDelay time.Duration
+	countDelay                       time.Duration
+	createErr                        error
+	findByShortCodeErr               error
+	deleteErr                        error
+	listErr                          error
+	listByCreatedByAndTimeRangeErr   error
+	countErr                         error
+	lastCtxCancelled                 bool
 }
 
 func (m *mockURLRepository) Create(ctx context.Context, u *url.URL) error {
@@ -119,17 +119,17 @@ func (m *mockURLRepository) Count(ctx context.Context, createdBy string) (int, e
 
 // mockClickRepository is a mock that can simulate slow operations
 type mockClickRepository struct {
-	recordDelay                       time.Duration
-	getStatsByURLDelay                time.Duration
-	getStatsByURLAndTimeRangeDelay    time.Duration
-	getTotalClickCountDelay           time.Duration
-	getClicksByCountryDelay           time.Duration
-	recordErr                         error
-	getStatsByURLErr                  error
-	getStatsByURLAndTimeRangeErr      error
-	getTotalClickCountErr             error
-	getClicksByCountryErr             error
-	lastCtxCancelled                  bool
+	recordDelay                    time.Duration
+	getStatsByURLDelay             time.Duration
+	getStatsByURLAndTimeRangeDelay time.Duration
+	getTotalClickCountDelay        time.Duration
+	getClicksByCountryDelay        time.Duration
+	recordErr                      error
+	getStatsByURLErr               error
+	getStatsByURLAndTimeRangeErr   error
+	getTotalClickCountErr          error
+	getClicksByCountryErr          error
+	lastCtxCancelled               bool
 }
 
 func (m *mockClickRepository) Record(ctx context.Context, c *click.Click) error {
