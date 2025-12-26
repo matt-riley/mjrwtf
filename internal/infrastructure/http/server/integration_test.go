@@ -245,6 +245,7 @@ func TestServer_RateLimitAPI(t *testing.T) {
 	}
 
 	req1 := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+	req1.RemoteAddr = "192.0.2.201:1234"
 	req1.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
 	rec1 := httptest.NewRecorder()
 	srv.router.ServeHTTP(rec1, req1)
@@ -253,6 +254,7 @@ func TestServer_RateLimitAPI(t *testing.T) {
 	}
 
 	req2 := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+	req2.RemoteAddr = req1.RemoteAddr
 	req2.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
 	rec2 := httptest.NewRecorder()
 	srv.router.ServeHTTP(rec2, req2)

@@ -42,6 +42,7 @@ type Server struct {
 	logger          zerolog.Logger
 	metrics         *metrics.Metrics
 	sessionStore    *session.Store
+	rateLimiters    []*middleware.RateLimiterMiddleware
 	redirectUseCase *application.RedirectURLUseCase
 }
 
@@ -133,8 +134,10 @@ func (s *Server) setupRoutes() error {
 		apiRateLimit = defaultAPIRateLimitPerMinute
 	}
 
-	redirectRateLimiter := middleware.RateLimit(redirectRateLimit, time.Minute)
-	apiRateLimiter := middleware.RateLimit(apiRateLimit, time.Minute)
+	redirectRateLimiter := middleware.NewRateLimiterMiddleware(redirectRateLimit, time.Minute)
+	apiRateLimiter := middleware.NewRateLimiterMiddleware(apiRateLimit, time.Minute)
+
+	s.rateLimiters = []*middleware.RateLimiterMiddleware{redirectRateLimiter, apiRateLimiter}
 
 	// Health check endpoint
 	s.router.Get("/health", s.healthCheckHandler)
@@ -184,11 +187,11 @@ func (s *Server) setupRoutes() error {
 
 	// Public redirect endpoint (no authentication required)
 	// Must come after specific routes to avoid capturing them
-	s.router.With(redirectRateLimiter).Get("/{shortCode}", redirectHandler.Redirect)
+	s.router.With(redirectRateLimiter.Middleware).Get("/{shortCode}", redirectHandler.Redirect)
 
 	// API routes with authentication
 	s.router.Route("/api", func(r chi.Router) {
-		r.Use(apiRateLimiter)
+		r.Use(apiRateLimiter.Middleware)
 
 		r.Route("/urls", func(r chi.Router) {
 			// Apply auth middleware to all URL endpoints
@@ -243,6 +246,10 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Shutdown redirect use case workers
 	if s.redirectUseCase != nil {
 		s.redirectUseCase.Shutdown()
+	}
+
+	for _, limiter := range s.rateLimiters {
+		limiter.Shutdown()
 	}
 
 	if err := s.httpServer.Shutdown(ctx); err != nil {
