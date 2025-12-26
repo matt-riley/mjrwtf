@@ -121,6 +121,8 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 
 // setupRoutes configures the HTTP routes
 func (s *Server) setupRoutes() error {
+	// Defensive defaults: server.New can be called with a manually-constructed config
+	// (e.g. in tests), which bypasses config.LoadConfig() validation.
 	redirectRateLimit := s.config.RedirectRateLimitPerMinute
 	if redirectRateLimit <= 0 {
 		redirectRateLimit = defaultRedirectRateLimitPerMinute

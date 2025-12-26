@@ -43,6 +43,8 @@ Per-client rate limits protect the redirect endpoint and authenticated API route
 
 Requests exceeding the limit return HTTP 429 with a `Retry-After` header indicating when to retry.
 
+**Note:** The rate limiter keys by client IP (using `X-Forwarded-For` / `X-Real-IP` when present). In production, ensure your reverse proxy strips/overwrites any client-provided forwarding headers; otherwise malicious clients can spoof these headers to bypass limits.
+
 ## Quick Start
 
 ### Docker Compose (Recommended)

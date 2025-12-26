@@ -233,6 +233,27 @@ func TestLoadConfig_InvalidRateLimits(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_RateLimitsInvalidStringsFallbackToDefaults(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("REDIRECT_RATE_LIMIT_PER_MINUTE", "abc")
+	os.Setenv("API_RATE_LIMIT_PER_MINUTE", "def")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.RedirectRateLimitPerMinute != 120 {
+		t.Errorf("Expected RedirectRateLimitPerMinute to fall back to 120, got: %d", config.RedirectRateLimitPerMinute)
+	}
+
+	if config.APIRateLimitPerMinute != 60 {
+		t.Errorf("Expected APIRateLimitPerMinute to fall back to 60, got: %d", config.APIRateLimitPerMinute)
+	}
+}
+
 func TestGetEnvAsInt_InvalidValue(t *testing.T) {
 	// Test that invalid integer falls back to default
 	os.Setenv("TEST_INT", "not-a-number")

@@ -53,12 +53,30 @@ func newRateLimiter(requestsPerMinute int, window time.Duration) *rateLimiter {
 		requestsPerMinute = 1
 	}
 
-	return &rateLimiter{
+	rl := &rateLimiter{
 		requestsPerMinute: requestsPerMinute,
 		window:            window,
 		visitors:          make(map[string]*visitor),
 		lastCleanup:       time.Now(),
 	}
+
+	cleanupInterval := window
+	if cleanupInterval < time.Second {
+		cleanupInterval = time.Second
+	}
+
+	// Best-effort background cleanup to prevent unbounded growth if traffic patterns
+	// don't trigger maybeCleanup frequently enough.
+	go func() {
+		ticker := time.NewTicker(cleanupInterval)
+		defer ticker.Stop()
+
+		for now := range ticker.C {
+			rl.cleanup(now)
+		}
+	}()
+
+	return rl
 }
 
 func (rl *rateLimiter) getLimiter(key string) *rate.Limiter {
@@ -105,6 +123,17 @@ func (rl *rateLimiter) maybeCleanup(now time.Time) {
 		return
 	}
 
+	rl.cleanupLocked(now)
+}
+
+func (rl *rateLimiter) cleanup(now time.Time) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	rl.cleanupLocked(now)
+}
+
+func (rl *rateLimiter) cleanupLocked(now time.Time) {
 	cutoff := now.Add(-rl.window)
 	for key, v := range rl.visitors {
 		if v.lastSeen.Before(cutoff) {
@@ -116,6 +145,8 @@ func (rl *rateLimiter) maybeCleanup(now time.Time) {
 }
 
 func clientIP(r *http.Request) string {
+	// NOTE: X-Forwarded-For and X-Real-IP can be spoofed by clients.
+	// Only trust these headers if they are set/overwritten by a trusted reverse proxy.
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff != "" {
 		parts := strings.Split(xff, ",")

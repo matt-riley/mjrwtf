@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -181,14 +182,37 @@ func TestServer_RateLimitRedirect(t *testing.T) {
 		t.Fatalf("failed to create server: %v", err)
 	}
 
-	req1 := httptest.NewRequest(http.MethodGet, "/missing", nil)
-	rec1 := httptest.NewRecorder()
-	srv.router.ServeHTTP(rec1, req1)
-	if rec1.Code == http.StatusTooManyRequests {
-		t.Fatalf("expected first request to pass through limiter, got %d", rec1.Code)
+	// Create a URL so we can exercise a successful redirect.
+	createReq := httptest.NewRequest(http.MethodPost, "/api/urls", bytes.NewBufferString(`{"original_url":"https://example.com"}`))
+	createReq.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+	createRec := httptest.NewRecorder()
+	srv.router.ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected create URL status %d, got %d", http.StatusCreated, createRec.Code)
 	}
 
-	req2 := httptest.NewRequest(http.MethodGet, "/missing", nil)
+	var createResp struct {
+		ShortCode string `json:"short_code"`
+	}
+	if err := json.NewDecoder(createRec.Body).Decode(&createResp); err != nil {
+		t.Fatalf("failed to decode create URL response: %v", err)
+	}
+	if createResp.ShortCode == "" {
+		t.Fatal("expected short_code in create response")
+	}
+
+	ip := "192.0.2.200:1234"
+
+	req1 := httptest.NewRequest(http.MethodGet, "/"+createResp.ShortCode, nil)
+	req1.RemoteAddr = ip
+	rec1 := httptest.NewRecorder()
+	srv.router.ServeHTTP(rec1, req1)
+	if rec1.Code != http.StatusFound {
+		t.Fatalf("expected status %d for successful redirect, got %d", http.StatusFound, rec1.Code)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/"+createResp.ShortCode, nil)
+	req2.RemoteAddr = ip
 	rec2 := httptest.NewRecorder()
 	srv.router.ServeHTTP(rec2, req2)
 
@@ -224,8 +248,8 @@ func TestServer_RateLimitAPI(t *testing.T) {
 	req1.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
 	rec1 := httptest.NewRecorder()
 	srv.router.ServeHTTP(rec1, req1)
-	if rec1.Code == http.StatusTooManyRequests {
-		t.Fatalf("expected first API request to pass, got %d", rec1.Code)
+	if rec1.Code != http.StatusOK {
+		t.Fatalf("expected first API request status %d, got %d", http.StatusOK, rec1.Code)
 	}
 
 	req2 := httptest.NewRequest(http.MethodGet, "/api/urls", nil)

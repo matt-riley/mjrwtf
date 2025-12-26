@@ -79,9 +79,11 @@ func TestRateLimit_UsesForwardedFor(t *testing.T) {
 	}))
 
 	req1 := httptest.NewRequest(http.MethodGet, "/xff", nil)
+	req1.RemoteAddr = "192.0.2.100:1234"
 	req1.Header.Set("X-Forwarded-For", "203.0.113.1")
 
 	req2 := httptest.NewRequest(http.MethodGet, "/xff", nil)
+	req2.RemoteAddr = "192.0.2.101:1234"
 	req2.Header.Set("X-Forwarded-For", "203.0.113.2")
 
 	rec1 := httptest.NewRecorder()
@@ -94,5 +96,25 @@ func TestRateLimit_UsesForwardedFor(t *testing.T) {
 	handler.ServeHTTP(rec2, req2)
 	if rec2.Code != http.StatusOK {
 		t.Fatalf("expected different IP to have separate limit, got %d", rec2.Code)
+	}
+}
+
+func TestRateLimiter_Cleanup_RemovesStaleVisitors(t *testing.T) {
+	rl := newRateLimiter(1, 100*time.Millisecond)
+
+	_ = rl.getLimiter("203.0.113.10")
+
+	rl.mu.Lock()
+	rl.visitors["203.0.113.10"].lastSeen = time.Now().Add(-time.Second)
+	rl.mu.Unlock()
+
+	rl.cleanup(time.Now())
+
+	rl.mu.Lock()
+	_, ok := rl.visitors["203.0.113.10"]
+	rl.mu.Unlock()
+
+	if ok {
+		t.Fatal("expected stale visitor to be cleaned up")
 	}
 }
