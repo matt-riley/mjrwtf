@@ -102,6 +102,17 @@ func TestRateLimit_UsesForwardedFor(t *testing.T) {
 	}
 }
 
+func TestClientIP_ForwardedForSkipsEmptySegments(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "192.0.2.50:1234"
+	req.Header.Set("X-Forwarded-For", " , 203.0.113.9")
+
+	ip := clientIP(req)
+	if ip != "203.0.113.9" {
+		t.Fatalf("expected IP %q, got %q", "203.0.113.9", ip)
+	}
+}
+
 func TestRateLimiter_Cleanup_RemovesStaleVisitors(t *testing.T) {
 	rl := newRateLimiter(1, 100*time.Millisecond)
 	defer rl.shutdown()

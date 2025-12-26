@@ -173,8 +173,10 @@ func clientIP(r *http.Request) string {
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff != "" {
 		parts := strings.Split(xff, ",")
-		if len(parts) > 0 {
-			return strings.TrimSpace(parts[0])
+		for _, p := range parts {
+			if ip := strings.TrimSpace(p); ip != "" {
+				return ip
+			}
 		}
 	}
 
