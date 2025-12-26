@@ -501,7 +501,7 @@ func TestRedirectURLUseCase_ShutdownDrainsPendingTasks(t *testing.T) {
 	useCase := NewRedirectURLUseCaseWithWorkers(urlRepo, clickRepo, numWorkers)
 
 	// Enqueue tasks that will fit in the buffer (numWorkers * bufferSizeMultiplier)
-	// Use fewer tasks than buffer size to ensure they're all queued
+	// Use tasks equal to buffer size so they're all queued
 	bufferSize := numWorkers * bufferSizeMultiplier
 	numTasks := bufferSize // All tasks should fit in buffer
 
