@@ -121,9 +121,26 @@ See [docs/docker.md](docs/docker.md) for comprehensive Docker documentation, inc
 
 ### Local Development
 
+#### Prerequisites
+
+Before you begin, install the required code generation tools:
+
+```bash
+# Install sqlc (for database code generation)
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+# Install templ (for template code generation)
+go install github.com/a-h/templ/cmd/templ@latest
+```
+
+#### Quick Start
+
 ```bash
 # Install dependencies
 go mod download
+
+# Generate code (sqlc + templ)
+make generate
 
 # Run database migrations
 export DATABASE_URL=./database.db
@@ -133,6 +150,10 @@ make migrate-up
 make build-server
 ./bin/server
 ```
+
+**Note:** The `make generate` step is automatically run when you use `make build`, `make test`, or `make check`, so you typically don't need to run it manually. However, if you modify SQL queries or templates, you can run it explicitly.
+
+**Alternative:** You can also use `go generate ./...` which will run the same code generation steps.
 
 ## Authentication
 
