@@ -1,3 +1,5 @@
+//go:generate bash ../../generate.sh
+
 package main
 
 import (
