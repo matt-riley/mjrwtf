@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 )
@@ -131,5 +132,61 @@ func TestRateLimiter_Cleanup_RemovesStaleVisitors(t *testing.T) {
 
 	if ok {
 		t.Fatal("expected stale visitor to be cleaned up")
+	}
+}
+
+func TestClientIP_UsesRealIP(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "192.0.2.50:1234"
+	req.Header.Set("X-Real-IP", "203.0.113.55")
+
+	ip := clientIP(req)
+	if ip != "203.0.113.55" {
+		t.Fatalf("expected IP %q, got %q", "203.0.113.55", ip)
+	}
+}
+
+func TestClientIP_RemoteAddrWithoutPort(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "192.0.2.77"
+
+	ip := clientIP(req)
+	if ip != "192.0.2.77" {
+		t.Fatalf("expected IP %q, got %q", "192.0.2.77", ip)
+	}
+}
+
+func TestRateLimiter_ConcurrentAccess(t *testing.T) {
+	ratelimiter := NewRateLimiterMiddleware(1000, time.Minute)
+	defer ratelimiter.Shutdown()
+
+	handler := ratelimiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	const n = 50
+	var wg sync.WaitGroup
+	wg.Add(n)
+
+	errCh := make(chan int, n)
+
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			req := httptest.NewRequest(http.MethodGet, "/concurrent", nil)
+			req.RemoteAddr = "192.0.2.88:1234"
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				errCh <- rec.Code
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for code := range errCh {
+		t.Errorf("expected status %d, got %d", http.StatusOK, code)
 	}
 }
