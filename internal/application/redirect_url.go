@@ -129,7 +129,7 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 
 		newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
 		if err != nil {
-			log.Printf("Failed to create click entity for URL %s: %v", task.shortCode, err)
+			log.Printf("Failed to create click entity: %v", err)
 			if cb != nil {
 				cb()
 			}
@@ -137,7 +137,7 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 		}
 
 		if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
-			log.Printf("Failed to record click for URL %s: %v", task.shortCode, err)
+			log.Printf("Failed to record click: %v", err)
 		}
 
 		if cb != nil {
