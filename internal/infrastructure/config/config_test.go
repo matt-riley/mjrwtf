@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 func TestLoadConfig_Success(t *testing.T) {
@@ -246,6 +247,7 @@ func cleanEnv() {
 	os.Unsetenv("LOG_LEVEL")
 	os.Unsetenv("LOG_FORMAT")
 	os.Unsetenv("METRICS_AUTH_ENABLED")
+	os.Unsetenv("DB_TIMEOUT")
 }
 
 func TestLoadConfig_LoggingDefaults(t *testing.T) {
@@ -326,5 +328,56 @@ func TestLoadConfig_MetricsAuthDefaultFalse(t *testing.T) {
 
 	if config.MetricsAuthEnabled {
 		t.Error("Expected default MetricsAuthEnabled to be false")
+	}
+}
+
+func TestLoadConfig_DBTimeoutDefault(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	expectedTimeout := 5 * time.Second
+	if config.DBTimeout != expectedTimeout {
+		t.Errorf("Expected default DBTimeout to be %v, got: %v", expectedTimeout, config.DBTimeout)
+	}
+}
+
+func TestLoadConfig_CustomDBTimeout(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("DB_TIMEOUT", "10s")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	expectedTimeout := 10 * time.Second
+	if config.DBTimeout != expectedTimeout {
+		t.Errorf("Expected DBTimeout to be %v, got: %v", expectedTimeout, config.DBTimeout)
+	}
+}
+
+func TestLoadConfig_InvalidDBTimeout(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("DB_TIMEOUT", "invalid")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Should fall back to default
+	expectedTimeout := 5 * time.Second
+	if config.DBTimeout != expectedTimeout {
+		t.Errorf("Expected DBTimeout with invalid value to default to %v, got: %v", expectedTimeout, config.DBTimeout)
 	}
 }

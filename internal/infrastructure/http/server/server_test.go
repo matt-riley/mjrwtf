@@ -23,13 +23,7 @@ func TestNew_CreatesServerWithMiddleware(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -53,13 +47,7 @@ func TestHealthCheckHandler(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -90,13 +78,7 @@ func TestServer_MiddlewareOrder(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -123,13 +105,7 @@ func TestServer_CORSMiddleware(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -199,13 +175,7 @@ func TestServer_Timeouts(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -266,13 +236,7 @@ func TestServer_Router(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -293,13 +257,7 @@ func TestMetricsEndpoint(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -344,13 +302,7 @@ func TestServer_Metrics(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {

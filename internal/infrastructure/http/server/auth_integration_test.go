@@ -6,18 +6,11 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 )
 
 func TestServer_AuthMiddlewareIntegration(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-secret-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()
@@ -64,7 +57,7 @@ func TestServer_AuthMiddlewareIntegration(t *testing.T) {
 		},
 		{
 			name:           "valid token",
-			authHeader:     "Bearer test-secret-token",
+			authHeader:     "Bearer test-token",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "access granted",
 		},
@@ -92,13 +85,7 @@ func TestServer_AuthMiddlewareIntegration(t *testing.T) {
 }
 
 func TestServer_UnprotectedRouteWithoutAuth(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-secret-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()

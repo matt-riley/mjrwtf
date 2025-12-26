@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 )
 
 // TestE2E_FullWorkflow tests the complete end-to-end workflow:
@@ -23,13 +22,7 @@ func TestE2E_FullWorkflow(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-secret-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -41,7 +34,7 @@ func TestE2E_FullWorkflow(t *testing.T) {
 	t.Run("create_url", func(t *testing.T) {
 		reqBody := `{"original_url":"https://example.com/test-page"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/urls", bytes.NewBufferString(reqBody))
-		req.Header.Set("Authorization", "Bearer test-secret-token")
+		req.Header.Set("Authorization", "Bearer test-token")
 		req.Header.Set("Content-Type", "application/json")
 
 		rec := httptest.NewRecorder()
@@ -109,7 +102,7 @@ func TestE2E_FullWorkflow(t *testing.T) {
 
 			for time.Now().Before(deadline) {
 				analyticsReq := httptest.NewRequest(http.MethodGet, "/api/urls/"+shortCode+"/analytics", nil)
-				analyticsReq.Header.Set("Authorization", "Bearer test-secret-token")
+				analyticsReq.Header.Set("Authorization", "Bearer test-token")
 
 				analyticsRec := httptest.NewRecorder()
 				srv.router.ServeHTTP(analyticsRec, analyticsReq)
@@ -145,13 +138,7 @@ func TestE2E_AuthenticationFlow(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "secret-token-123",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -167,7 +154,7 @@ func TestE2E_AuthenticationFlow(t *testing.T) {
 	}{
 		{
 			name:           "valid_token",
-			authHeader:     "Bearer secret-token-123",
+			authHeader:     "Bearer test-token",
 			expectedStatus: http.StatusCreated,
 			description:    "Valid authentication token should succeed",
 		},
@@ -215,13 +202,7 @@ func TestE2E_ErrorScenarios(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -299,13 +280,7 @@ func TestE2E_APIEndpoints(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -421,13 +396,7 @@ func TestE2E_MultipleClicks(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -533,13 +502,7 @@ func TestE2E_ConcurrentCreation(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -595,13 +558,7 @@ func TestE2E_HealthCheck(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {

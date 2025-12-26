@@ -20,13 +20,7 @@ import (
 
 // TestMiddlewareExecutionOrder verifies that middleware executes in the correct order
 func TestMiddlewareExecutionOrder(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()
@@ -64,13 +58,7 @@ func TestMiddlewareExecutionOrder(t *testing.T) {
 
 // TestMiddlewareRecoveryBeforeLogging ensures recovery middleware catches panics before logging
 func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()
@@ -107,13 +95,7 @@ func TestMiddlewareRecoveryBeforeLogging(t *testing.T) {
 
 // TestServer_NotFoundHandler tests the default 404 response
 func TestServer_NotFoundHandler(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()
@@ -135,13 +117,7 @@ func TestServer_NotFoundHandler(t *testing.T) {
 
 // TestServer_MethodNotAllowed tests handling of unsupported HTTP methods
 func TestServer_MethodNotAllowed(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()
@@ -164,13 +140,7 @@ func TestServer_MethodNotAllowed(t *testing.T) {
 
 // TestServer_ConcurrentRequests tests the server handles concurrent requests
 func TestServer_ConcurrentRequests(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()
@@ -260,13 +230,7 @@ func TestServer_ContextCancellation(t *testing.T) {
 
 // BenchmarkServer_HealthCheck benchmarks the health check endpoint
 func BenchmarkServer_HealthCheck(b *testing.B) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(b)
 	defer db.Close()
@@ -289,13 +253,7 @@ func BenchmarkServer_HealthCheck(b *testing.B) {
 
 // BenchmarkServer_WithMiddleware benchmarks requests through full middleware stack
 func BenchmarkServer_WithMiddleware(b *testing.B) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(b)
 	defer db.Close()
@@ -323,13 +281,7 @@ func BenchmarkServer_WithMiddleware(b *testing.B) {
 
 // ExampleServer_Shutdown demonstrates graceful server shutdown
 func ExampleServer_Shutdown() {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "./database.db",
-		AuthToken:      "secret-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	// Open database for example (in production, handle errors properly)
 	db, _ := sql.Open("sqlite3", cfg.DatabaseURL)

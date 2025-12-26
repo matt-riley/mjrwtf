@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 )
 
 // TestAPIEndpoints_CreateURL tests the POST /api/urls endpoint
@@ -15,13 +14,7 @@ func TestAPIEndpoints_CreateURL(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -141,13 +134,7 @@ func TestAPIEndpoints_ListURLs(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -265,13 +252,7 @@ func TestAPIEndpoints_DeleteURL(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -365,13 +346,7 @@ func TestAPIEndpoints_FullWorkflow(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {

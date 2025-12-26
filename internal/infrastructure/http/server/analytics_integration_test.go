@@ -17,7 +17,6 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
-	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/migrations"
 )
 
@@ -39,13 +38,7 @@ func TestAnalyticsIntegration(t *testing.T) {
 	}
 
 	// Setup server
-	cfg := &config.Config{
-		DatabaseURL:    ":memory:",
-		AuthToken:      "test-token",
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	server, err := New(cfg, db, testLogger())
 	if err != nil {

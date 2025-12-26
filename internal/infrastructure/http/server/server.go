@@ -144,6 +144,10 @@ func (s *Server) setupRoutes() error {
 		clickRepo = repository.NewSQLiteClickRepository(s.db)
 	}
 
+	// Wrap repositories with timeout middleware to ensure all database operations have bounded execution time
+	urlRepo = repository.NewURLRepositoryWithTimeout(urlRepo, s.config.DBTimeout)
+	clickRepo = repository.NewClickRepositoryWithTimeout(clickRepo, s.config.DBTimeout)
+
 	// Initialize URL generator
 	generator, err := url.NewGenerator(urlRepo, url.DefaultGeneratorConfig())
 	if err != nil {

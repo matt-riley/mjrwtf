@@ -10,7 +10,6 @@ import (
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/repository"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
-	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 )
 
 // TestServer_RedirectEndpoint tests the public redirect endpoint
@@ -66,13 +65,7 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &config.Config{
-				ServerPort:     8080,
-				BaseURL:        "http://localhost:8080",
-				DatabaseURL:    "test.db",
-				AuthToken:      "test-token",
-				AllowedOrigins: "*",
-			}
+			cfg := testConfig()
 
 			db := setupTestDB(t)
 			defer db.Close()
@@ -120,13 +113,7 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 
 // TestServer_RedirectWithAnalytics tests that analytics are tracked
 func TestServer_RedirectWithAnalytics(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()
@@ -211,13 +198,7 @@ func TestServer_RedirectPreservesURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &config.Config{
-				ServerPort:     8080,
-				BaseURL:        "http://localhost:8080",
-				DatabaseURL:    "test.db",
-				AuthToken:      "test-token",
-				AllowedOrigins: "*",
-			}
+			cfg := testConfig()
 
 			db := setupTestDB(t)
 			defer db.Close()
@@ -261,13 +242,7 @@ func TestServer_RedirectPreservesURL(t *testing.T) {
 
 // TestServer_RedirectVsAPIRoutes tests that redirect routes don't conflict with API routes
 func TestServer_RedirectVsAPIRoutes(t *testing.T) {
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-	}
+	cfg := testConfig()
 
 	db := setupTestDB(t)
 	defer db.Close()
