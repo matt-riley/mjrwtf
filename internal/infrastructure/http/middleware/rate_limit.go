@@ -23,29 +23,40 @@ type rateLimiter struct {
 	visitors          map[string]*visitor
 	mu                sync.Mutex
 	lastCleanup       time.Time
+	stop              chan struct{}
+	stopOnce          sync.Once
 }
 
-// RateLimit returns a middleware that enforces a per-client rate limit.
-// Limits are tracked per remote IP (preferring X-Forwarded-For when present).
-func RateLimit(requestsPerMinute int, window time.Duration) func(http.Handler) http.Handler {
-	rl := newRateLimiter(requestsPerMinute, window)
+// RateLimiterMiddleware is a per-client (IP-based) rate limiting middleware.
+// Call Shutdown when the owning server is shutting down to stop background cleanup.
+type RateLimiterMiddleware struct {
+	rl *rateLimiter
+}
 
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			limiter := rl.getLimiter(clientIP(r))
+func NewRateLimiterMiddleware(requestsPerMinute int, window time.Duration) *RateLimiterMiddleware {
+	return &RateLimiterMiddleware{rl: newRateLimiter(requestsPerMinute, window)}
+}
 
-			if limiter.Allow() {
-				next.ServeHTTP(w, r)
-				return
-			}
+// Middleware returns a chi-compatible middleware function.
+func (m *RateLimiterMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		limiter := m.rl.getLimiter(clientIP(r))
 
-			retryAfter := rl.retryAfter(limiter)
-			// Retry-After should be in whole seconds
-			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(retryAfter.Seconds()))))
+		if limiter.Allow() {
+			next.ServeHTTP(w, r)
+			return
+		}
 
-			respondJSONError(w, "Too Many Requests: rate limit exceeded", http.StatusTooManyRequests)
-		})
-	}
+		retryAfter := m.rl.retryAfter(limiter)
+		// Retry-After should be in whole seconds
+		w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(retryAfter.Seconds()))))
+
+		respondJSONError(w, "Too Many Requests: rate limit exceeded", http.StatusTooManyRequests)
+	})
+}
+
+func (m *RateLimiterMiddleware) Shutdown() {
+	m.rl.shutdown()
 }
 
 func newRateLimiter(requestsPerMinute int, window time.Duration) *rateLimiter {
@@ -58,6 +69,7 @@ func newRateLimiter(requestsPerMinute int, window time.Duration) *rateLimiter {
 		window:            window,
 		visitors:          make(map[string]*visitor),
 		lastCleanup:       time.Now(),
+		stop:              make(chan struct{}),
 	}
 
 	cleanupInterval := window
@@ -71,8 +83,13 @@ func newRateLimiter(requestsPerMinute int, window time.Duration) *rateLimiter {
 		ticker := time.NewTicker(cleanupInterval)
 		defer ticker.Stop()
 
-		for now := range ticker.C {
-			rl.cleanup(now)
+		for {
+			select {
+			case now := <-ticker.C:
+				rl.cleanup(now)
+			case <-rl.stop:
+				return
+			}
 		}
 	}()
 
@@ -142,6 +159,12 @@ func (rl *rateLimiter) cleanupLocked(now time.Time) {
 	}
 
 	rl.lastCleanup = now
+}
+
+func (rl *rateLimiter) shutdown() {
+	rl.stopOnce.Do(func() {
+		close(rl.stop)
+	})
 }
 
 func clientIP(r *http.Request) string {

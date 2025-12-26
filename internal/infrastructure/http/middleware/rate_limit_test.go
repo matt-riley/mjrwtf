@@ -9,10 +9,11 @@ import (
 )
 
 func TestRateLimit_AllowsWithinLimit(t *testing.T) {
-	middleware := RateLimit(2, time.Minute)
+	ratelimiter := NewRateLimiterMiddleware(2, time.Minute)
+	defer ratelimiter.Shutdown()
 
 	calls := 0
-	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := ratelimiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -34,9 +35,10 @@ func TestRateLimit_AllowsWithinLimit(t *testing.T) {
 }
 
 func TestRateLimit_BlocksWhenExceeded(t *testing.T) {
-	middleware := RateLimit(1, time.Minute)
+	ratelimiter := NewRateLimiterMiddleware(1, time.Minute)
+	defer ratelimiter.Shutdown()
 
-	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := ratelimiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -72,9 +74,10 @@ func TestRateLimit_BlocksWhenExceeded(t *testing.T) {
 }
 
 func TestRateLimit_UsesForwardedFor(t *testing.T) {
-	middleware := RateLimit(1, time.Minute)
+	ratelimiter := NewRateLimiterMiddleware(1, time.Minute)
+	defer ratelimiter.Shutdown()
 
-	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := ratelimiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -101,6 +104,7 @@ func TestRateLimit_UsesForwardedFor(t *testing.T) {
 
 func TestRateLimiter_Cleanup_RemovesStaleVisitors(t *testing.T) {
 	rl := newRateLimiter(1, 100*time.Millisecond)
+	defer rl.shutdown()
 
 	_ = rl.getLimiter("203.0.113.10")
 
