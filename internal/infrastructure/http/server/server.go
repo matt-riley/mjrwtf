@@ -133,16 +133,9 @@ func (s *Server) setupRoutes() error {
 		s.router.Handle("/metrics", s.metrics.Handler())
 	}
 
-	// Initialize repositories based on database driver
-	var urlRepo url.Repository
-	var clickRepo click.Repository
-	if strings.HasPrefix(s.config.DatabaseURL, "postgres://") || strings.HasPrefix(s.config.DatabaseURL, "postgresql://") {
-		urlRepo = repository.NewPostgresURLRepository(s.db)
-		clickRepo = repository.NewPostgresClickRepository(s.db)
-	} else {
-		urlRepo = repository.NewSQLiteURLRepository(s.db)
-		clickRepo = repository.NewSQLiteClickRepository(s.db)
-	}
+	// Initialize repositories (SQLite-only)
+	urlRepo := repository.NewSQLiteURLRepository(s.db)
+	clickRepo := repository.NewSQLiteClickRepository(s.db)
 
 	// Initialize URL generator
 	generator, err := url.NewGenerator(urlRepo, url.DefaultGeneratorConfig())
