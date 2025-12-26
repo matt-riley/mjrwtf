@@ -3,6 +3,7 @@
     build build-server build-migrate \
     migrate-up migrate-down migrate-status migrate-create migrate-reset \
     templ-generate templ-watch \
+    validate-openapi \
     docker-build docker-run docker-compose-up docker-compose-down docker-compose-logs docker-compose-ps
 
 # Default target
@@ -20,6 +21,7 @@ help:
 	@echo "  clean             - Clean build artifacts and coverage files"
 	@echo "  templ-generate    - Generate Go code from Templ templates"
 	@echo "  templ-watch       - Watch and auto-regenerate Templ templates"
+	@echo "  validate-openapi  - Validate OpenAPI specification"
 	@echo ""
 	@echo "Migration targets:"
 	@echo "  migrate-up        - Apply all pending migrations"
@@ -104,8 +106,18 @@ migrate-reset: build-migrate
 	./bin/migrate reset
 
 # Run all checks (templ-generate, fmt, vet, lint, test)
-check: templ-generate fmt vet lint test
+check: templ-generate fmt vet lint test validate-openapi
 	@echo "All checks passed!"
+
+# Validate OpenAPI specification
+validate-openapi:
+	@if command -v swagger-cli >/dev/null 2>&1; then \
+		swagger-cli validate openapi.yaml; \
+	else \
+		echo "swagger-cli not installed. Install with:"; \
+		echo "  npm install -g @apidevtools/swagger-cli"; \
+		exit 1; \
+	fi
 
 # Generate Go code from Templ templates
 templ-generate:

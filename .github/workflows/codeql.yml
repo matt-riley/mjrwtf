@@ -34,12 +34,12 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
-        go-version: '1.24.2'
+        go-version: '1.25.5'
         cache: true
 
     # Install project-specific tools required for code generation
@@ -99,7 +99,7 @@ jobs:
         
     # Optional: Upload SARIF file as artifact for external analysis
     - name: Upload SARIF as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: codeql-sarif-results

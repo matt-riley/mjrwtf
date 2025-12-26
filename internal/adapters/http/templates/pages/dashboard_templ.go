@@ -136,7 +136,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"max-w-6xl mx-auto\"><div class=\"mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4\"><div><h1 class=\"text-4xl font-bold text-gray-900 mb-2\">URL Dashboard</h1><p class=\"text-gray-600\">Manage your shortened URLs</p></div><div class=\"flex gap-3\"><a href=\"/create\" class=\"inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md\">Create New URL</a></div></div><!-- Empty state -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"max-w-6xl mx-auto\"><div class=\"mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4\"><div><h1 class=\"text-4xl font-bold text-gray-900 mb-2\">URL Dashboard</h1><p class=\"text-gray-600\">Manage your shortened URLs</p></div><div class=\"flex gap-3\"><a href=\"/create\" class=\"inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md\">Create New URL</a> <a href=\"/logout\" class=\"inline-block px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors shadow-md\">Logout</a></div></div><!-- Empty state -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -153,7 +153,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", totalCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 87, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 93, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -166,7 +166,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", calculateTotalClicks(clickCounts)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 96, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 102, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -179,7 +179,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.1f", calculateAvgClicksForPage(clickCounts)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 105, Col: 112}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 111, Col: 112}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -207,7 +207,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", offset+1))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 146, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 152, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -220,7 +220,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", min(offset+limit, totalCount)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 146, Col: 99}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 152, Col: 99}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -233,7 +233,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", totalCount))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 146, Col: 136}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 152, Col: 136}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -251,7 +251,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 					var templ_7745c5c3_Var12 templ.SafeURL
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/dashboard?limit=%d&offset=%d", limit, max(0, offset-limit))))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 151, Col: 103}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 157, Col: 103}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -275,7 +275,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 					var templ_7745c5c3_Var13 templ.SafeURL
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/dashboard?limit=%d&offset=%d", limit, offset+limit)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 166, Col: 95}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 172, Col: 95}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
@@ -297,7 +297,7 @@ func dashboardContent(urls []application.URLResponse, clickCounts map[string]int
 				}
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div><!-- HTMX for dynamic delete --><script src=\"https://unpkg.com/htmx.org@1.9.10\"></script><script>\n\t\t// Remove the deleted row from the DOM after successful deletion\n\t\tdocument.body.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\t// Check if the request was a DELETE and was successful (204 or 200)\n\t\t\tif (evt.detail.verb === 'delete' && evt.detail.xhr.status >= 200 && evt.detail.xhr.status < 300) {\n\t\t\t\t// Find the row with the data-short-code attribute matching the deleted short code\n\t\t\t\tconst deletedShortCode = evt.detail.path.split('/').pop();\n\t\t\t\tconst row = document.querySelector(`tr[data-short-code=\"${deletedShortCode}\"]`);\n\t\t\t\tif (row) {\n\t\t\t\t\trow.remove();\n\t\t\t\t}\n\t\t\t\t// Hide the modal\n\t\t\t\tconst modal = document.getElementById('delete-modal');\n\t\t\t\tif (modal) {\n\t\t\t\t\tmodal.classList.add('hidden');\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\n\t\t// Show delete confirmation modal\n\t\tfunction confirmDelete(shortCode, originalURL) {\n\t\t\tconst modal = document.getElementById('delete-modal');\n\t\t\tconst modalShortCode = document.getElementById('modal-short-code');\n\t\t\tconst modalOriginalURL = document.getElementById('modal-original-url');\n\t\t\tconst deleteForm = document.getElementById('delete-form');\n\t\t\t\n\t\t\tmodalShortCode.textContent = shortCode;\n\t\t\tmodalOriginalURL.textContent = originalURL;\n\t\t\tdeleteForm.setAttribute('hx-delete', '/api/urls/' + encodeURIComponent(shortCode));\n\t\t\t\n\t\t\tmodal.classList.remove('hidden');\n\t\t\t\n\t\t\t// Focus the first interactive element (cancel button) for keyboard accessibility\n\t\t\tconst cancelButton = modal.querySelector('button');\n\t\t\tif (cancelButton) {\n\t\t\t\t// Use setTimeout to ensure the modal is visible before focusing\n\t\t\t\tsetTimeout(() => cancelButton.focus(), 50);\n\t\t\t}\n\t\t}\n\n\t\t// Copy short code to clipboard\n\t\tfunction copyShortCode(shortCode, event) {\n\t\t\tconst baseURL = window.location.origin;\n\t\t\tconst shortURL = baseURL + '/' + shortCode;\n\t\t\t\n\t\t\tif (navigator.clipboard && navigator.clipboard.writeText) {\n\t\t\t\tnavigator.clipboard.writeText(shortURL)\n\t\t\t\t\t.then(() => {\n\t\t\t\t\t\t// Show success feedback\n\t\t\t\t\t\tconst btn = event ? event.currentTarget : null;\n\t\t\t\t\t\tif (btn) {\n\t\t\t\t\t\t\tconst originalText = btn.textContent;\n\t\t\t\t\t\t\tbtn.textContent = '✓';\n\t\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\t\tbtn.textContent = originalText;\n\t\t\t\t\t\t\t}, 2000);\n\t\t\t\t\t\t}\n\t\t\t\t\t})\n\t\t\t\t\t.catch(err => {\n\t\t\t\t\t\tconsole.error('Failed to copy:', err);\n\t\t\t\t\t});\n\t\t\t}\n\t\t}\n\n\t\t// Close modal\n\t\tfunction closeModal() {\n\t\t\tconst modal = document.getElementById('delete-modal');\n\t\t\tmodal.classList.add('hidden');\n\t\t}\n\n\t\t// Close modal on Escape key\n\t\tdocument.addEventListener('keydown', function(e) {\n\t\t\tif (e.key === 'Escape') {\n\t\t\t\tcloseModal();\n\t\t\t\tconst authModal = document.getElementById('auth-modal');\n\t\t\t\tif (authModal && !authModal.classList.contains('hidden')) {\n\t\t\t\t\t// Don't close auth modal as it's required\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\n\t\t// Close delete modal on backdrop click\n\t\twindow.addEventListener('DOMContentLoaded', function() {\n\t\t\tconst modal = document.getElementById('delete-modal');\n\t\t\tif (modal) {\n\t\t\t\tmodal.addEventListener('click', function(e) {\n\t\t\t\t\tif (e.target === modal) {\n\t\t\t\t\t\tcloseModal();\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\n\t\t// Auth token management\n\t\tfunction getAuthToken() {\n\t\t\treturn sessionStorage.getItem('authToken') || '';\n\t\t}\n\n\t\tfunction setAuthToken(token) {\n\t\t\tsessionStorage.setItem('authToken', token);\n\t\t}\n\n\t\t// Set auth header before HTMX requests\n\t\tdocument.body.addEventListener('htmx:configRequest', function(evt) {\n\t\t\tconst token = getAuthToken();\n\t\t\tif (token) {\n\t\t\t\tevt.detail.headers['Authorization'] = 'Bearer ' + token;\n\t\t\t}\n\t\t});\n\n\t\t// Check if we need to prompt for auth token\n\t\twindow.addEventListener('DOMContentLoaded', function() {\n\t\t\tconst token = getAuthToken();\n\t\t\tif (!token) {\n\t\t\t\tconst modal = document.getElementById('auth-modal');\n\t\t\t\tmodal.classList.remove('hidden');\n\t\t\t\t// Focus the token input for keyboard accessibility\n\t\t\t\tconst tokenInput = document.getElementById('auth-token-input');\n\t\t\t\tif (tokenInput) {\n\t\t\t\t\tsetTimeout(() => tokenInput.focus(), 50);\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\n\t\t// Save auth token\n\t\tfunction saveAuthToken() {\n\t\t\tconst tokenInput = document.getElementById('auth-token-input');\n\t\t\tconst errorMsg = document.getElementById('auth-token-error');\n\t\t\tconst token = tokenInput.value.trim();\n\t\t\tif (token) {\n\t\t\t\tsetAuthToken(token);\n\t\t\t\tconst modal = document.getElementById('auth-modal');\n\t\t\t\tmodal.classList.add('hidden');\n\t\t\t\t// Reset error state\n\t\t\t\ttokenInput.classList.remove('border-red-500');\n\t\t\t\tif (errorMsg) {\n\t\t\t\t\terrorMsg.classList.add('hidden');\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\t// Show error inline with message\n\t\t\t\ttokenInput.classList.add('border-red-500');\n\t\t\t\tif (errorMsg) {\n\t\t\t\t\terrorMsg.classList.remove('hidden');\n\t\t\t\t\terrorMsg.textContent = 'Authentication token is required';\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\t// Handle enter key in auth token input\n\t\tdocument.addEventListener('DOMContentLoaded', function() {\n\t\t\tconst tokenInput = document.getElementById('auth-token-input');\n\t\t\tif (tokenInput) {\n\t\t\t\ttokenInput.addEventListener('keypress', function(e) {\n\t\t\t\t\tif (e.key === 'Enter') {\n\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\tsaveAuthToken();\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\t</script><!-- Delete Confirmation Modal --><div id=\"delete-modal\" class=\"hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"delete-modal-title\"><div class=\"bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6\"><h3 id=\"delete-modal-title\" class=\"text-xl font-bold text-gray-900 mb-4\">Confirm Deletion</h3><p class=\"text-gray-600 mb-2\">Are you sure you want to delete this URL?</p><div class=\"bg-gray-50 rounded p-3 mb-4\"><p class=\"text-sm text-gray-600 mb-1\"><strong>Short Code:</strong> <span id=\"modal-short-code\"></span></p><p class=\"text-sm text-gray-600 break-all\"><strong>Original URL:</strong> <span id=\"modal-original-url\"></span></p></div><div class=\"flex gap-3\"><button onclick=\"closeModal()\" class=\"flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors\">Cancel</button><form id=\"delete-form\" hx-delete=\"\" hx-target=\"#delete-modal\" hx-swap=\"innerHTML\" class=\"flex-1\"><button type=\"submit\" class=\"w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors\">Delete</button></form></div></div></div><!-- Auth Token Modal --><div id=\"auth-modal\" class=\"hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"auth-modal-title\"><div class=\"bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6\"><h3 id=\"auth-modal-title\" class=\"text-xl font-bold text-gray-900 mb-4\">Authentication Required</h3><p class=\"text-gray-600 mb-4\">Please enter your authentication token to manage URLs.</p><div class=\"mb-6\"><label for=\"auth-token-input\" class=\"block text-sm font-medium text-gray-700 mb-2\">Authentication Token</label> <input type=\"password\" id=\"auth-token-input\" placeholder=\"Enter your API token\" class=\"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent\" aria-describedby=\"auth-token-error\"><p id=\"auth-token-error\" class=\"mt-2 text-sm text-red-600 hidden\" role=\"alert\" aria-live=\"polite\"></p></div><button onclick=\"saveAuthToken()\" class=\"w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors\">Continue</button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div><!-- HTMX for dynamic delete --><script src=\"https://unpkg.com/htmx.org@1.9.10\"></script><script>\n\t\t// Remove the deleted row from the DOM after successful deletion\n\t\tdocument.body.addEventListener('htmx:afterRequest', function(evt) {\n\t\t\t// Check if the request was a DELETE and was successful (204 or 200)\n\t\t\tif (evt.detail.verb === 'delete' && evt.detail.xhr.status >= 200 && evt.detail.xhr.status < 300) {\n\t\t\t\t// Find the row with the data-short-code attribute matching the deleted short code\n\t\t\t\tconst deletedShortCode = evt.detail.path.split('/').pop();\n\t\t\t\tconst row = document.querySelector(`tr[data-short-code=\"${deletedShortCode}\"]`);\n\t\t\t\tif (row) {\n\t\t\t\t\trow.remove();\n\t\t\t\t}\n\t\t\t\t// Hide the modal\n\t\t\t\tconst modal = document.getElementById('delete-modal');\n\t\t\t\tif (modal) {\n\t\t\t\t\tmodal.classList.add('hidden');\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\n\t\t// Show delete confirmation modal\n\t\tfunction confirmDelete(shortCode, originalURL) {\n\t\t\tconst modal = document.getElementById('delete-modal');\n\t\t\tconst modalShortCode = document.getElementById('modal-short-code');\n\t\t\tconst modalOriginalURL = document.getElementById('modal-original-url');\n\t\t\tconst deleteForm = document.getElementById('delete-form');\n\t\t\t\n\t\t\tmodalShortCode.textContent = shortCode;\n\t\t\tmodalOriginalURL.textContent = originalURL;\n\t\t\tdeleteForm.setAttribute('hx-delete', '/api/urls/' + encodeURIComponent(shortCode));\n\t\t\t\n\t\t\tmodal.classList.remove('hidden');\n\t\t\t\n\t\t\t// Focus the first interactive element (cancel button) for keyboard accessibility\n\t\t\tconst cancelButton = modal.querySelector('button');\n\t\t\tif (cancelButton) {\n\t\t\t\t// Use setTimeout to ensure the modal is visible before focusing\n\t\t\t\tsetTimeout(() => cancelButton.focus(), 50);\n\t\t\t}\n\t\t}\n\n\t\t// Copy short code to clipboard\n\t\tfunction copyShortCode(shortCode, event) {\n\t\t\tconst baseURL = window.location.origin;\n\t\t\tconst shortURL = baseURL + '/' + shortCode;\n\t\t\t\n\t\t\tif (navigator.clipboard && navigator.clipboard.writeText) {\n\t\t\t\tnavigator.clipboard.writeText(shortURL)\n\t\t\t\t\t.then(() => {\n\t\t\t\t\t\t// Show success feedback\n\t\t\t\t\t\tconst btn = event ? event.currentTarget : null;\n\t\t\t\t\t\tif (btn) {\n\t\t\t\t\t\t\tconst originalText = btn.textContent;\n\t\t\t\t\t\t\tbtn.textContent = '✓';\n\t\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\t\tbtn.textContent = originalText;\n\t\t\t\t\t\t\t}, 2000);\n\t\t\t\t\t\t}\n\t\t\t\t\t})\n\t\t\t\t\t.catch(err => {\n\t\t\t\t\t\tconsole.error('Failed to copy:', err);\n\t\t\t\t\t});\n\t\t\t}\n\t\t}\n\n\t\t// Close modal\n\t\tfunction closeModal() {\n\t\t\tconst modal = document.getElementById('delete-modal');\n\t\t\tmodal.classList.add('hidden');\n\t\t}\n\n\t\t// Close modal on Escape key\n\t\tdocument.addEventListener('keydown', function(e) {\n\t\t\tif (e.key === 'Escape') {\n\t\t\t\tcloseModal();\n\t\t\t}\n\t\t});\n\n\t\t// Close delete modal on backdrop click\n\t\twindow.addEventListener('DOMContentLoaded', function() {\n\t\t\tconst modal = document.getElementById('delete-modal');\n\t\t\tif (modal) {\n\t\t\t\tmodal.addEventListener('click', function(e) {\n\t\t\t\t\tif (e.target === modal) {\n\t\t\t\t\t\tcloseModal();\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\n\t\t// Set auth header before HTMX requests (using session-based auth)\n\t\t// The session cookie is automatically sent with each request\n\t\tdocument.body.addEventListener('htmx:configRequest', function(evt) {\n\t\t\t// Session cookie is automatically included, but we still need to\n\t\t\t// send the Bearer token for API endpoints that require it\n\t\t\t// Note: This will be handled by proper session middleware\n\t\t});\n\t</script><!-- Delete Confirmation Modal --><div id=\"delete-modal\" class=\"hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"delete-modal-title\"><div class=\"bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6\"><h3 id=\"delete-modal-title\" class=\"text-xl font-bold text-gray-900 mb-4\">Confirm Deletion</h3><p class=\"text-gray-600 mb-2\">Are you sure you want to delete this URL?</p><div class=\"bg-gray-50 rounded p-3 mb-4\"><p class=\"text-sm text-gray-600 mb-1\"><strong>Short Code:</strong> <span id=\"modal-short-code\"></span></p><p class=\"text-sm text-gray-600 break-all\"><strong>Original URL:</strong> <span id=\"modal-original-url\"></span></p></div><div class=\"flex gap-3\"><button onclick=\"closeModal()\" class=\"flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors\">Cancel</button><form id=\"delete-form\" hx-delete=\"\" hx-target=\"#delete-modal\" hx-swap=\"innerHTML\" class=\"flex-1\"><button type=\"submit\" class=\"w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors\">Delete</button></form></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -333,7 +333,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("url-row-%s", url.ShortCode))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 409, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 325, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
@@ -346,7 +346,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var16 string
 		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(url.ShortCode)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 409, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 325, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 		if templ_7745c5c3_Err != nil {
@@ -359,7 +359,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(url.ShortCode)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 412, Col: 77}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 328, Col: 77}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {
@@ -372,7 +372,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(url.ShortCode)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 414, Col: 35}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 330, Col: 35}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
@@ -385,7 +385,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(url.OriginalURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 424, Col: 79}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 340, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -398,7 +398,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(url.OriginalURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 425, Col: 21}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 341, Col: 21}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -411,7 +411,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(formatDate(url.CreatedAt))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 430, Col: 31}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 346, Col: 31}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -424,7 +424,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", clickCount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 435, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 351, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -437,7 +437,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(url.ShortCode)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 440, Col: 34}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 356, Col: 34}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -450,7 +450,7 @@ func urlTableRow(url application.URLResponse, clickCount int64) templ.Component 
 		var templ_7745c5c3_Var24 string
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(url.OriginalURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 441, Col: 30}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/adapters/http/templates/pages/dashboard.templ`, Line: 357, Col: 30}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
