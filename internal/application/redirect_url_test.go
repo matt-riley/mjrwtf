@@ -548,7 +548,7 @@ func TestRedirectURLUseCase_ShutdownRejectsNewTasks(t *testing.T) {
 
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
 
-	// Call Shutdown to close the done channel and drain workers
+	// Call Shutdown to complete graceful shutdown (blocks until all workers finish)
 	useCase.Shutdown()
 
 	// Try to execute a redirect after shutdown
