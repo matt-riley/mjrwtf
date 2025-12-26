@@ -28,6 +28,9 @@ const (
 	writeTimeout    = 15 * time.Second
 	idleTimeout     = 60 * time.Second
 	ShutdownTimeout = 30 * time.Second
+
+	defaultRedirectRateLimitPerMinute = 120
+	defaultAPIRateLimitPerMinute      = 60
 )
 
 // Server represents the HTTP server
@@ -118,6 +121,19 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 
 // setupRoutes configures the HTTP routes
 func (s *Server) setupRoutes() error {
+	redirectRateLimit := s.config.RedirectRateLimitPerMinute
+	if redirectRateLimit <= 0 {
+		redirectRateLimit = defaultRedirectRateLimitPerMinute
+	}
+
+	apiRateLimit := s.config.APIRateLimitPerMinute
+	if apiRateLimit <= 0 {
+		apiRateLimit = defaultAPIRateLimitPerMinute
+	}
+
+	redirectRateLimiter := middleware.RateLimit(redirectRateLimit, time.Minute)
+	apiRateLimiter := middleware.RateLimit(apiRateLimit, time.Minute)
+
 	// Health check endpoint
 	s.router.Get("/health", s.healthCheckHandler)
 
@@ -166,10 +182,12 @@ func (s *Server) setupRoutes() error {
 
 	// Public redirect endpoint (no authentication required)
 	// Must come after specific routes to avoid capturing them
-	s.router.Get("/{shortCode}", redirectHandler.Redirect)
+	s.router.With(redirectRateLimiter).Get("/{shortCode}", redirectHandler.Redirect)
 
 	// API routes with authentication
 	s.router.Route("/api", func(r chi.Router) {
+		r.Use(apiRateLimiter)
+
 		r.Route("/urls", func(r chi.Router) {
 			// Apply auth middleware to all URL endpoints
 			// Support both Bearer token auth (for API) and session auth (for dashboard)

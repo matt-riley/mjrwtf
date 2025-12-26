@@ -162,6 +162,86 @@ func TestServer_MethodNotAllowed(t *testing.T) {
 	}
 }
 
+func TestServer_RateLimitRedirect(t *testing.T) {
+	cfg := &config.Config{
+		ServerPort:                 8080,
+		BaseURL:                    "http://localhost:8080",
+		DatabaseURL:                "test.db",
+		AuthToken:                  "test-token",
+		AllowedOrigins:             "*",
+		RedirectRateLimitPerMinute: 1,
+		APIRateLimitPerMinute:      10,
+	}
+
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req1 := httptest.NewRequest(http.MethodGet, "/missing", nil)
+	rec1 := httptest.NewRecorder()
+	srv.router.ServeHTTP(rec1, req1)
+	if rec1.Code == http.StatusTooManyRequests {
+		t.Fatalf("expected first request to pass through limiter, got %d", rec1.Code)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/missing", nil)
+	rec2 := httptest.NewRecorder()
+	srv.router.ServeHTTP(rec2, req2)
+
+	if rec2.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected status %d after limit exceeded, got %d", http.StatusTooManyRequests, rec2.Code)
+	}
+
+	if rec2.Header().Get("Retry-After") == "" {
+		t.Fatal("expected Retry-After header to be set")
+	}
+}
+
+func TestServer_RateLimitAPI(t *testing.T) {
+	cfg := &config.Config{
+		ServerPort:                 8080,
+		BaseURL:                    "http://localhost:8080",
+		DatabaseURL:                "test.db",
+		AuthToken:                  "test-token",
+		AllowedOrigins:             "*",
+		RedirectRateLimitPerMinute: 50,
+		APIRateLimitPerMinute:      1,
+	}
+
+	db := setupTestDB(t)
+	defer db.Close()
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req1 := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+	req1.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+	rec1 := httptest.NewRecorder()
+	srv.router.ServeHTTP(rec1, req1)
+	if rec1.Code == http.StatusTooManyRequests {
+		t.Fatalf("expected first API request to pass, got %d", rec1.Code)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+	req2.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+	rec2 := httptest.NewRecorder()
+	srv.router.ServeHTTP(rec2, req2)
+
+	if rec2.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected status %d after API limit exceeded, got %d", http.StatusTooManyRequests, rec2.Code)
+	}
+
+	if rec2.Header().Get("Retry-After") == "" {
+		t.Fatal("expected Retry-After header to be set for API limit")
+	}
+}
+
 // TestServer_ConcurrentRequests tests the server handles concurrent requests
 func TestServer_ConcurrentRequests(t *testing.T) {
 	cfg := &config.Config{
