@@ -34,6 +34,17 @@ swagger-cli validate openapi.yaml
 
 See the [OpenAPI specification](openapi.yaml) for detailed request/response schemas, authentication, and error handling.
 
+### Rate Limiting
+
+Per-client rate limits protect the redirect endpoint and authenticated API routes. Configure limits via environment variables:
+
+- `REDIRECT_RATE_LIMIT_PER_MINUTE` (default: 120) - Requests per minute per IP for `GET /{shortCode}`
+- `API_RATE_LIMIT_PER_MINUTE` (default: 60) - Requests per minute per IP for `/api` routes
+
+Requests exceeding the limit return HTTP 429 with a `Retry-After` header indicating when to retry.
+
+**Note:** The rate limiter keys by client IP (using `X-Forwarded-For` / `X-Real-IP` when present). In production, ensure your reverse proxy strips/overwrites any client-provided forwarding headers; otherwise malicious clients can spoof these headers to bypass limits.
+
 ## Quick Start
 
 ### Docker Compose (Recommended)
@@ -121,9 +132,26 @@ See [docs/docker.md](docs/docker.md) for comprehensive Docker documentation, inc
 
 ### Local Development
 
+#### Prerequisites
+
+Before you begin, install the required code generation tools:
+
+```bash
+# Install sqlc (for database code generation, requires v1.30.0+)
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+
+# Install templ (for template code generation)
+go install github.com/a-h/templ/cmd/templ@latest
+```
+
+#### Quick Start
+
 ```bash
 # Install dependencies
 go mod download
+
+# Generate code (sqlc + templ)
+make generate
 
 # Run database migrations
 export DATABASE_URL=./database.db
@@ -133,6 +161,10 @@ make migrate-up
 make build-server
 ./bin/server
 ```
+
+**Note:** The `make generate` step is automatically run when you use `make build`, `make test`, or `make check`, so you typically don't need to run it manually. However, if you modify SQL queries or templates, you can run it explicitly.
+
+**Alternative:** You can also use `go generate ./...` which will run the same code generation steps.
 
 ## Authentication
 

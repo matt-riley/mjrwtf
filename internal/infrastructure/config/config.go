@@ -27,6 +27,10 @@ type Config struct {
 	// Session configuration
 	SecureCookies bool // Set to true in production with HTTPS
 
+	// Rate limiting configuration
+	RedirectRateLimitPerMinute int
+	APIRateLimitPerMinute      int
+
 	// Discord webhook configuration
 	DiscordWebhookURL string
 
@@ -52,19 +56,21 @@ func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
 	config := &Config{
-		DatabaseURL:        getEnv("DATABASE_URL", ""),
-		ServerPort:         getEnvAsInt("SERVER_PORT", 8080),
-		BaseURL:            getEnv("BASE_URL", "http://localhost:8080"),
-		AllowedOrigins:     getEnv("ALLOWED_ORIGINS", "*"),
-		AuthToken:          getEnv("AUTH_TOKEN", ""),
-		SecureCookies:      getEnvAsBool("SECURE_COOKIES", false),
-		DiscordWebhookURL:  getEnv("DISCORD_WEBHOOK_URL", ""),
-		GeoIPEnabled:       getEnvAsBool("GEOIP_ENABLED", false),
-		GeoIPDatabase:      getEnv("GEOIP_DATABASE", ""),
-		LogLevel:           getEnv("LOG_LEVEL", "info"),
-		LogFormat:          getEnv("LOG_FORMAT", "json"),
-		MetricsAuthEnabled: getEnvAsBool("METRICS_AUTH_ENABLED", false),
-		DBTimeout:          getEnvAsDuration("DB_TIMEOUT", 5*time.Second),
+		DatabaseURL:                getEnv("DATABASE_URL", ""),
+		ServerPort:                 getEnvAsInt("SERVER_PORT", 8080),
+		BaseURL:                    getEnv("BASE_URL", "http://localhost:8080"),
+		AllowedOrigins:             getEnv("ALLOWED_ORIGINS", "*"),
+		AuthToken:                  getEnv("AUTH_TOKEN", ""),
+		SecureCookies:              getEnvAsBool("SECURE_COOKIES", false),
+		RedirectRateLimitPerMinute: getEnvAsInt("REDIRECT_RATE_LIMIT_PER_MINUTE", 120),
+		APIRateLimitPerMinute:      getEnvAsInt("API_RATE_LIMIT_PER_MINUTE", 60),
+		DiscordWebhookURL:          getEnv("DISCORD_WEBHOOK_URL", ""),
+		GeoIPEnabled:               getEnvAsBool("GEOIP_ENABLED", false),
+		GeoIPDatabase:              getEnv("GEOIP_DATABASE", ""),
+		LogLevel:                   getEnv("LOG_LEVEL", "info"),
+		LogFormat:                  getEnv("LOG_FORMAT", "json"),
+		MetricsAuthEnabled:         getEnvAsBool("METRICS_AUTH_ENABLED", false),
+		DBTimeout:                  getEnvAsDuration("DB_TIMEOUT", 5*time.Second),
 	}
 
 	// Validate required configuration
@@ -87,6 +93,14 @@ func (c *Config) Validate() error {
 
 	if c.ServerPort < 1 || c.ServerPort > 65535 {
 		return fmt.Errorf("SERVER_PORT must be between 1 and 65535")
+	}
+
+	if c.RedirectRateLimitPerMinute < 1 {
+		return fmt.Errorf("REDIRECT_RATE_LIMIT_PER_MINUTE must be greater than 0")
+	}
+
+	if c.APIRateLimitPerMinute < 1 {
+		return fmt.Errorf("API_RATE_LIMIT_PER_MINUTE must be greater than 0")
 	}
 
 	// If GeoIP is enabled, database path is required

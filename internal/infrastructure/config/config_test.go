@@ -174,6 +174,14 @@ func TestLoadConfig_DefaultValues(t *testing.T) {
 		t.Errorf("Expected default ServerPort to be 8080, got: %d", config.ServerPort)
 	}
 
+	if config.RedirectRateLimitPerMinute != 120 {
+		t.Errorf("Expected default RedirectRateLimitPerMinute to be 120, got: %d", config.RedirectRateLimitPerMinute)
+	}
+
+	if config.APIRateLimitPerMinute != 60 {
+		t.Errorf("Expected default APIRateLimitPerMinute to be 60, got: %d", config.APIRateLimitPerMinute)
+	}
+
 	if config.DiscordWebhookURL != "" {
 		t.Errorf("Expected default DiscordWebhookURL to be empty, got: %s", config.DiscordWebhookURL)
 	}
@@ -184,6 +192,66 @@ func TestLoadConfig_DefaultValues(t *testing.T) {
 
 	if config.GeoIPDatabase != "" {
 		t.Errorf("Expected default GeoIPDatabase to be empty, got: %s", config.GeoIPDatabase)
+	}
+}
+
+func TestLoadConfig_CustomRateLimits(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("REDIRECT_RATE_LIMIT_PER_MINUTE", "10")
+	os.Setenv("API_RATE_LIMIT_PER_MINUTE", "5")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.RedirectRateLimitPerMinute != 10 {
+		t.Errorf("Expected RedirectRateLimitPerMinute to be 10, got: %d", config.RedirectRateLimitPerMinute)
+	}
+
+	if config.APIRateLimitPerMinute != 5 {
+		t.Errorf("Expected APIRateLimitPerMinute to be 5, got: %d", config.APIRateLimitPerMinute)
+	}
+}
+
+func TestLoadConfig_InvalidRateLimits(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("REDIRECT_RATE_LIMIT_PER_MINUTE", "0")
+	os.Setenv("API_RATE_LIMIT_PER_MINUTE", "-1")
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for invalid rate limits, got nil")
+	}
+
+	expectedError := "REDIRECT_RATE_LIMIT_PER_MINUTE must be greater than 0"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
+func TestLoadConfig_RateLimitsInvalidStringsFallbackToDefaults(t *testing.T) {
+	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("REDIRECT_RATE_LIMIT_PER_MINUTE", "abc")
+	os.Setenv("API_RATE_LIMIT_PER_MINUTE", "def")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.RedirectRateLimitPerMinute != 120 {
+		t.Errorf("Expected RedirectRateLimitPerMinute to fall back to 120, got: %d", config.RedirectRateLimitPerMinute)
+	}
+
+	if config.APIRateLimitPerMinute != 60 {
+		t.Errorf("Expected APIRateLimitPerMinute to fall back to 60, got: %d", config.APIRateLimitPerMinute)
 	}
 }
 
@@ -247,6 +315,8 @@ func cleanEnv() {
 	os.Unsetenv("LOG_LEVEL")
 	os.Unsetenv("LOG_FORMAT")
 	os.Unsetenv("METRICS_AUTH_ENABLED")
+	os.Unsetenv("REDIRECT_RATE_LIMIT_PER_MINUTE")
+	os.Unsetenv("API_RATE_LIMIT_PER_MINUTE")
 	os.Unsetenv("DB_TIMEOUT")
 }
 

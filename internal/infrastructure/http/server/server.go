@@ -29,6 +29,9 @@ const (
 	writeTimeout    = 15 * time.Second
 	idleTimeout     = 60 * time.Second
 	ShutdownTimeout = 30 * time.Second
+
+	defaultRedirectRateLimitPerMinute = 120
+	defaultAPIRateLimitPerMinute      = 60
 )
 
 // Server represents the HTTP server
@@ -40,6 +43,7 @@ type Server struct {
 	logger          zerolog.Logger
 	metrics         *metrics.Metrics
 	sessionStore    *session.Store
+	rateLimiters    []*middleware.RateLimiterMiddleware
 	redirectUseCase *application.RedirectURLUseCase
 }
 
@@ -119,6 +123,23 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 
 // setupRoutes configures the HTTP routes
 func (s *Server) setupRoutes() error {
+	// Defensive defaults: server.New can be called with a manually-constructed config
+	// (e.g. in tests), which bypasses config.LoadConfig() validation.
+	redirectRateLimit := s.config.RedirectRateLimitPerMinute
+	if redirectRateLimit <= 0 {
+		redirectRateLimit = defaultRedirectRateLimitPerMinute
+	}
+
+	apiRateLimit := s.config.APIRateLimitPerMinute
+	if apiRateLimit <= 0 {
+		apiRateLimit = defaultAPIRateLimitPerMinute
+	}
+
+	redirectRateLimiter := middleware.NewRateLimiterMiddleware(redirectRateLimit, time.Minute)
+	apiRateLimiter := middleware.NewRateLimiterMiddleware(apiRateLimit, time.Minute)
+
+	s.rateLimiters = []*middleware.RateLimiterMiddleware{redirectRateLimiter, apiRateLimiter}
+
 	// Health check endpoint
 	s.router.Get("/health", s.healthCheckHandler)
 
@@ -144,9 +165,16 @@ func (s *Server) setupRoutes() error {
 		clickRepo = repository.NewSQLiteClickRepository(s.db)
 	}
 
+	// Defensive defaults: server.New can be called with a manually-constructed config
+	// (e.g. in tests), which bypasses config.LoadConfig() validation/defaults.
+	dbTimeout := s.config.DBTimeout
+	if dbTimeout <= 0 {
+		dbTimeout = 5 * time.Second
+	}
+
 	// Wrap repositories with timeout middleware to ensure all database operations have bounded execution time
-	urlRepo = repository.NewURLRepositoryWithTimeout(urlRepo, s.config.DBTimeout)
-	clickRepo = repository.NewClickRepositoryWithTimeout(clickRepo, s.config.DBTimeout)
+	urlRepo = repository.NewURLRepositoryWithTimeout(urlRepo, dbTimeout)
+	clickRepo = repository.NewClickRepositoryWithTimeout(clickRepo, dbTimeout)
 
 	// Initialize URL generator
 	generator, err := url.NewGenerator(urlRepo, url.DefaultGeneratorConfig())
@@ -178,10 +206,12 @@ func (s *Server) setupRoutes() error {
 
 	// Public redirect endpoint (no authentication required)
 	// Must come after specific routes to avoid capturing them
-	s.router.Get("/{shortCode}", redirectHandler.Redirect)
+	s.router.With(redirectRateLimiter.Middleware).Get("/{shortCode}", redirectHandler.Redirect)
 
 	// API routes with authentication
 	s.router.Route("/api", func(r chi.Router) {
+		r.Use(apiRateLimiter.Middleware)
+
 		r.Route("/urls", func(r chi.Router) {
 			// Apply auth middleware to all URL endpoints
 			// Support both Bearer token auth (for API) and session auth (for dashboard)
@@ -235,6 +265,10 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Shutdown redirect use case workers
 	if s.redirectUseCase != nil {
 		s.redirectUseCase.Shutdown()
+	}
+
+	for _, limiter := range s.rateLimiters {
+		limiter.Shutdown()
 	}
 
 	if err := s.httpServer.Shutdown(ctx); err != nil {

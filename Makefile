@@ -2,13 +2,14 @@
     help test test-unit test-integration lint fmt vet clean \
     build build-server build-migrate \
     migrate-up migrate-down migrate-status migrate-create migrate-reset \
-    templ-generate templ-watch \
+    generate templ-generate templ-watch \
     validate-openapi \
     docker-build docker-run docker-compose-up docker-compose-down docker-compose-logs docker-compose-ps
 
 # Default target
 help:
 	@echo "Available targets:"
+	@echo "  generate          - Run code generation (sqlc + templ)"
 	@echo "  test              - Run all tests (unit + integration)"
 	@echo "  test-unit         - Run unit tests only (fast)"
 	@echo "  test-integration  - Run integration tests only"
@@ -40,16 +41,35 @@ help:
 	@echo "  docker-compose-logs - View logs from all services"
 	@echo "  docker-compose-ps - List running services"
 
+# Generate all code (sqlc + templ)
+generate:
+	@echo "Running code generation..."
+	@if command -v sqlc >/dev/null 2>&1; then \
+		sqlc generate; \
+	else \
+		echo "Error: sqlc not installed. Install with:"; \
+		echo "  go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0"; \
+		exit 1; \
+	fi
+	@if command -v templ >/dev/null 2>&1; then \
+		templ generate; \
+	else \
+		echo "Error: templ not installed. Install with:"; \
+		echo "  go install github.com/a-h/templ/cmd/templ@latest"; \
+		exit 1; \
+	fi
+	@echo "Code generation complete!"
+
 # Run all tests
-test:
+test: generate
 	go test -v ./...
 
 # Run unit tests only (fast - skips long-running tests)
-test-unit:
+test-unit: generate
 	go test -v -short ./...
 
 # Run integration tests
-test-integration:
+test-integration: generate
 	go test -v ./internal/infrastructure/http/server/...
 
 # Run linter
@@ -71,14 +91,14 @@ vet:
 	go vet ./...
 
 # Build all binaries
-build: templ-generate build-server build-migrate
+build: generate build-server build-migrate
 
 # Build server binary
-build-server: templ-generate
+build-server: generate
 	go build -o bin/server ./cmd/server
 
 # Build migrate tool
-build-migrate:
+build-migrate: generate
 	go build -o bin/migrate ./cmd/migrate
 
 # Clean build artifacts and coverage files
@@ -105,8 +125,8 @@ migrate-create: build-migrate
 migrate-reset: build-migrate
 	./bin/migrate reset
 
-# Run all checks (templ-generate, fmt, vet, lint, test)
-check: templ-generate fmt vet lint test validate-openapi
+# Run all checks (generate, fmt, vet, lint, test)
+check: generate fmt vet lint test validate-openapi
 	@echo "All checks passed!"
 
 # Validate OpenAPI specification
