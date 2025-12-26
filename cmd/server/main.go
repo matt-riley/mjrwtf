@@ -89,10 +89,21 @@ func openDatabase(dbURL string) (*sql.DB, error) {
 
 	// For SQLite, enable WAL mode for better concurrency
 	// WAL allows concurrent readers while a write is in progress
-	if driver == "sqlite3" && !strings.Contains(dbURL, "?") {
-		dbURL += "?_journal_mode=WAL&_busy_timeout=5000"
-	} else if driver == "sqlite3" && !strings.Contains(dbURL, "_journal_mode") {
-		dbURL += "&_journal_mode=WAL&_busy_timeout=5000"
+	if driver == "sqlite3" {
+		// Check if query parameters already contain _journal_mode
+		// Split on '?' to check only the query string portion
+		parts := strings.SplitN(dbURL, "?", 2)
+		hasJournalMode := len(parts) == 2 && strings.Contains(parts[1], "_journal_mode")
+		
+		if !hasJournalMode {
+			if len(parts) == 2 {
+				// Query string exists, append with &
+				dbURL += "&_journal_mode=WAL&_busy_timeout=5000"
+			} else {
+				// No query string, start with ?
+				dbURL += "?_journal_mode=WAL&_busy_timeout=5000"
+			}
+		}
 	}
 
 	db, err := sql.Open(driver, dbURL)
