@@ -50,6 +50,7 @@ type RedirectURLUseCase struct {
 	callbackMu      sync.RWMutex
 	maxWorkers      int
 	onClickRecorded func()
+	shutdownOnce    sync.Once
 }
 
 // NewRedirectURLUseCase creates a new RedirectURLUseCase with bounded concurrency for click recording
@@ -91,52 +92,56 @@ func (uc *RedirectURLUseCase) WithClickCallback(callback func()) *RedirectURLUse
 	return uc
 }
 
-// Shutdown gracefully shuts down the worker pool, waiting for in-flight tasks to complete
+// Shutdown gracefully shuts down the worker pool.
+// It prevents new task submissions and waits for all queued tasks to be processed.
+// Once Shutdown is called:
+// - New task submissions via Execute() are rejected (tasks are dropped)
+// - All tasks already in clickTaskChan are processed before workers exit
+// - The method blocks until all workers have finished processing
 func (uc *RedirectURLUseCase) Shutdown() {
-	close(uc.done)
-	uc.workersWg.Wait()
+	uc.shutdownOnce.Do(func() {
+		// Signal shutdown has started - prevents new submissions in Execute()
+		close(uc.done)
+		// Close the task channel - workers will drain remaining tasks and then exit
+		close(uc.clickTaskChan)
+		// Wait for all workers to finish processing
+		uc.workersWg.Wait()
+	})
 }
 
-// clickRecordWorker processes click recording tasks from the channel
+// clickRecordWorker processes click recording tasks from the channel.
+// It drains all tasks from clickTaskChan before exiting, ensuring no queued tasks are lost during shutdown.
 func (uc *RedirectURLUseCase) clickRecordWorker() {
 	defer uc.workersWg.Done()
 
-	for {
-		select {
-		case <-uc.done:
-			return
-		case task, ok := <-uc.clickTaskChan:
-			if !ok {
-				return
-			}
+	// Process tasks until the channel is closed and drained
+	for task := range uc.clickTaskChan {
+		// Call callback once per task, regardless of success/failure
+		uc.callbackMu.RLock()
+		cb := uc.onClickRecorded
+		uc.callbackMu.RUnlock()
 
-			// Call callback once per task, regardless of success/failure
-			uc.callbackMu.RLock()
-			cb := uc.onClickRecorded
-			uc.callbackMu.RUnlock()
+		// Use background context to prevent cancellation from affecting analytics.
+		// This is intentional: we want click recording to complete even if the
+		// original request context is cancelled, as analytics should not impact
+		// the redirect response.
+		bgCtx := context.Background()
 
-			// Use background context to prevent cancellation from affecting analytics.
-			// This is intentional: we want click recording to complete even if the
-			// original request context is cancelled, as analytics should not impact
-			// the redirect response.
-			bgCtx := context.Background()
-
-			newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
-			if err != nil {
-				log.Printf("Failed to create click entity for URL %s: %v", task.shortCode, err)
-				if cb != nil {
-					cb()
-				}
-				continue
-			}
-
-			if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
-				log.Printf("Failed to record click for URL %s: %v", task.shortCode, err)
-			}
-
+		newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
+		if err != nil {
+			log.Printf("Failed to create click entity for URL %s: %v", task.shortCode, err)
 			if cb != nil {
 				cb()
 			}
+			continue
+		}
+
+		if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
+			log.Printf("Failed to record click for URL %s: %v", task.shortCode, err)
+		}
+
+		if cb != nil {
+			cb()
 		}
 	}
 }
@@ -147,6 +152,18 @@ func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) 
 	foundURL, err := uc.urlRepo.FindByShortCode(ctx, req.ShortCode)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if shutdown has started - if so, don't accept new tasks
+	select {
+	case <-uc.done:
+		// Shutdown in progress - don't queue new analytics tasks
+		log.Printf("Shutdown in progress, dropping analytics for URL %s", req.ShortCode)
+		return &RedirectResponse{
+			OriginalURL: foundURL.OriginalURL,
+		}, nil
+	default:
+		// Shutdown not started, proceed with task submission
 	}
 
 	// Send click recording task to worker pool (non-blocking with buffered channel)

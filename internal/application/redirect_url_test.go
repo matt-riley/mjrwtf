@@ -480,3 +480,104 @@ func TestRedirectURLUseCase_Shutdown(t *testing.T) {
 	// After shutdown, no more tasks should be processed
 	// (This is just to verify Shutdown completes successfully)
 }
+
+func TestRedirectURLUseCase_ShutdownDrainsPendingTasks(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	// Use slow click repository to simulate processing delay
+	clickRepo := newSlowMockClickRepository(10 * time.Millisecond)
+
+	testURL := &url.URL{
+		ID:          7,
+		ShortCode:   "drain",
+		OriginalURL: "https://drain.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user7",
+	}
+	urlRepo.urls["drain"] = testURL
+
+	// Create use case with workers
+	numWorkers := 5
+	useCase := NewRedirectURLUseCaseWithWorkers(urlRepo, clickRepo, numWorkers)
+
+	// Enqueue tasks that will fit in the buffer (numWorkers * bufferSizeMultiplier)
+	// Use fewer tasks than buffer size to ensure they're all queued
+	bufferSize := numWorkers * bufferSizeMultiplier
+	numTasks := bufferSize // All tasks should fit in buffer
+
+	for i := 0; i < numTasks; i++ {
+		req := RedirectRequest{
+			ShortCode: "drain",
+			Referrer:  "https://test.com",
+			UserAgent: "TestAgent",
+			Country:   "US",
+		}
+		_, err := useCase.Execute(context.Background(), req)
+		if err != nil {
+			t.Fatalf("Execute failed: %v", err)
+		}
+	}
+
+	// Immediately shutdown - this should drain all pending tasks
+	useCase.Shutdown()
+
+	// After shutdown, all tasks should have been processed
+	recordedClicks := clickRepo.getClickCount()
+	if recordedClicks != numTasks {
+		t.Errorf("Expected %d clicks to be recorded after shutdown, got %d", numTasks, recordedClicks)
+	}
+}
+
+func TestRedirectURLUseCase_ShutdownRejectsNewTasks(t *testing.T) {
+	// Setup
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	testURL := &url.URL{
+		ID:          8,
+		ShortCode:   "reject",
+		OriginalURL: "https://reject.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user8",
+	}
+	urlRepo.urls["reject"] = testURL
+
+	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
+
+	// Start shutdown in a goroutine
+	go useCase.Shutdown()
+
+	// Give shutdown a moment to signal
+	time.Sleep(10 * time.Millisecond)
+
+	// Try to execute a redirect after shutdown
+	req := RedirectRequest{
+		ShortCode: "reject",
+		Referrer:  "https://test.com",
+		UserAgent: "TestAgent",
+		Country:   "US",
+	}
+
+	resp, err := useCase.Execute(context.Background(), req)
+
+	// Redirect should still succeed (returns URL)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+
+	if resp.OriginalURL != "https://reject.com" {
+		t.Errorf("Expected OriginalURL 'https://reject.com', got '%s'", resp.OriginalURL)
+	}
+
+	// Wait a bit for any potential async processing
+	time.Sleep(50 * time.Millisecond)
+
+	// No clicks should be recorded since shutdown was in progress
+	if clickRepo.getRecordedClicksCount() != 0 {
+		t.Errorf("Expected 0 clicks to be recorded after shutdown, got %d", clickRepo.getRecordedClicksCount())
+	}
+}
