@@ -6,48 +6,58 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  test:
-    name: Test, Vet, Lint, and Build
+  generate-check:
+    name: Generate & verify generated code
     runs-on: ubuntu-latest
-    
-    permissions:
-      contents: read
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-      
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
-      
+
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/bin/templ
+            ~/.local/bin/sqlc
+          key: ${{ runner.os }}-go-tools-sqlc-1.30.0-templ
+
       - name: Install templ
         run: |
-          go install github.com/a-h/templ/cmd/templ@latest
+          if [ ! -x "$(go env GOPATH)/bin/templ" ]; then
+            go install github.com/a-h/templ/cmd/templ@latest
+          fi
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-      
+
       - name: Install sqlc
         run: |
           SQLC_VERSION=1.30.0
           SQLC_CHECKSUM="468aecee071bfe55e97fcbcac52ea0208eeca444f67736f3b8f0f3d6a106132e"
-          curl -sSfL https://github.com/sqlc-dev/sqlc/releases/download/v${SQLC_VERSION}/sqlc_${SQLC_VERSION}_linux_amd64.tar.gz -o /tmp/sqlc.tar.gz
-          echo "${SQLC_CHECKSUM}  /tmp/sqlc.tar.gz" | sha256sum -c
-          tar -xz -C /tmp -f /tmp/sqlc.tar.gz
-          sudo mv /tmp/sqlc /usr/local/bin/
+          mkdir -p "$HOME/.local/bin"
+          if [ ! -x "$HOME/.local/bin/sqlc" ]; then
+            curl -sSfL https://github.com/sqlc-dev/sqlc/releases/download/v${SQLC_VERSION}/sqlc_${SQLC_VERSION}_linux_amd64.tar.gz -o /tmp/sqlc.tar.gz
+            echo "${SQLC_CHECKSUM}  /tmp/sqlc.tar.gz" | sha256sum -c
+            tar -xz -C /tmp -f /tmp/sqlc.tar.gz
+            mv /tmp/sqlc "$HOME/.local/bin/sqlc"
+          fi
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
           sqlc version
-      
-      - name: Download Go dependencies
-        run: go mod download
-      
+
       - name: Generate templ templates
         run: templ generate
-      
+
       - name: Generate sqlc code
         run: sqlc generate
-      
+
       - name: Verify templ generated files are up to date
         run: |
           if [ -n "$(git status --porcelain internal/adapters/http/templates)" ]; then
@@ -56,7 +66,7 @@ jobs:
             git status --porcelain internal/adapters/http/templates
             exit 1
           fi
-      
+
       - name: Verify sqlc generated files are up to date
         run: |
           if [ -n "$(git status --porcelain internal/adapters/repository/sqlc)" ]; then
@@ -65,7 +75,20 @@ jobs:
             git status --porcelain internal/adapters/repository/sqlc
             exit 1
           fi
-      
+
+  fmt:
+    name: Format (gofmt)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
       - name: Check code formatting
         run: |
           if [ -n "$(gofmt -l .)" ]; then
@@ -74,25 +97,80 @@ jobs:
             gofmt -l .
             exit 1
           fi
-      
+
+  vet:
+    name: Vet
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
       - name: Run go vet
         run: go vet ./...
-      
-      - name: Run tests
-        run: go test -v -race ./...
-      
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests (PR)
+        if: github.event_name == 'pull_request'
+        run: go test ./...
+
+      - name: Run tests with race detector (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: go test -race ./...
+
+  lint:
+    name: Lint (golangci-lint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
           version: v1.56.0
           args: --timeout=5m
-        # Continue on error due to known typecheck false positives with external packages
-        # The code compiles and passes go vet, but golangci-lint's typecheck has issues
-        # with recognizing imports from goose, chi, and other external packages
         continue-on-error: true
-      
+
+  build:
+    name: Build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
       - name: Build server
-        run: go build -v -o bin/server ./cmd/server
-      
+        run: go build -o bin/server ./cmd/server
+
       - name: Build migrate tool
-        run: go build -v -o bin/migrate ./cmd/migrate
+        run: go build -o bin/migrate ./cmd/migrate
