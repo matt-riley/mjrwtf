@@ -13,20 +13,29 @@ cd mjrwtf
 
 ### 2. Setup Environment
 
+#### Install Code Generation Tools
+
+```bash
+# Install sqlc (for database code generation, requires v1.30.0+)
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+
+# Install templ (for template code generation)
+go install github.com/a-h/templ/cmd/templ@latest
+```
+
+#### Initial Setup
+
 ```bash
 # Copy environment configuration
 cp .env.example .env
 
-# Generate database code (required for build/test)
-sqlc generate
-# (Optional) Generate templates if using templ
-templ generate
-# Build migration tool
-make build-migrate
-
-# Run tests to verify setup
+# Run tests to verify setup (this will automatically run code generation)
 make test
 ```
+
+**Note:** The `make test`, `make build`, and `make check` targets automatically run code generation, so you don't need to run `sqlc generate` or `templ generate` manually in most cases.
+
+**Alternative:** You can also use `go generate ./...` to run code generation directly.
 
 ### 3. Create Feature Branch
 
@@ -41,9 +50,9 @@ git checkout -b fix/bug-description
 Follow these guidelines when making changes:
 
 - **Hexagonal Architecture**: Keep domain logic in `internal/domain/`, implementations in `internal/adapters/`
-- **Run sqlc generate**: After modifying SQL queries in `sqlc/*/queries.sql`
-- **Run templ generate**: After modifying templates in `internal/adapters/http/templates/`
-- **Run make check**: Before committing (`sqlc generate && templ generate && make check`)
+- **After modifying SQL queries**: Run `make generate` or just `sqlc generate`
+- **After modifying templates**: Run `make generate` or just `templ generate`
+- **Before committing**: Run `make check` (automatically runs code generation, formatting, linting, and tests)
 - **Write tests**: All new features and bug fixes require tests
 
 ### 5. Commit Your Changes
@@ -165,18 +174,20 @@ Even when Copilot generates the PR, **always review**:
 
 ### Critical Workflows
 
-#### After Changing SQL Queries
+#### After Changing SQL Queries or Templates
 
 ```bash
-sqlc generate          # Regenerate database code
+make generate          # Regenerate database and template code (or just `sqlc generate` / `templ generate`)
 go build ./...         # Verify compilation
-make test              # Run all tests
+make test              # Run all tests (automatically runs generation too)
 ```
+
+**Note:** If you're running `make test` or `make build`, code generation is automatic.
 
 #### After Creating Migration
 
 ```bash
-make build-migrate     # Rebuild migrate tool (migrations are embedded)
+make build-migrate     # Rebuild migrate tool (migrations are embedded, automatically runs generation)
 make migrate-up        # Apply migration
 make migrate-status    # Verify migration applied
 make migrate-down      # Test rollback
@@ -186,10 +197,10 @@ make migrate-up        # Re-apply for final state
 #### Before Committing
 
 ```bash
-make fmt               # Format code
-sqlc generate          # Ensure generated code is up-to-date
-make check             # Run fmt, vet, lint, test
+make check             # Run generate, fmt, vet, lint, test, and validate-openapi
 ```
+
+**Note:** `make check` automatically runs code generation, so you don't need to run it separately.
 
 ### Layer Boundaries
 
