@@ -181,6 +181,7 @@ func TestServer_RateLimitRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	// Create a URL so we can exercise a successful redirect.
 	createReq := httptest.NewRequest(http.MethodPost, "/api/urls", bytes.NewBufferString(`{"original_url":"https://example.com"}`))
@@ -243,6 +244,7 @@ func TestServer_RateLimitAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	req1 := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
 	req1.RemoteAddr = "192.0.2.201:1234"

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -188,5 +189,38 @@ func TestRateLimiter_ConcurrentAccess(t *testing.T) {
 
 	for code := range errCh {
 		t.Errorf("expected status %d, got %d", http.StatusOK, code)
+	}
+}
+
+func TestRateLimiter_HTMLResponseWhenAcceptHTML(t *testing.T) {
+	ratelimiter := NewRateLimiterMiddleware(1, time.Minute)
+	defer ratelimiter.Shutdown()
+
+	handler := ratelimiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req1 := httptest.NewRequest(http.MethodGet, "/", nil)
+	req1.RemoteAddr = "192.0.2.99:1234"
+	req1.Header.Set("Accept", "text/html")
+	rec1 := httptest.NewRecorder()
+	handler.ServeHTTP(rec1, req1)
+	if rec1.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec1.Code)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+	req2.RemoteAddr = req1.RemoteAddr
+	req2.Header.Set("Accept", "text/html")
+	rec2 := httptest.NewRecorder()
+	handler.ServeHTTP(rec2, req2)
+
+	if rec2.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected status %d, got %d", http.StatusTooManyRequests, rec2.Code)
+	}
+
+	ct := rec2.Header().Get("Content-Type")
+	if !strings.HasPrefix(ct, "text/html") {
+		t.Fatalf("expected Content-Type text/html, got %q", ct)
 	}
 }
