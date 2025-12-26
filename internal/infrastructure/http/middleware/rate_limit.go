@@ -51,12 +51,24 @@ func (m *RateLimiterMiddleware) Middleware(next http.Handler) http.Handler {
 		// Retry-After should be in whole seconds
 		w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(retryAfter.Seconds()))))
 
-		respondJSONError(w, "Too Many Requests: rate limit exceeded", http.StatusTooManyRequests)
+		respondRateLimitExceeded(w, r)
 	})
 }
 
 func (m *RateLimiterMiddleware) Shutdown() {
 	m.rl.shutdown()
+}
+
+func respondRateLimitExceeded(w http.ResponseWriter, r *http.Request) {
+	accept := r.Header.Get("Accept")
+	if strings.Contains(accept, "text/html") && !strings.Contains(accept, "application/json") {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte("<html><head><title>Too Many Requests</title></head><body><h1>Too Many Requests</h1><p>Rate limit exceeded. Please try again later.</p></body></html>"))
+		return
+	}
+
+	respondJSONError(w, "Too Many Requests: rate limit exceeded", http.StatusTooManyRequests)
 }
 
 func newRateLimiter(requestsPerMinute int, window time.Duration) *rateLimiter {
