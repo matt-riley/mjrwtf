@@ -34,6 +34,15 @@ swagger-cli validate openapi.yaml
 
 See the [OpenAPI specification](openapi.yaml) for detailed request/response schemas, authentication, and error handling.
 
+### Rate Limiting
+
+Per-client rate limits protect the redirect endpoint and authenticated API routes. Configure limits via environment variables:
+
+- `REDIRECT_RATE_LIMIT_PER_MINUTE` (default: 120) - Requests per minute per IP for `GET /{shortCode}`
+- `API_RATE_LIMIT_PER_MINUTE` (default: 60) - Requests per minute per IP for `/api` routes
+
+Requests exceeding the limit return HTTP 429 with a `Retry-After` header indicating when to retry.
+
 ## Quick Start
 
 ### Docker Compose (Recommended)
