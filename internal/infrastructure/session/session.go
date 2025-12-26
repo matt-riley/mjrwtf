@@ -31,10 +31,10 @@ func NewStore(ttl time.Duration) *Store {
 		ttl:      ttl,
 		done:     make(chan struct{}),
 	}
-	
+
 	// Start background cleanup goroutine
 	go store.cleanup()
-	
+
 	return store
 }
 
@@ -44,7 +44,7 @@ func (s *Store) Create(userID string) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	now := time.Now()
 	session := &Session{
 		ID:        sessionID,
@@ -52,11 +52,11 @@ func (s *Store) Create(userID string) (*Session, error) {
 		CreatedAt: now,
 		ExpiresAt: now.Add(s.ttl),
 	}
-	
+
 	s.mu.Lock()
 	s.sessions[sessionID] = session
 	s.mu.Unlock()
-	
+
 	// Return a copy to prevent external modifications
 	sessionCopy := *session
 	return &sessionCopy, nil
@@ -66,17 +66,17 @@ func (s *Store) Create(userID string) (*Session, error) {
 func (s *Store) Get(sessionID string) (*Session, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	session, exists := s.sessions[sessionID]
 	if !exists {
 		return nil, false
 	}
-	
+
 	// Check if session is expired
 	if time.Now().After(session.ExpiresAt) {
 		return nil, false
 	}
-	
+
 	// Return a copy to prevent external modifications
 	sessionCopy := *session
 	return &sessionCopy, true
@@ -93,12 +93,12 @@ func (s *Store) Delete(sessionID string) {
 func (s *Store) Refresh(sessionID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	session, exists := s.sessions[sessionID]
 	if !exists {
 		return nil
 	}
-	
+
 	session.ExpiresAt = time.Now().Add(s.ttl)
 	return nil
 }
@@ -107,7 +107,7 @@ func (s *Store) Refresh(sessionID string) error {
 func (s *Store) cleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:

@@ -72,7 +72,7 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 
 	// Initialize session store (24 hour session TTL)
 	sessionStore := session.NewStore(24 * time.Hour)
-	
+
 	// Add session middleware globally (checks for session, but doesn't require it)
 	r.Use(middleware.SessionMiddleware(sessionStore))
 
@@ -168,7 +168,7 @@ func (s *Server) setupRoutes() error {
 	s.router.HandleFunc("/create", pageHandler.CreatePage)
 	s.router.HandleFunc("/login", pageHandler.Login)
 	s.router.Get("/logout", pageHandler.Logout)
-	
+
 	// Protected dashboard route (requires session)
 	s.router.With(middleware.RequireSession(s.sessionStore, "/login")).Get("/dashboard", pageHandler.Dashboard)
 
@@ -190,7 +190,7 @@ func (s *Server) setupRoutes() error {
 						next.ServeHTTP(w, req.WithContext(ctx))
 						return
 					}
-					
+
 					// Fall back to Bearer token auth
 					middleware.Auth(s.config.AuthToken)(next).ServeHTTP(w, req)
 				})

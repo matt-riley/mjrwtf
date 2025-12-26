@@ -10,7 +10,7 @@ import (
 const (
 	// SessionCookieName is the name of the session cookie
 	SessionCookieName = "mjrwtf_session"
-	
+
 	// SessionUserIDKey is the context key for storing session user ID
 	SessionUserIDKey contextKey = "sessionUserID"
 )
@@ -27,14 +27,14 @@ func SessionMiddleware(store *session.Store) func(http.Handler) http.Handler {
 				if exists {
 					// Refresh session on each request
 					store.Refresh(cookie.Value)
-					
+
 					// Add user ID to context
 					ctx := context.WithValue(r.Context(), SessionUserIDKey, sess.UserID)
 					next.ServeHTTP(w, r.WithContext(ctx))
 					return
 				}
 			}
-			
+
 			// No valid session, continue without user context
 			next.ServeHTTP(w, r)
 		})
@@ -53,7 +53,7 @@ func RequireSession(store *session.Store, loginURL string) func(http.Handler) ht
 				http.Redirect(w, r, loginURL, http.StatusSeeOther)
 				return
 			}
-			
+
 			// Valid session, continue
 			next.ServeHTTP(w, r)
 		})

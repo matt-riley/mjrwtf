@@ -40,14 +40,14 @@ func TestSessionBasedAPIAuthentication(t *testing.T) {
 
 	// Create test config
 	cfg := &config.Config{
-		DatabaseURL:   ":memory:",
-		ServerPort:    8080,
-		BaseURL:       "http://localhost:8080",
+		DatabaseURL:    ":memory:",
+		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		AllowedOrigins: "*",
-		AuthToken:     "test-token",
-		SecureCookies: false,
-		LogLevel:      "error",
-		LogFormat:     "json",
+		AuthToken:      "test-token",
+		SecureCookies:  false,
+		LogLevel:       "error",
+		LogFormat:      "json",
 	}
 
 	// Create server
@@ -63,7 +63,7 @@ func TestSessionBasedAPIAuthentication(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/urls", strings.NewReader(`{"original_url":"https://example.com"}`))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test-token")
-		
+
 		w := httptest.NewRecorder()
 		server.router.ServeHTTP(w, req)
 
@@ -101,7 +101,7 @@ func TestSessionBasedAPIAuthentication(t *testing.T) {
 		createReq := httptest.NewRequest(http.MethodPost, "/api/urls", strings.NewReader(`{"original_url":"https://delete-me.com"}`))
 		createReq.Header.Set("Content-Type", "application/json")
 		createReq.Header.Set("Authorization", "Bearer test-token")
-		
+
 		createW := httptest.NewRecorder()
 		server.router.ServeHTTP(createW, createReq)
 
@@ -135,7 +135,7 @@ func TestSessionBasedAPIAuthentication(t *testing.T) {
 		// Create a session with very short TTL
 		shortTTLStore := session.NewStore(1 * time.Millisecond)
 		defer shortTTLStore.Shutdown()
-		
+
 		expiredSess, err := shortTTLStore.Create("test-user")
 		if err != nil {
 			t.Fatalf("failed to create session: %v", err)
@@ -198,14 +198,14 @@ func TestSessionAndBearerAuthCoexist(t *testing.T) {
 
 	// Create test config
 	cfg := &config.Config{
-		DatabaseURL:   ":memory:",
-		ServerPort:    8080,
-		BaseURL:       "http://localhost:8080",
+		DatabaseURL:    ":memory:",
+		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
 		AllowedOrigins: "*",
-		AuthToken:     "test-token",
-		SecureCookies: false,
-		LogLevel:      "error",
-		LogFormat:     "json",
+		AuthToken:      "test-token",
+		SecureCookies:  false,
+		LogLevel:       "error",
+		LogFormat:      "json",
 	}
 
 	// Create server
