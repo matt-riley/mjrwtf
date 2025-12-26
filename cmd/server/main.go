@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,6 +14,18 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
 	_ "github.com/mattn/go-sqlite3"
+)
+
+const (
+	// SQLite connection pool settings
+	sqliteMaxOpenConns = 1 // SQLite works best with a single write connection
+
+	// SQLite WAL mode configuration
+	sqliteBusyTimeoutMs = 5000 // Timeout in milliseconds for SQLite busy operations
+
+	// PostgreSQL connection pool settings
+	postgresMaxOpenConns = 25 // Maximum number of open connections to PostgreSQL
+	postgresMaxIdleConns = 5  // Maximum number of idle connections in the pool
 )
 
 func main() {
@@ -98,10 +111,10 @@ func openDatabase(dbURL string) (*sql.DB, error) {
 		if !hasJournalMode {
 			if len(parts) == 2 {
 				// Query string exists, append with &
-				dbURL += "&_journal_mode=WAL&_busy_timeout=5000"
+				dbURL += fmt.Sprintf("&_journal_mode=WAL&_busy_timeout=%d", sqliteBusyTimeoutMs)
 			} else {
 				// No query string, start with ?
-				dbURL += "?_journal_mode=WAL&_busy_timeout=5000"
+				dbURL += fmt.Sprintf("?_journal_mode=WAL&_busy_timeout=%d", sqliteBusyTimeoutMs)
 			}
 		}
 	}
@@ -115,11 +128,11 @@ func openDatabase(dbURL string) (*sql.DB, error) {
 	if driver == "sqlite3" {
 		// SQLite works best with a single write connection
 		// Multiple readers are fine, but limit concurrent writes
-		db.SetMaxOpenConns(1)
+		db.SetMaxOpenConns(sqliteMaxOpenConns)
 	} else {
 		// PostgreSQL can handle multiple connections
-		db.SetMaxOpenConns(25)
-		db.SetMaxIdleConns(5)
+		db.SetMaxOpenConns(postgresMaxOpenConns)
+		db.SetMaxIdleConns(postgresMaxIdleConns)
 	}
 
 	// Verify connection
