@@ -7,21 +7,21 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/database"
 	"github.com/matt-riley/mjrwtf/internal/migrations"
 	"github.com/pressly/goose/v3"
 
-	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const driverName = "sqlite3"
+
 func main() {
 	var (
-		flags    = flag.NewFlagSet("migrate", flag.ExitOnError)
-		dir      = flags.String("dir", "", "directory with migration files")
-		dbDriver = flags.String("driver", "", "database driver (sqlite3 or postgres)")
-		dbURL    = flags.String("url", "", "database connection string")
+		flags = flag.NewFlagSet("migrate", flag.ExitOnError)
+		dir   = flags.String("dir", "", "directory with migration files")
+		dbURL = flags.String("url", "", "database connection string")
 	)
 
 	flags.Usage = usage
@@ -37,7 +37,6 @@ func main() {
 
 	command := args[0]
 
-	// Get database URL from env if not provided
 	if *dbURL == "" {
 		*dbURL = os.Getenv("DATABASE_URL")
 		if *dbURL == "" {
@@ -45,50 +44,29 @@ func main() {
 		}
 	}
 
-	// Auto-detect driver from URL if not provided
-	if *dbDriver == "" {
-		*dbDriver = detectDriver(*dbURL)
-		if *dbDriver == "" {
-			log.Fatal("Could not auto-detect database driver from URL. Please specify -driver flag explicitly (supported: sqlite3, postgres)")
-		}
-	}
-
-	// Validate driver
-	if *dbDriver != "sqlite3" && *dbDriver != "postgres" {
-		log.Fatalf("Unsupported database driver: %s (supported: sqlite3, postgres)", *dbDriver)
-	}
-
-	// Set up migrations based on driver
 	var migrationsFS embed.FS
-	var useEmbeddedFS bool
+	useEmbeddedFS := false
 	if *dir == "" {
-		// Use embedded migrations
 		useEmbeddedFS = true
-		if *dbDriver == "sqlite3" {
-			*dir = migrations.SQLiteDir
-			migrationsFS = migrations.SQLiteMigrations
-		} else {
-			*dir = migrations.PostgresDir
-			migrationsFS = migrations.PostgresMigrations
-		}
+		*dir = migrations.SQLiteDir
+		migrationsFS = migrations.SQLiteMigrations
 	}
 
-	// Open database connection
-	db, err := sql.Open(*dbDriver, *dbURL)
+	dsn := database.NormalizeSQLiteDSN(*dbURL)
+
+	db, err := sql.Open(driverName, dsn)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
 
-	// Set up goose with embedded filesystem if applicable
 	if useEmbeddedFS {
 		goose.SetBaseFS(migrationsFS)
 	}
-	if err := goose.SetDialect(*dbDriver); err != nil {
+	if err := goose.SetDialect(driverName); err != nil {
 		log.Fatalf("Failed to set dialect: %v", err)
 	}
 
-	// Run command
 	switch command {
 	case "up":
 		if err := goose.Up(db, *dir); err != nil {
@@ -124,30 +102,15 @@ func main() {
 			migrationType = args[2]
 		}
 
-		// Determine which directory to use for creation
 		createDir := "internal/migrations/sqlite"
-		if *dbDriver == "postgres" {
-			createDir = "internal/migrations/postgres"
-		}
 
-		// Create migration needs direct filesystem access, not embedded
-		// Store original filesystem state to restore after create
-		needsRestore := false
 		if useEmbeddedFS {
 			originalFS := migrationsFS
-			needsRestore = true
 			goose.SetBaseFS(nil)
-
-			// Defer restoration to ensure it happens even on error
-			defer func() {
-				if needsRestore {
-					goose.SetBaseFS(originalFS)
-				}
-			}()
+			defer goose.SetBaseFS(originalFS)
 		}
 
 		err := goose.Create(db, createDir, name, migrationType)
-
 		if err != nil {
 			log.Fatalf("Failed to create migration: %v", err)
 		}
@@ -164,29 +127,8 @@ func main() {
 	}
 }
 
-// detectDriver attempts to detect the database driver from the connection string
-func detectDriver(url string) string {
-	// PostgreSQL patterns
-	if strings.HasPrefix(url, "postgres://") || strings.HasPrefix(url, "postgresql://") {
-		return "postgres"
-	}
-	// Check for PostgreSQL key-value format
-	if strings.Contains(url, "host=") && (strings.Contains(url, "dbname=") || strings.Contains(url, "database=")) {
-		return "postgres"
-	}
-	// SQLite patterns - file path with .db extension or explicit sqlite scheme
-	if strings.HasPrefix(url, "file:") || strings.HasSuffix(url, ".db") {
-		return "sqlite3"
-	}
-	// If it looks like a file path (starts with ./ or / or contains no ://)
-	if !strings.Contains(url, "://") && (strings.HasPrefix(url, "./") || strings.HasPrefix(url, "/") || !strings.Contains(url, "=")) {
-		return "sqlite3"
-	}
-	return ""
-}
-
 func usage() {
-	fmt.Print(`migrate - Database migration tool
+	fmt.Print(`migrate - Database migration tool (SQLite only)
 
 Usage:
     migrate [flags] <command> [args]
@@ -200,31 +142,20 @@ Commands:
     reset       Rollback all migrations
 
 Flags:
-    -driver string
-        Database driver (sqlite3 or postgres). Auto-detected if not provided.
     -url string
         Database connection string. Uses DATABASE_URL env var if not provided.
     -dir string
-        Directory with migration files. Auto-detected based on driver if not provided.
+        Directory with migration files. Defaults to embedded SQLite migrations if not provided.
 
 Examples:
-    # Apply migrations (auto-detects from DATABASE_URL)
+    # Apply migrations (uses DATABASE_URL)
     migrate up
 
-    # Apply migrations with explicit driver and URL
-    migrate -driver sqlite3 -url ./database.db up
-
-    # Rollback last migration
-    migrate down
-
-    # Show migration status
-    migrate status
+    # Apply migrations with explicit URL
+    migrate -url ./database.db up
 
     # Create new migration
     migrate create add_users_table
-
-    # Create new migration for specific driver
-    migrate -driver postgres create add_users_table
 
 Environment Variables:
     DATABASE_URL    Database connection string (used if -url not provided)

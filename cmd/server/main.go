@@ -5,32 +5,18 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
-	_ "github.com/lib/pq"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/database"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const (
-	// SQLite connection pool settings
-	sqliteMaxOpenConns = 1 // SQLite works best with a single write connection
-
-	// SQLite WAL mode configuration
-	sqliteBusyTimeoutMs = 5000 // Timeout in milliseconds for SQLite busy operations
-
-	// PostgreSQL connection pool settings
-	postgresMaxOpenConns = 25 // Maximum number of open connections to PostgreSQL
-	postgresMaxIdleConns = 5  // Maximum number of idle connections in the pool
-)
-
-func main() {
+func main() {"
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -94,50 +80,18 @@ func main() {
 	}
 }
 
-// openDatabase opens a database connection based on the connection string
+// openDatabase opens a SQLite database connection.
 func openDatabase(dbURL string) (*sql.DB, error) {
-	// Determine database driver based on URL
-	driver := "sqlite3"
-	if strings.HasPrefix(dbURL, "postgres://") || strings.HasPrefix(dbURL, "postgresql://") {
-		driver = "postgres"
-	}
+	dsn := database.NormalizeSQLiteDSN(dbURL)
 
-	// For SQLite, enable WAL mode for better concurrency
-	// WAL allows concurrent readers while a write is in progress
-	if driver == "sqlite3" {
-		// Check if query parameters already contain _journal_mode
-		// Split on '?' to check only the query string portion
-		parts := strings.SplitN(dbURL, "?", 2)
-		hasJournalMode := len(parts) == 2 && strings.Contains(parts[1], "_journal_mode")
-
-		if !hasJournalMode {
-			if len(parts) == 2 {
-				// Query string exists, append with &
-				dbURL += fmt.Sprintf("&_journal_mode=WAL&_busy_timeout=%d", sqliteBusyTimeoutMs)
-			} else {
-				// No query string, start with ?
-				dbURL += fmt.Sprintf("?_journal_mode=WAL&_busy_timeout=%d", sqliteBusyTimeoutMs)
-			}
-		}
-	}
-
-	db, err := sql.Open(driver, dbURL)
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	// Configure connection pool based on database type
-	if driver == "sqlite3" {
-		// SQLite works best with a single write connection
-		// Multiple readers are fine, but limit concurrent writes
-		db.SetMaxOpenConns(sqliteMaxOpenConns)
-	} else {
-		// PostgreSQL can handle multiple connections
-		db.SetMaxOpenConns(postgresMaxOpenConns)
-		db.SetMaxIdleConns(postgresMaxIdleConns)
-	}
+	// SQLite works best with a single write connection.
+	db.SetMaxOpenConns(database.SQLiteMaxOpenConns)
 
-	// Verify connection
 	if err := db.Ping(); err != nil {
 		db.Close()
 		return nil, err
