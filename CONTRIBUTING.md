@@ -16,8 +16,8 @@ cd mjrwtf
 #### Install Code Generation Tools
 
 ```bash
-# Install sqlc (for database code generation)
-go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+# Install sqlc (for database code generation, requires v1.30.0+)
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
 
 # Install templ (for template code generation)
 go install github.com/a-h/templ/cmd/templ@latest

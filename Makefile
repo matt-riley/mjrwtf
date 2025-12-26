@@ -48,7 +48,7 @@ generate:
 		sqlc generate; \
 	else \
 		echo "Error: sqlc not installed. Install with:"; \
-		echo "  go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest"; \
+		echo "  go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0"; \
 		exit 1; \
 	fi
 	@if command -v templ >/dev/null 2>&1; then \
