@@ -94,7 +94,7 @@ func openDatabase(dbURL string) (*sql.DB, error) {
 		// Split on '?' to check only the query string portion
 		parts := strings.SplitN(dbURL, "?", 2)
 		hasJournalMode := len(parts) == 2 && strings.Contains(parts[1], "_journal_mode")
-		
+
 		if !hasJournalMode {
 			if len(parts) == 2 {
 				// Query string exists, append with &
