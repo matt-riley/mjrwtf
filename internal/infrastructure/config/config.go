@@ -48,17 +48,18 @@ func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
 	config := &Config{
-		DatabaseURL:       getEnv("DATABASE_URL", ""),
-		ServerPort:        getEnvAsInt("SERVER_PORT", 8080),
-		BaseURL:           getEnv("BASE_URL", "http://localhost:8080"),
-		AllowedOrigins:    getEnv("ALLOWED_ORIGINS", "*"),
-		AuthToken:         getEnv("AUTH_TOKEN", ""),
-		SecureCookies:     getEnvAsBool("SECURE_COOKIES", false),
-		DiscordWebhookURL: getEnv("DISCORD_WEBHOOK_URL", ""),
-		GeoIPEnabled:      getEnvAsBool("GEOIP_ENABLED", false),
-		GeoIPDatabase:     getEnv("GEOIP_DATABASE", ""),
-		LogLevel:          getEnv("LOG_LEVEL", "info"),
-		LogFormat:         getEnv("LOG_FORMAT", "json"),
+		DatabaseURL:        getEnv("DATABASE_URL", ""),
+		ServerPort:         getEnvAsInt("SERVER_PORT", 8080),
+		BaseURL:            getEnv("BASE_URL", "http://localhost:8080"),
+		AllowedOrigins:     getEnv("ALLOWED_ORIGINS", "*"),
+		AuthToken:          getEnv("AUTH_TOKEN", ""),
+		SecureCookies:      getEnvAsBool("SECURE_COOKIES", false),
+		DiscordWebhookURL:  getEnv("DISCORD_WEBHOOK_URL", ""),
+		GeoIPEnabled:       getEnvAsBool("GEOIP_ENABLED", false),
+		GeoIPDatabase:      getEnv("GEOIP_DATABASE", ""),
+		LogLevel:           getEnv("LOG_LEVEL", "info"),
+		LogFormat:          getEnv("LOG_FORMAT", "json"),
+		MetricsAuthEnabled: getEnvAsBool("METRICS_AUTH_ENABLED", false),
 	}
 
 	// Validate required configuration
