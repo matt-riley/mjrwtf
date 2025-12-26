@@ -218,6 +218,9 @@ Infrastructure → Adapters → Domain
 
 ## Code of Conduct
 
+Please read and follow [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
+Quick expectations:
 - Be respectful and inclusive
 - Focus on constructive feedback
 - Help others learn and grow
