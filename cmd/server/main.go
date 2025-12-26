@@ -16,7 +16,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func main() {"
+func main() {
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
