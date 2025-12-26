@@ -294,6 +294,66 @@ location /metrics {
 
 **Security Note:** The metrics endpoint may expose sensitive operational information including request rates, error rates, and resource usage. Always restrict access in production environments.
 
+## Configuration
+
+mjr.wtf is configured through environment variables. Below is a comprehensive list of all available configuration options.
+
+### Core Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DATABASE_URL` | Database connection string (SQLite: `./database.db`, PostgreSQL: `postgresql://user:pass@host:port/db`) | - | ✓ |
+| `AUTH_TOKEN` | Secret token for API authentication | - | ✓ |
+| `SERVER_PORT` | HTTP server port | `8080` | |
+| `BASE_URL` | Base URL for shortened links | `http://localhost:8080` | |
+
+### Database Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DB_TIMEOUT` | Timeout for database operations (e.g., `5s`, `100ms`, `1m`) | `5s` | |
+
+The `DB_TIMEOUT` setting applies a bounded deadline to all database operations, preventing queries from hanging indefinitely under network or database issues. This helps ensure that the application remains responsive even when the database is slow or experiencing problems.
+
+### Security Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `ALLOWED_ORIGINS` | CORS allowed origins (comma-separated) | `*` | |
+| `SECURE_COOKIES` | Enable secure cookies (requires HTTPS) | `false` | |
+| `METRICS_AUTH_ENABLED` | Require authentication for `/metrics` endpoint | `false` | |
+
+### Optional Features
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DISCORD_WEBHOOK_URL` | Discord webhook URL for error notifications | - | |
+| `GEOIP_ENABLED` | Enable GeoIP location tracking | `false` | |
+| `GEOIP_DATABASE` | Path to GeoIP database file | - | Required if `GEOIP_ENABLED=true` |
+
+### Logging Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `LOG_LEVEL` | Logging level (`debug`, `info`, `warn`, `error`) | `info` | |
+| `LOG_FORMAT` | Log format (`json`, `pretty`) | `json` | |
+
+### Example Configuration
+
+```bash
+# .env file
+DATABASE_URL=postgresql://mjrwtf:password@localhost:5432/mjrwtf
+AUTH_TOKEN=your-secret-token-here
+SERVER_PORT=8080
+BASE_URL=https://mjr.wtf
+DB_TIMEOUT=10s
+ALLOWED_ORIGINS=https://example.com,https://app.example.com
+SECURE_COOKIES=true
+LOG_LEVEL=info
+LOG_FORMAT=json
+METRICS_AUTH_ENABLED=true
+```
+
 ## Database Migrations
 
 This project uses [goose](https://github.com/pressly/goose) for database migrations, supporting both SQLite and PostgreSQL.
