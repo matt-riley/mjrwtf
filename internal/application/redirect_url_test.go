@@ -544,11 +544,17 @@ func TestRedirectURLUseCase_ShutdownRejectsNewTasks(t *testing.T) {
 
 	useCase := NewRedirectURLUseCase(urlRepo, clickRepo)
 
-	// Start shutdown in a goroutine
-	go useCase.Shutdown()
+	// Start shutdown in a goroutine and ensure it has started before proceeding
+	shutdownStarted := make(chan struct{})
+	go func() {
+		close(shutdownStarted) // Signal that shutdown is about to be called
+		useCase.Shutdown()
+	}()
 
-	// Give shutdown a moment to signal
-	time.Sleep(10 * time.Millisecond)
+	// Wait for the shutdown goroutine to start
+	<-shutdownStarted
+	// Give a small delay to ensure done channel is closed
+	time.Sleep(1 * time.Millisecond)
 
 	// Try to execute a redirect after shutdown
 	req := RedirectRequest{

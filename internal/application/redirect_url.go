@@ -158,7 +158,7 @@ func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) 
 	select {
 	case <-uc.done:
 		// Shutdown in progress - don't queue new analytics tasks
-		log.Printf("Shutdown in progress, dropping analytics for URL %s", req.ShortCode)
+		log.Printf("Shutdown in progress, dropping analytics")
 		return &RedirectResponse{
 			OriginalURL: foundURL.OriginalURL,
 		}, nil
@@ -180,7 +180,7 @@ func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) 
 		// Channel full, analytics data will be lost. Consider adding metrics/monitoring
 		// for dropped analytics to detect capacity issues during traffic spikes.
 		// Note: callback is NOT invoked here because no task was actually enqueued.
-		log.Printf("Click recording queue full for URL %s, dropping analytics", req.ShortCode)
+		log.Printf("Click recording queue full, dropping analytics")
 	}
 
 	return &RedirectResponse{
