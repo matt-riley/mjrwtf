@@ -9,7 +9,8 @@ import (
 )
 
 type Querier interface {
-	CountURLsByCreatedBy(ctx context.Context, arg CountURLsByCreatedByParams) (int64, error)
+	// Parameters: created_by_filter (pass empty string to count all URLs)
+	CountURLsByCreatedBy(ctx context.Context, createdByFilter interface{}) (int64, error)
 	// ============================================================================
 	// URL Queries
 	// ============================================================================

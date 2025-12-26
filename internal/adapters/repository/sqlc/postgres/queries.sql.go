@@ -14,16 +14,12 @@ import (
 const countURLsByCreatedBy = `-- name: CountURLsByCreatedBy :one
 SELECT COUNT(*) as count
 FROM urls
-WHERE ($1 = '' OR created_by = $2)
+WHERE ($1 = '' OR created_by = $1)
 `
 
-type CountURLsByCreatedByParams struct {
-	Column1   interface{} `json:"column_1"`
-	CreatedBy string      `json:"created_by"`
-}
-
-func (q *Queries) CountURLsByCreatedBy(ctx context.Context, arg CountURLsByCreatedByParams) (int64, error) {
-	row := q.queryRow(ctx, q.countURLsByCreatedByStmt, countURLsByCreatedBy, arg.Column1, arg.CreatedBy)
+// Parameters: created_by_filter (pass empty string to count all URLs)
+func (q *Queries) CountURLsByCreatedBy(ctx context.Context, createdByFilter interface{}) (int64, error) {
+	row := q.queryRow(ctx, q.countURLsByCreatedByStmt, countURLsByCreatedBy, createdByFilter)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
