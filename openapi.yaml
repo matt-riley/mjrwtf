@@ -1,0 +1,636 @@
+openapi: 3.0.3
+info:
+  title: mjr.wtf URL Shortener API
+  description: |
+    A URL shortener service built with Go following hexagonal architecture principles.
+    
+    ## Authentication
+    Most API endpoints require Bearer token authentication. Include your token in the Authorization header:
+    ```
+    Authorization: Bearer YOUR_TOKEN_HERE
+    ```
+    
+    ## Rate Limiting
+    The service implements rate limiting on the redirect endpoint to prevent abuse.
+  version: 1.0.0
+  contact:
+    name: mjr.wtf API Support
+  license:
+    name: MIT
+
+servers:
+  - url: https://mjr.wtf
+    description: Production server
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: urls
+    description: URL shortening operations
+  - name: analytics
+    description: Analytics and statistics
+  - name: health
+    description: Health and monitoring endpoints
+
+paths:
+  /api/urls:
+    post:
+      summary: Create shortened URL
+      description: Creates a new shortened URL. Requires authentication.
+      operationId: createURL
+      tags:
+        - urls
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateURLRequest'
+            examples:
+              basic:
+                summary: Basic URL shortening
+                value:
+                  original_url: "https://example.com/very/long/url/path"
+      responses:
+        '201':
+          description: URL successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateURLResponse'
+              examples:
+                success:
+                  summary: Successful creation
+                  value:
+                    short_code: "abc123"
+                    short_url: "https://mjr.wtf/abc123"
+                    original_url: "https://example.com/very/long/url/path"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    get:
+      summary: List user's URLs
+      description: |
+        Retrieves a paginated list of URLs created by the authenticated user.
+        Returns URLs with click counts.
+      operationId: listURLs
+      tags:
+        - urls
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of URLs to return (1-100)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of URLs to skip for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of URLs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListURLsResponse'
+              examples:
+                success:
+                  summary: Successful list response
+                  value:
+                    urls:
+                      - id: 1
+                        short_code: "abc123"
+                        original_url: "https://example.com"
+                        created_at: "2025-12-25T10:00:00Z"
+                        created_by: "user123"
+                        click_count: 42
+                      - id: 2
+                        short_code: "xyz789"
+                        original_url: "https://another-example.com"
+                        created_at: "2025-12-25T11:00:00Z"
+                        created_by: "user123"
+                        click_count: 15
+                    total: 2
+                    limit: 20
+                    offset: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/urls/{shortCode}:
+    delete:
+      summary: Delete URL
+      description: |
+        Deletes a shortened URL. Only the user who created the URL can delete it.
+      operationId: deleteURL
+      tags:
+        - urls
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: shortCode
+          in: path
+          description: Short code of the URL to delete
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]{3,20}$'
+            example: "abc123"
+      responses:
+        '204':
+          description: URL successfully deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/urls/{shortCode}/analytics:
+    get:
+      summary: Get URL analytics
+      description: |
+        Retrieves analytics data for a shortened URL including click counts,
+        geographic distribution, referrer information, and date-based statistics.
+        Only the URL creator can view analytics.
+      operationId: getAnalytics
+      tags:
+        - analytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: shortCode
+          in: path
+          description: Short code of the URL
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]{3,20}$'
+            example: "abc123"
+        - name: start_time
+          in: query
+          description: |
+            Filter clicks from this time (RFC3339 format).
+            Must be provided together with end_time.
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: "2025-11-20T00:00:00Z"
+        - name: end_time
+          in: query
+          description: |
+            Filter clicks until this time (RFC3339 format).
+            Must be provided together with start_time.
+            Must be strictly after start_time.
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: "2025-11-22T23:59:59Z"
+      responses:
+        '200':
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAnalyticsResponse'
+              examples:
+                all_time:
+                  summary: All-time analytics
+                  value:
+                    short_code: "abc123"
+                    original_url: "https://example.com"
+                    total_clicks: 150
+                    by_country:
+                      US: 75
+                      GB: 30
+                      DE: 25
+                      FR: 20
+                    by_referrer:
+                      "https://twitter.com": 50
+                      "https://reddit.com": 40
+                      "direct": 60
+                    by_date:
+                      "2025-12-20": 30
+                      "2025-12-21": 45
+                      "2025-12-22": 35
+                      "2025-12-23": 40
+                time_range:
+                  summary: Time range analytics
+                  value:
+                    short_code: "abc123"
+                    original_url: "https://example.com"
+                    total_clicks: 75
+                    by_country:
+                      US: 40
+                      GB: 20
+                      DE: 15
+                    by_referrer:
+                      "https://twitter.com": 30
+                      "direct": 45
+                    start_time: "2025-11-20T00:00:00Z"
+                    end_time: "2025-11-22T23:59:59Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /{shortCode}:
+    get:
+      summary: Redirect to original URL
+      description: |
+        Redirects to the original URL associated with the short code.
+        This endpoint is public and does not require authentication.
+        Click tracking is performed asynchronously.
+      operationId: redirect
+      tags:
+        - urls
+      parameters:
+        - name: shortCode
+          in: path
+          description: Short code to redirect
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]{3,20}$'
+            example: "abc123"
+      responses:
+        '302':
+          description: Redirect to original URL
+          headers:
+            Location:
+              description: The original URL to redirect to
+              schema:
+                type: string
+                format: uri
+                example: "https://example.com"
+        '404':
+          description: Short code not found
+          content:
+            text/html:
+              schema:
+                type: string
+                example: "404 Not Found"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      summary: Health check
+      description: Returns the health status of the service
+      operationId: healthCheck
+      tags:
+        - health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+              examples:
+                healthy:
+                  summary: Healthy service
+                  value:
+                    status: "ok"
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      description: |
+        Returns Prometheus metrics for monitoring.
+        Authentication may be required depending on server configuration (METRICS_AUTH_ENABLED).
+      operationId: getMetrics
+      tags:
+        - health
+      security:
+        - BearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP http_requests_total Total number of HTTP requests
+                  # TYPE http_requests_total counter
+                  http_requests_total{method="GET",path="/api/urls",status="200"} 42
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Bearer token authentication. Configure your token via the AUTH_TOKEN environment variable.
+        Include the token in the Authorization header: `Authorization: Bearer YOUR_TOKEN_HERE`
+
+  schemas:
+    CreateURLRequest:
+      type: object
+      required:
+        - original_url
+      properties:
+        original_url:
+          type: string
+          format: uri
+          description: The original URL to shorten (must include http:// or https://)
+          minLength: 1
+          pattern: '^https?://.+'
+          example: "https://example.com/very/long/url/path"
+
+    CreateURLResponse:
+      type: object
+      required:
+        - short_code
+        - short_url
+        - original_url
+      properties:
+        short_code:
+          type: string
+          description: The generated short code (3-20 alphanumeric characters, underscore, or hyphen)
+          pattern: '^[a-zA-Z0-9_-]{3,20}$'
+          example: "abc123"
+        short_url:
+          type: string
+          format: uri
+          description: The complete shortened URL
+          example: "https://mjr.wtf/abc123"
+        original_url:
+          type: string
+          format: uri
+          description: The original URL that was shortened
+          example: "https://example.com/very/long/url/path"
+
+    URLResponse:
+      type: object
+      required:
+        - id
+        - short_code
+        - original_url
+        - created_at
+        - created_by
+        - click_count
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier of the URL
+          example: 1
+        short_code:
+          type: string
+          description: The short code
+          pattern: '^[a-zA-Z0-9_-]{3,20}$'
+          example: "abc123"
+        original_url:
+          type: string
+          format: uri
+          description: The original URL
+          example: "https://example.com"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the URL was created (RFC3339)
+          example: "2025-12-25T10:00:00Z"
+        created_by:
+          type: string
+          description: User ID of the creator
+          example: "user123"
+        click_count:
+          type: integer
+          format: int64
+          description: Total number of clicks on this URL
+          minimum: 0
+          example: 42
+
+    ListURLsResponse:
+      type: object
+      required:
+        - urls
+        - total
+        - limit
+        - offset
+      properties:
+        urls:
+          type: array
+          description: Array of URLs
+          items:
+            $ref: '#/components/schemas/URLResponse'
+        total:
+          type: integer
+          description: Total number of URLs in current page
+          minimum: 0
+          example: 2
+        limit:
+          type: integer
+          description: Maximum number of URLs per page
+          minimum: 1
+          maximum: 100
+          example: 20
+        offset:
+          type: integer
+          description: Number of URLs skipped
+          minimum: 0
+          example: 0
+
+    GetAnalyticsResponse:
+      type: object
+      required:
+        - short_code
+        - original_url
+        - total_clicks
+        - by_country
+        - by_referrer
+      properties:
+        short_code:
+          type: string
+          description: The short code
+          pattern: '^[a-zA-Z0-9_-]{3,20}$'
+          example: "abc123"
+        original_url:
+          type: string
+          format: uri
+          description: The original URL
+          example: "https://example.com"
+        total_clicks:
+          type: integer
+          format: int64
+          description: Total number of clicks
+          minimum: 0
+          example: 150
+        by_country:
+          type: object
+          description: Click counts by country (ISO 3166-1 alpha-2 codes)
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          example:
+            US: 75
+            GB: 30
+            DE: 25
+        by_referrer:
+          type: object
+          description: Click counts by referrer URL
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          example:
+            "https://twitter.com": 50
+            "direct": 60
+        by_date:
+          type: object
+          description: Click counts by date (YYYY-MM-DD format). Only included for all-time statistics.
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          example:
+            "2025-12-20": 30
+            "2025-12-21": 45
+        start_time:
+          type: string
+          format: date-time
+          description: Start time of the query range (if specified)
+          example: "2025-11-20T00:00:00Z"
+        end_time:
+          type: string
+          format: date-time
+          description: End time of the query range (if specified)
+          example: "2025-11-22T23:59:59Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "invalid request body"
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_url:
+              summary: Invalid URL format
+              value:
+                error: "original URL must be a valid http or https URL"
+            missing_field:
+              summary: Missing required field
+              value:
+                error: "original_url is required"
+            invalid_time_range:
+              summary: Invalid time range
+              value:
+                error: "start_time must be strictly before end_time (equality not allowed)"
+
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_token:
+              summary: Missing authentication token
+              value:
+                error: "missing authorization header"
+            invalid_token:
+              summary: Invalid authentication token
+              value:
+                error: "invalid authorization token"
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            unauthorized_deletion:
+              summary: Attempting to delete another user's URL
+              value:
+                error: "unauthorized to delete this URL"
+
+    NotFound:
+      description: Not found - resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            url_not_found:
+              summary: Short code not found
+              value:
+                error: "URL not found"
+
+    Conflict:
+      description: Conflict - resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            duplicate_short_code:
+              summary: Short code already exists
+              value:
+                error: "short code already exists"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            server_error:
+              summary: Generic server error
+              value:
+                error: "internal server error"

@@ -153,7 +153,12 @@ jobs:
         with:
           version: v1.56.0
           args: --timeout=5m
-        continue-on-error: true
+        continue-on-error: true      
+      - name: Validate OpenAPI spec
+        run: |
+          npm install -g @apidevtools/swagger-cli
+          swagger-cli validate openapi.yaml
+      
 
   build:
     name: Build
