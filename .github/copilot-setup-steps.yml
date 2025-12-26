@@ -9,8 +9,9 @@ steps:
   # Step 1: Verify Go version
   - name: Check Go version
     run: |
-      go version
-      if ! go version | grep -q "go1.24"; then
+      GOV=$(go version)
+      echo "$GOV"
+      if ! echo "$GOV" | grep -q "go1.24"; then
         echo "Warning: Go 1.24.2+ recommended"
       fi
 
@@ -24,7 +25,10 @@ steps:
   # Step 3: Install sqlc (CRITICAL)
   - name: Install sqlc
     run: |
-      go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+      if ! command -v sqlc >/dev/null 2>&1; then
+        go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+      fi
+      sqlc version
     timeout: 60
 
   # Step 4: Generate sqlc code (CRITICAL - required before compilation)
@@ -38,17 +42,29 @@ steps:
   # Step 5: Install golangci-lint
   - name: Install golangci-lint
     run: |
-      curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | \
-        sh -s -- -b $(go env GOPATH)/bin v1.56.0
+      if ! command -v golangci-lint >/dev/null 2>&1; then
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | \
+          sh -s -- -b $(go env GOPATH)/bin v1.56.0
+      fi
+      golangci-lint version
     timeout: 120
 
-  # Step 6: Build migrate tool
+  # Step 6: Build migrate tool (optional; enable with BUILD_MIGRATE=1)
   - name: Build migration tool
-    run: make build-migrate
+    run: |
+      if [ "${BUILD_MIGRATE:-0}" != "1" ]; then
+        echo "Skipping migrate tool build (set BUILD_MIGRATE=1 to enable)"
+      else
+        if [ ! -x ./bin/migrate ]; then
+          make build-migrate
+        else
+          echo "bin/migrate already built"
+        fi
+      fi
     timeout: 30
     description: |
       Builds the migration CLI tool used for database migrations.
-      Required for any migration-related changes.
+      Enable by setting BUILD_MIGRATE=1.
 
   # Step 7: Set up test environment
   - name: Setup test environment
