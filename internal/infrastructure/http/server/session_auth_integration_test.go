@@ -48,6 +48,7 @@ func TestSessionBasedAPIAuthentication(t *testing.T) {
 		SecureCookies:  false,
 		LogLevel:       "error",
 		LogFormat:      "json",
+		DBTimeout:      5 * time.Second,
 	}
 
 	// Create server
@@ -206,6 +207,7 @@ func TestSessionAndBearerAuthCoexist(t *testing.T) {
 		SecureCookies:  false,
 		LogLevel:       "error",
 		LogFormat:      "json",
+		DBTimeout:      5 * time.Second,
 	}
 
 	// Create server

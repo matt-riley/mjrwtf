@@ -13,6 +13,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/adapters/notification"
 	"github.com/matt-riley/mjrwtf/internal/adapters/repository"
 	"github.com/matt-riley/mjrwtf/internal/application"
+	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/handlers"
@@ -153,9 +154,27 @@ func (s *Server) setupRoutes() error {
 		s.router.Handle("/metrics", s.metrics.Handler())
 	}
 
-	// Initialize repositories (SQLite-only)
-	urlRepo := repository.NewSQLiteURLRepository(s.db)
-	clickRepo := repository.NewSQLiteClickRepository(s.db)
+	// Initialize repositories based on database driver
+	var urlRepo url.Repository
+	var clickRepo click.Repository
+	if strings.HasPrefix(s.config.DatabaseURL, "postgres://") || strings.HasPrefix(s.config.DatabaseURL, "postgresql://") {
+		urlRepo = repository.NewPostgresURLRepository(s.db)
+		clickRepo = repository.NewPostgresClickRepository(s.db)
+	} else {
+		urlRepo = repository.NewSQLiteURLRepository(s.db)
+		clickRepo = repository.NewSQLiteClickRepository(s.db)
+	}
+
+	// Defensive defaults: server.New can be called with a manually-constructed config
+	// (e.g. in tests), which bypasses config.LoadConfig() validation/defaults.
+	dbTimeout := s.config.DBTimeout
+	if dbTimeout <= 0 {
+		dbTimeout = 5 * time.Second
+	}
+
+	// Wrap repositories with timeout middleware to ensure all database operations have bounded execution time
+	urlRepo = repository.NewURLRepositoryWithTimeout(urlRepo, dbTimeout)
+	clickRepo = repository.NewClickRepositoryWithTimeout(clickRepo, dbTimeout)
 
 	// Initialize URL generator
 	generator, err := url.NewGenerator(urlRepo, url.DefaultGeneratorConfig())

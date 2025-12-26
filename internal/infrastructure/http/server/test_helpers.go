@@ -3,7 +3,9 @@ package server
 import (
 	"database/sql"
 	"testing"
+	"time"
 
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/migrations"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
@@ -32,6 +34,18 @@ func setupTestDB(tb testing.TB) *sql.DB {
 	}
 
 	return db
+}
+
+// testConfig creates a test configuration with sensible defaults
+func testConfig() *config.Config {
+	return &config.Config{
+		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
+		DBTimeout:      5 * time.Second,
+	}
 }
 
 // verifyTablesExist checks that required tables exist in the database

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -43,6 +44,9 @@ type Config struct {
 
 	// Metrics configuration
 	MetricsAuthEnabled bool // Enable authentication for /metrics endpoint (default: false)
+
+	// Database operation timeout configuration
+	DBTimeout time.Duration // Timeout for database operations (default: 5s)
 }
 
 // LoadConfig loads configuration from environment variables and .env file
@@ -66,6 +70,7 @@ func LoadConfig() (*Config, error) {
 		LogLevel:                   getEnv("LOG_LEVEL", "info"),
 		LogFormat:                  getEnv("LOG_FORMAT", "json"),
 		MetricsAuthEnabled:         getEnvAsBool("METRICS_AUTH_ENABLED", false),
+		DBTimeout:                  getEnvAsDuration("DB_TIMEOUT", 5*time.Second),
 	}
 
 	// Validate required configuration
@@ -137,6 +142,22 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 	}
 
 	value, err := strconv.ParseBool(valueStr)
+	if err != nil {
+		return defaultValue
+	}
+
+	return value
+}
+
+// getEnvAsDuration gets an environment variable as a duration with a fallback default value
+// Duration should be specified as a string like "5s", "100ms", "1m30s"
+func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultValue
+	}
+
+	value, err := time.ParseDuration(valueStr)
 	if err != nil {
 		return defaultValue
 	}
