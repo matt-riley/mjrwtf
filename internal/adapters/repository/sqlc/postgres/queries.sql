@@ -32,9 +32,10 @@ WHERE created_by = $1
 ORDER BY created_at DESC;
 
 -- name: CountURLsByCreatedBy :one
+-- Parameters: created_by_filter (pass empty string to count all URLs)
 SELECT COUNT(*) as count
 FROM urls
-WHERE ($1 = '' OR created_by = $2);
+WHERE (sqlc.arg(created_by_filter) = '' OR created_by = sqlc.arg(created_by_filter));
 
 -- ============================================================================
 -- Click Queries
