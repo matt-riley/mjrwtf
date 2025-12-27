@@ -70,6 +70,7 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 	// Middleware stack (order matters)
 	r.Use(middleware.RecoveryWithNotifier(logger, discordNotifier)) // Recover from panics first, with Discord notifications
 	r.Use(middleware.RequestID)                                     // Generate/propagate request ID
+	r.Use(middleware.SecurityHeaders(cfg.EnableHSTS))               // Set security headers
 	r.Use(middleware.InjectLogger(logger))                          // Inject logger with request context
 	r.Use(middleware.Logger)                                        // Log all requests
 	r.Use(middleware.PrometheusMetrics(m))                          // Record Prometheus metrics

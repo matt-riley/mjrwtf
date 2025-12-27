@@ -449,3 +449,138 @@ func ExampleServer_Start() {
 	ctx := context.Background()
 	srv.Shutdown(ctx)
 }
+
+func TestServer_SecurityHeaders_HTMLRoute(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := testConfig()
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	// Verify security headers are set on HTML routes
+	expectedHeaders := map[string]string{
+		"X-Content-Type-Options":  "nosniff",
+		"X-Frame-Options":         "DENY",
+		"Referrer-Policy":         "strict-origin-when-cross-origin",
+		"Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+	}
+
+	for headerName, expectedValue := range expectedHeaders {
+		actualValue := rec.Header().Get(headerName)
+		if actualValue != expectedValue {
+			t.Errorf("expected %s header %q, got %q", headerName, expectedValue, actualValue)
+		}
+	}
+
+	// HSTS should not be set by default (EnableHSTS defaults to false)
+	hsts := rec.Header().Get("Strict-Transport-Security")
+	if hsts != "" {
+		t.Errorf("expected no Strict-Transport-Security header by default, got %q", hsts)
+	}
+}
+
+func TestServer_SecurityHeaders_APIRoute(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := testConfig()
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+	req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	// Verify security headers are set on API routes
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Error("expected X-Content-Type-Options header on API route")
+	}
+
+	if rec.Header().Get("X-Frame-Options") != "DENY" {
+		t.Error("expected X-Frame-Options header on API route")
+	}
+
+	if rec.Header().Get("Referrer-Policy") != "strict-origin-when-cross-origin" {
+		t.Error("expected Referrer-Policy header on API route")
+	}
+
+	if rec.Header().Get("Content-Security-Policy") == "" {
+		t.Error("expected Content-Security-Policy header on API route")
+	}
+}
+
+func TestServer_SecurityHeaders_HSTS_Enabled(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := &config.Config{
+		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
+		EnableHSTS:     true, // Enable HSTS
+	}
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	// Verify HSTS header is set when enabled
+	hsts := rec.Header().Get("Strict-Transport-Security")
+	expectedHSTS := "max-age=31536000; includeSubDomains"
+	if hsts != expectedHSTS {
+		t.Errorf("expected HSTS header %q, got %q", expectedHSTS, hsts)
+	}
+}
+
+func TestServer_SecurityHeaders_HSTS_Disabled(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := &config.Config{
+		ServerPort:     8080,
+		BaseURL:        "http://localhost:8080",
+		DatabaseURL:    "test.db",
+		AuthToken:      "test-token",
+		AllowedOrigins: "*",
+		EnableHSTS:     false, // Disable HSTS
+	}
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	// Verify HSTS header is not set when disabled
+	hsts := rec.Header().Get("Strict-Transport-Security")
+	if hsts != "" {
+		t.Errorf("expected no HSTS header when disabled, got %q", hsts)
+	}
+}
+
