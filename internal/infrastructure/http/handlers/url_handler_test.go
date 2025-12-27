@@ -170,7 +170,7 @@ func TestURLHandler_Create(t *testing.T) {
 
 			var reqBody *bytes.Reader
 			if tt.requestBody == "__OVERSIZED__" {
-				big := bytes.Repeat([]byte("a"), 1024*1024) // + framing => > 1MB
+				big := bytes.Repeat([]byte("a"), 1024*1024+1) // strictly > 1MB before JSON framing
 				payload := append([]byte(`{"original_url":"https://example.com/`), big...)
 				payload = append(payload, []byte(`"}`)...)
 				reqBody = bytes.NewReader(payload)
