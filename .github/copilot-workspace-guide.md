@@ -18,6 +18,12 @@ This guide helps you work effectively with GitHub Copilot to generate high-quali
 4. **Verify migrations** - Test both `up` and `down` if database changes
 5. **Review test coverage** - Ensure new code has adequate tests
 
+### Recommended Workflow (Copilot CLI)
+
+For complex work in **Copilot CLI**, use **Research → Plan → Implement → Validate** with `/context` (stay <~60%), `/clear` between phases, and `/share` artifacts into `thoughts/`.
+
+Tip: run `/skills reload` then `/skills info rpi-workflow` for copy/paste prompt templates.
+
 ## What Copilot Does Well For This Project
 
 ### ✅ Excellent Performance

@@ -36,3 +36,6 @@ go.work
 # Test databases
 test_database.db
 *.db
+
+# Copilot CLI / agent working memory (keep local)
+thoughts/

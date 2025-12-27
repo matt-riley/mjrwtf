@@ -20,6 +20,16 @@
 - `cmd/server/` - HTTP server application
 - `docs/` - Database schema documentation
 
+## Preferred Copilot CLI Workflow (RPI-V)
+
+For non-trivial work, follow **Research → Plan → Implement → Validate** and manage context deliberately:
+
+- Keep context under ~60% (use `/context`).
+- Clear between phases (`/clear`) after saving artifacts.
+- Persist research/plan/validation notes via `/share` into a local `thoughts/` directory.
+
+See the `rpi-workflow` skill for templates and a concrete flow.
+
 ## Critical Build Prerequisites
 
 **ALWAYS run these commands in this exact order before building or testing:**
