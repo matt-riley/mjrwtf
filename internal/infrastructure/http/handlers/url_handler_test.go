@@ -104,6 +104,14 @@ func TestURLHandler_Create(t *testing.T) {
 			expectedBody:   `{"error":"invalid JSON"}`,
 		},
 		{
+			name:           "multiple JSON values are rejected",
+			requestBody:    `{"original_url":"https://example.com"}{"original_url":"https://example.com"}`,
+			userID:         "test-user",
+			hasUserID:      true,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error":"invalid JSON"}`,
+		},
+		{
 			name:           "oversized JSON body",
 			requestBody:    "__OVERSIZED__",
 			userID:         "test-user",
