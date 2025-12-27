@@ -98,6 +98,11 @@ func TestReadyCheckHandler_Ready(t *testing.T) {
 	if rec.Body.String() != expected {
 		t.Errorf("expected response %s, got %s", expected, rec.Body.String())
 	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("expected Content-Type application/json, got %s", contentType)
+	}
 }
 
 func TestReadyCheckHandler_UnavailableWhenDBClosed(t *testing.T) {
@@ -123,6 +128,11 @@ func TestReadyCheckHandler_UnavailableWhenDBClosed(t *testing.T) {
 	expected := `{"status":"unavailable"}`
 	if rec.Body.String() != expected {
 		t.Errorf("expected response %s, got %s", expected, rec.Body.String())
+	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("expected Content-Type application/json, got %s", contentType)
 	}
 }
 
@@ -500,4 +510,29 @@ func ExampleServer_Start() {
 	// Graceful shutdown on signal...
 	ctx := context.Background()
 	srv.Shutdown(ctx)
+}
+
+func TestReadyCheckHandler_UnavailableWhenDBNil(t *testing.T) {
+	cfg := testConfig()
+
+	srv := &Server{config: cfg, db: nil}
+
+	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+	rec := httptest.NewRecorder()
+
+	srv.readyCheckHandler(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected status %d, got %d", http.StatusServiceUnavailable, rec.Code)
+	}
+
+	expected := `{"status":"unavailable"}`
+	if rec.Body.String() != expected {
+		t.Errorf("expected response %s, got %s", expected, rec.Body.String())
+	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("expected Content-Type application/json, got %s", contentType)
+	}
 }
