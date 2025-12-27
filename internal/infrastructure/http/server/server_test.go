@@ -471,7 +471,7 @@ func TestServer_SecurityHeaders_HTMLRoute(t *testing.T) {
 		"X-Content-Type-Options":  "nosniff",
 		"X-Frame-Options":         "DENY",
 		"Referrer-Policy":         "strict-origin-when-cross-origin",
-		"Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+		"Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
 	}
 
 	for headerName, expectedValue := range expectedHeaders {

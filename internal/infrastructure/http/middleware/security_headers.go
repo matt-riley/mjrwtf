@@ -13,7 +13,7 @@ import "net/http"
 //   - Strict-Transport-Security: HSTS (only if enableHSTS is true)
 //
 // The CSP policy allows:
-//   - Scripts from self and Tailwind CDN (unsafe-inline for templ inline scripts)
+//   - Scripts from self, Tailwind CDN, and unpkg.com (unsafe-inline for templ inline scripts)
 //   - Styles from self (unsafe-inline for templ inline styles)
 //   - Images from self and data URIs
 //   - Frame ancestors: none (same as X-Frame-Options: DENY)
@@ -34,11 +34,11 @@ func SecurityHeaders(enableHSTS bool) func(http.Handler) http.Handler {
 			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
 			// Content Security Policy
-			// Note: 'unsafe-inline' is required for templ-generated inline scripts/styles
-			// and Tailwind CDN script
+			// Note: 'unsafe-inline' is required for templ-generated inline scripts/styles.
+			// The Tailwind CDN and unpkg.com (for HTMX) are explicitly allowed via their URLs.
 			w.Header().Set("Content-Security-Policy",
 				"default-src 'self'; "+
-					"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "+
+					"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; "+
 					"style-src 'self' 'unsafe-inline'; "+
 					"img-src 'self' data:; "+
 					"font-src 'self'; "+

@@ -102,7 +102,7 @@ func TestSecurityHeaders_ValuesCorrect(t *testing.T) {
 			name:   "Content-Security-Policy",
 			header: "Content-Security-Policy",
 			expected: "default-src 'self'; " +
-				"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; " +
+				"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; " +
 				"style-src 'self' 'unsafe-inline'; " +
 				"img-src 'self' data:; " +
 				"font-src 'self'; " +
