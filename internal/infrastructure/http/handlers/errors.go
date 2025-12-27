@@ -87,6 +87,19 @@ func parseQueryInt(r *http.Request, key string, defaultValue int) int {
 
 const maxJSONBodyBytes int64 = 1 << 20 // 1MB
 
+type jsonUnknownFieldError struct {
+	Field string
+}
+
+func (e *jsonUnknownFieldError) Error() string {
+	if e.Field == "" {
+		return "unknown field"
+	}
+	return "unknown field: " + e.Field
+}
+
+// decodeJSONBody decodes a JSON request body with strict validation including size limits,
+// unknown field rejection, and single-value enforcement.
 func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
 	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
 
@@ -94,6 +107,13 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(dst); err != nil {
+		// encoding/json returns an *errors.errorString for unknown fields, so normalize it
+		// into a typed error we can match on without depending on string checks elsewhere.
+		if strings.HasPrefix(err.Error(), "json: unknown field ") {
+			field := strings.TrimPrefix(err.Error(), "json: unknown field ")
+			field = strings.Trim(field, "\"")
+			return &jsonUnknownFieldError{Field: field}
+		}
 		return err
 	}
 
@@ -105,6 +125,7 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
 	return nil
 }
 
+// respondJSONDecodeError writes an appropriate error response based on the JSON decoding error type.
 func respondJSONDecodeError(w http.ResponseWriter, err error) {
 	var maxBytesErr *http.MaxBytesError
 	if errors.As(err, &maxBytesErr) {
@@ -112,8 +133,25 @@ func respondJSONDecodeError(w http.ResponseWriter, err error) {
 		return
 	}
 
-	// Keep decode errors consistent while still surfacing unknown fields.
-	if strings.HasPrefix(err.Error(), "json: unknown field ") {
+	var unknownFieldErr *jsonUnknownFieldError
+	if errors.As(err, &unknownFieldErr) {
+		respondError(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		respondError(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	var unmarshalTypeErr *json.UnmarshalTypeError
+	if errors.As(err, &unmarshalTypeErr) {
+		respondError(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if errors.Is(err, io.ErrUnexpectedEOF) {
 		respondError(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
