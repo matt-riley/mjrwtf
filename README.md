@@ -66,7 +66,10 @@ make migrate-up
 make docker-compose-up
 
 # 4. Verify the application is running
+# Liveness:
 curl http://localhost:8080/health
+
+# Readiness (checks DB connectivity):
 curl http://localhost:8080/ready
 
 # View logs
