@@ -46,6 +46,9 @@ func SecurityHeaders(enableHSTS bool) func(http.Handler) http.Handler {
 					"frame-ancestors 'none'")
 
 			// HSTS (only when behind TLS - configurable via environment)
+			// Note: The 'preload' directive is intentionally omitted by default.
+			// To enable HSTS preload, add '; preload' after verifying HTTPS works
+			// across all subdomains and understanding it's difficult to undo.
 			if enableHSTS {
 				w.Header().Set("Strict-Transport-Security",
 					"max-age=31536000; includeSubDomains")
