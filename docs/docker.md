@@ -29,7 +29,7 @@ All images support both `linux/amd64` and `linux/arm64` architectures.
 ## Overview
 
 The project includes a multi-stage Dockerfile that:
-- Uses `golang:1.25-alpine` for building (with CGO support for SQLite)
+- Uses `golang:1.24-alpine` for building (with CGO support for SQLite)
 - Uses `alpine:latest` for the runtime image
 - Creates a minimal, secure container (~20-30MB without GeoIP database)
 - Runs as a non-root user for security
