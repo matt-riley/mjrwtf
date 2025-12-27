@@ -527,14 +527,8 @@ func TestServer_SecurityHeaders_HSTS_Enabled(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-		EnableHSTS:     true, // Enable HSTS
-	}
+	cfg := testConfig()
+	cfg.EnableHSTS = true // Enable HSTS
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
@@ -558,14 +552,8 @@ func TestServer_SecurityHeaders_HSTS_Disabled(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	cfg := &config.Config{
-		ServerPort:     8080,
-		BaseURL:        "http://localhost:8080",
-		DatabaseURL:    "test.db",
-		AuthToken:      "test-token",
-		AllowedOrigins: "*",
-		EnableHSTS:     false, // Disable HSTS
-	}
+	cfg := testConfig()
+	// EnableHSTS defaults to false, no need to set it
 
 	srv, err := New(cfg, db, testLogger())
 	if err != nil {
