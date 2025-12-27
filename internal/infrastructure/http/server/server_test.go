@@ -571,4 +571,3 @@ func TestServer_SecurityHeaders_HSTS_Disabled(t *testing.T) {
 		t.Errorf("expected no HSTS header when disabled, got %q", hsts)
 	}
 }
-
