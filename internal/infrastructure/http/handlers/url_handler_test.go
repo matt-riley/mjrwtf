@@ -93,7 +93,23 @@ func TestURLHandler_Create(t *testing.T) {
 			userID:         "test-user",
 			hasUserID:      true,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"invalid request body"}`,
+			expectedBody:   `{"error":"invalid JSON"}`,
+		},
+		{
+			name:           "unknown fields are rejected",
+			requestBody:    `{"original_url":"https://example.com","extra":"nope"}`,
+			userID:         "test-user",
+			hasUserID:      true,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error":"invalid JSON"}`,
+		},
+		{
+			name:           "oversized JSON body",
+			requestBody:    "__OVERSIZED__",
+			userID:         "test-user",
+			hasUserID:      true,
+			expectedStatus: http.StatusRequestEntityTooLarge,
+			expectedBody:   `{"error":"request body too large"}`,
 		},
 		{
 			name:           "empty original URL",
@@ -144,7 +160,17 @@ func TestURLHandler_Create(t *testing.T) {
 
 			handler := NewURLHandler(mockCreate, nil, nil)
 
-			req := httptest.NewRequest(http.MethodPost, "/api/urls", bytes.NewBufferString(tt.requestBody))
+			var reqBody *bytes.Reader
+			if tt.requestBody == "__OVERSIZED__" {
+				big := bytes.Repeat([]byte("a"), 1024*1024) // + framing => > 1MB
+				payload := append([]byte(`{"original_url":"https://example.com/`), big...)
+				payload = append(payload, []byte(`"}`)...)
+				reqBody = bytes.NewReader(payload)
+			} else {
+				reqBody = bytes.NewReader([]byte(tt.requestBody))
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/api/urls", reqBody)
 			req.Header.Set("Content-Type", "application/json")
 
 			if tt.hasUserID {

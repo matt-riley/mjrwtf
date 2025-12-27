@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 )
@@ -81,4 +83,40 @@ func parseQueryInt(r *http.Request, key string, defaultValue int) int {
 	}
 
 	return value
+}
+
+const maxJSONBodyBytes int64 = 1 << 20 // 1MB
+
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, dst any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+
+	if err := dec.Decode(dst); err != nil {
+		return err
+	}
+
+	// Ensure there's only one JSON value.
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return errors.New("request body must contain a single JSON value")
+	}
+
+	return nil
+}
+
+func respondJSONDecodeError(w http.ResponseWriter, err error) {
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(err, &maxBytesErr) {
+		respondError(w, "request body too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	// Keep decode errors consistent while still surfacing unknown fields.
+	if strings.HasPrefix(err.Error(), "json: unknown field ") {
+		respondError(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	respondError(w, "invalid JSON", http.StatusBadRequest)
 }
