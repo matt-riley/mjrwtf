@@ -45,6 +45,9 @@ type Config struct {
 	// Metrics configuration
 	MetricsAuthEnabled bool // Enable authentication for /metrics endpoint (default: false)
 
+	// Security headers configuration
+	EnableHSTS bool // Enable Strict-Transport-Security header (default: false, only enable when behind TLS)
+
 	// Database operation timeout configuration
 	DBTimeout time.Duration // Timeout for database operations (default: 5s)
 }
@@ -70,6 +73,7 @@ func LoadConfig() (*Config, error) {
 		LogLevel:                   getEnv("LOG_LEVEL", "info"),
 		LogFormat:                  getEnv("LOG_FORMAT", "json"),
 		MetricsAuthEnabled:         getEnvAsBool("METRICS_AUTH_ENABLED", false),
+		EnableHSTS:                 getEnvAsBool("ENABLE_HSTS", false),
 		DBTimeout:                  getEnvAsDuration("DB_TIMEOUT", 5*time.Second),
 	}
 
