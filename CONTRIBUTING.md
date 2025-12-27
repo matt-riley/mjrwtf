@@ -88,7 +88,7 @@ refactor: simplify repository error handling
 
 - Run `make lint` before committing
 - Fix all linter warnings (except known false positives)
-- Known false positive: "undefined: postgresrepo/sqliterepo" - ignore if tests pass
+- Known false positive: "undefined: sqliterepo" - ignore if tests pass
 
 ### Documentation
 

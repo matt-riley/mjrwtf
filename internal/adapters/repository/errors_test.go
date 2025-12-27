@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/lib/pq"
 	"github.com/mattn/go-sqlite3"
 )
 
@@ -52,49 +51,6 @@ func TestIsSQLiteUniqueConstraintError(t *testing.T) {
 	}
 }
 
-func TestIsPostgresUniqueConstraintError(t *testing.T) {
-	tests := []struct {
-		name string
-		err  error
-		want bool
-	}{
-		{
-			name: "nil error returns false",
-			err:  nil,
-			want: false,
-		},
-		{
-			name: "generic error returns false",
-			err:  errors.New("some error"),
-			want: false,
-		},
-		{
-			name: "PostgreSQL unique constraint error returns true",
-			err:  &pq.Error{Code: "23505"},
-			want: true,
-		},
-		{
-			name: "PostgreSQL different constraint error returns false",
-			err:  &pq.Error{Code: "23503"}, // foreign key violation
-			want: false,
-		},
-		{
-			name: "PostgreSQL non-constraint error returns false",
-			err:  &pq.Error{Code: "42P01"}, // undefined_table
-			want: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := IsPostgresUniqueConstraintError(tt.err)
-			if got != tt.want {
-				t.Errorf("IsPostgresUniqueConstraintError() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestIsUniqueConstraintError(t *testing.T) {
 	tests := []struct {
 		name string
@@ -109,11 +65,6 @@ func TestIsUniqueConstraintError(t *testing.T) {
 		{
 			name: "SQLite unique constraint error returns true",
 			err:  sqlite3.Error{Code: sqlite3.ErrConstraint, ExtendedCode: sqlite3.ErrConstraintUnique},
-			want: true,
-		},
-		{
-			name: "PostgreSQL unique constraint error returns true",
-			err:  &pq.Error{Code: "23505"},
 			want: true,
 		},
 		{
@@ -214,20 +165,6 @@ func TestMapSQLError(t *testing.T) {
 			want:         errDuplicate,
 		},
 		{
-			name:         "PostgreSQL unique constraint mapped to duplicateErr",
-			err:          &pq.Error{Code: "23505"},
-			notFoundErr:  errNotFound,
-			duplicateErr: errDuplicate,
-			want:         errDuplicate,
-		},
-		{
-			name:         "unique constraint with nil duplicateErr wraps as database error",
-			err:          &pq.Error{Code: "23505"},
-			notFoundErr:  errNotFound,
-			duplicateErr: nil,
-			wantWrapped:  &pq.Error{Code: "23505"},
-		},
-		{
 			name:         "generic error wraps as database error",
 			err:          errors.New("connection failed"),
 			notFoundErr:  errNotFound,
@@ -266,7 +203,7 @@ func TestMapSQLError_BothNil(t *testing.T) {
 		},
 		{
 			name: "unique constraint with both nil",
-			err:  &pq.Error{Code: "23505"},
+			err:  sqlite3.Error{Code: sqlite3.ErrConstraint, ExtendedCode: sqlite3.ErrConstraintUnique},
 		},
 	}
 

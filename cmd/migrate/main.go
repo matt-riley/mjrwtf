@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/database"
 	"github.com/matt-riley/mjrwtf/internal/migrations"
@@ -50,6 +51,11 @@ func main() {
 		useEmbeddedFS = true
 		*dir = migrations.SQLiteDir
 		migrationsFS = migrations.SQLiteMigrations
+	}
+
+	if strings.Contains(*dbURL, "://") {
+		scheme, _, _ := strings.Cut(strings.ToLower(*dbURL), "://")
+		log.Fatalf("Unsupported DATABASE_URL scheme %q: migrate tool currently supports SQLite only", scheme)
 	}
 
 	dsn := database.NormalizeSQLiteDSN(*dbURL)

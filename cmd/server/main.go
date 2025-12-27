@@ -5,8 +5,10 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
@@ -82,6 +84,13 @@ func main() {
 
 // openDatabase opens a SQLite database connection.
 func openDatabase(dbURL string) (*sql.DB, error) {
+	// Fail fast if DATABASE_URL looks like a network URL,
+	// instead of letting sqlite create a local file literally named after it.
+	if strings.Contains(dbURL, "://") {
+		scheme, _, _ := strings.Cut(strings.ToLower(dbURL), "://")
+		return nil, fmt.Errorf("unsupported DATABASE_URL scheme %q: server currently supports SQLite file paths only", scheme)
+	}
+
 	dsn := database.NormalizeSQLiteDSN(dbURL)
 
 	db, err := sql.Open("sqlite3", dsn)

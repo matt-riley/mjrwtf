@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -85,6 +86,13 @@ func LoadConfig() (*Config, error) {
 func (c *Config) Validate() error {
 	if c.DatabaseURL == "" {
 		return fmt.Errorf("DATABASE_URL is required")
+	}
+
+	// SQLite-only: reject URL-form connection strings (e.g. network URLs),
+	// to avoid sqlite creating a local file literally named after the URL.
+	if strings.Contains(c.DatabaseURL, "://") {
+		scheme, _, _ := strings.Cut(strings.ToLower(c.DatabaseURL), "://")
+		return fmt.Errorf("DATABASE_URL has unsupported scheme %q (SQLite file paths only)", scheme)
 	}
 
 	if c.AuthToken == "" {
