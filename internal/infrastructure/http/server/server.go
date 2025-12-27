@@ -159,16 +159,9 @@ func (s *Server) setupRoutes() error {
 		s.router.Handle("/metrics", s.metrics.Handler())
 	}
 
-	// Initialize repositories based on database driver
-	var urlRepo url.Repository
-	var clickRepo click.Repository
-	if strings.HasPrefix(s.config.DatabaseURL, "postgres://") || strings.HasPrefix(s.config.DatabaseURL, "postgresql://") {
-		urlRepo = repository.NewPostgresURLRepository(s.db)
-		clickRepo = repository.NewPostgresClickRepository(s.db)
-	} else {
-		urlRepo = repository.NewSQLiteURLRepository(s.db)
-		clickRepo = repository.NewSQLiteClickRepository(s.db)
-	}
+	// Initialize repositories (SQLite only)
+	var urlRepo url.Repository = repository.NewSQLiteURLRepository(s.db)
+	var clickRepo click.Repository = repository.NewSQLiteClickRepository(s.db)
 
 	// Defensive defaults: server.New can be called with a manually-constructed config
 	// (e.g. in tests), which bypasses config.LoadConfig() validation/defaults.

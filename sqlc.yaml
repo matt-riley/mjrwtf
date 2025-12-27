@@ -17,20 +17,3 @@ sql:
         emit_empty_slices: true
         emit_exact_table_names: false
         emit_pointers_for_null_types: true
-  - name: "postgres"
-    engine: "postgresql"
-    schema: 
-      - "internal/migrations/postgres/00001_initial_schema.sql"
-      - "internal/migrations/postgres/00002_add_referrer_domain.sql"
-    queries: "internal/adapters/repository/sqlc/postgres/queries.sql"
-    gen:
-      go:
-        package: "postgresrepo"
-        out: "internal/adapters/repository/sqlc/postgres"
-        sql_package: "database/sql"
-        emit_json_tags: true
-        emit_prepared_queries: true
-        emit_interface: true
-        emit_empty_slices: true
-        emit_exact_table_names: false
-        emit_pointers_for_null_types: true

@@ -5,39 +5,24 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/lib/pq"
 	"github.com/mattn/go-sqlite3"
 )
 
-// IsSQLiteUniqueConstraintError checks if the error is a SQLite unique constraint violation
+// IsSQLiteUniqueConstraintError checks if the error is a SQLite unique constraint violation.
 func IsSQLiteUniqueConstraintError(err error) bool {
 	if err == nil {
 		return false
 	}
 	var sqliteErr sqlite3.Error
 	if errors.As(err, &sqliteErr) {
-		// Error code 19 with extended code 2067 is SQLITE_CONSTRAINT_UNIQUE
 		return sqliteErr.Code == sqlite3.ErrConstraint && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique
 	}
 	return false
 }
 
-// IsPostgresUniqueConstraintError checks if the error is a PostgreSQL unique constraint violation
-func IsPostgresUniqueConstraintError(err error) bool {
-	if err == nil {
-		return false
-	}
-	var pqErr *pq.Error
-	if errors.As(err, &pqErr) {
-		// Error code 23505 is unique_violation
-		return pqErr.Code == "23505"
-	}
-	return false
-}
-
-// IsUniqueConstraintError checks if the error is a unique constraint violation for either SQLite or PostgreSQL
+// IsUniqueConstraintError checks if the error is a unique constraint violation.
 func IsUniqueConstraintError(err error) bool {
-	return IsSQLiteUniqueConstraintError(err) || IsPostgresUniqueConstraintError(err)
+	return IsSQLiteUniqueConstraintError(err)
 }
 
 // IsNoRowsError checks if the error is sql.ErrNoRows

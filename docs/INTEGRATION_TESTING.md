@@ -328,29 +328,7 @@ The tests are designed to run in CI/CD environments:
 
 ### Docker Compose Testing
 
-For testing against real PostgreSQL:
-
-1. Start services:
-```bash
-make docker-compose-up
-```
-
-2. Run migrations:
-```bash
-export DATABASE_URL=postgresql://mjrwtf:INSECURE_CHANGE_ME@localhost:5432/mjrwtf
-make migrate-up
-```
-
-3. Run tests against Docker stack:
-```bash
-# PostgreSQL tests will use the Docker database
-go test -v ./internal/adapters/repository/
-```
-
-4. Stop services:
-```bash
-make docker-compose-down
-```
+Docker Compose is intended for manual local testing with a persistent SQLite database (bind-mounted to `./data`). See [DOCKER_COMPOSE_TESTING.md](../DOCKER_COMPOSE_TESTING.md).
 
 ## Test Coverage
 

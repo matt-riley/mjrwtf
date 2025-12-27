@@ -48,48 +48,35 @@ Requests exceeding the limit return HTTP 429 with a `Retry-After` header indicat
 
 ## Quick Start
 
-### Docker Compose (Recommended)
+### Docker Compose (SQLite)
 
-The easiest way to run mjr.wtf with PostgreSQL is using Docker Compose:
+The easiest way to run mjr.wtf locally is using Docker Compose with a persistent SQLite database (bind-mounted to `./data`):
 
 ```bash
-# 1. Copy and configure environment variables (optional - has defaults)
+# 1. Copy and configure environment variables
 cp .env.example .env
-# Edit .env to set your configuration (especially AUTH_TOKEN and POSTGRES_PASSWORD)
+# Edit .env to set AUTH_TOKEN (required)
 
-# 2. Start all services (app + PostgreSQL)
+# 2. Prepare a persistent data directory and run migrations (required on first run)
+mkdir -p data
+export DATABASE_URL=./data/database.db
+make migrate-up
+
+# 3. Start the server
 make docker-compose-up
 
-# 3. Run database migrations (required on first start)
-# Build the migrate tool
-make build-migrate
-
-# Run migrations against the PostgreSQL database
-export DATABASE_URL=postgresql://mjrwtf:INSECURE_CHANGE_ME@localhost:5432/mjrwtf
-# Or if you changed the credentials in .env, replace the values manually:
-# export DATABASE_URL=postgresql://your-user:your-password@localhost:5432/your-db
-./bin/migrate up
-
 # 4. Verify the application is running
-# Liveness:
 curl http://localhost:8080/health
-# Readiness (checks DB connectivity):
 curl http://localhost:8080/ready
 
 # View logs
 make docker-compose-logs
 
-# Stop all services
+# Stop the service
 make docker-compose-down
 ```
 
-**Note:** Database migrations must be run before the application can create or retrieve URLs. The migrate tool is run from your host machine and connects to PostgreSQL through the exposed port 5432.
-
-The docker-compose configuration includes:
-- Go application server
-- PostgreSQL database with persistent storage
-- Automatic health checks and restart policies
-- Networked services with proper dependencies
+**Note:** The container uses `/app/data/database.db`; the bind mount maps that to `./data/database.db` on the host.
 
 ### Docker (Single Container)
 
@@ -339,7 +326,7 @@ mjr.wtf is configured through environment variables. Below is a comprehensive li
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `DATABASE_URL` | Database connection string (SQLite: `./database.db`, PostgreSQL: `postgresql://user:pass@host:port/db`) | - | ✓ |
+| `DATABASE_URL` | SQLite database file path (e.g. `./database.db`) | - | ✓ |
 | `AUTH_TOKEN` | Secret token for API authentication | - | ✓ |
 | `SERVER_PORT` | HTTP server port | `8080` | |
 | `BASE_URL` | Base URL for shortened links | `http://localhost:8080` | |
@@ -379,7 +366,7 @@ The `DB_TIMEOUT` setting applies a bounded deadline to all database operations, 
 
 ```bash
 # .env file
-DATABASE_URL=postgresql://mjrwtf:password@localhost:5432/mjrwtf
+DATABASE_URL=./database.db
 AUTH_TOKEN=your-secret-token-here
 SERVER_PORT=8080
 BASE_URL=https://mjr.wtf
@@ -393,18 +380,14 @@ METRICS_AUTH_ENABLED=true
 
 ## Database Migrations
 
-This project uses [goose](https://github.com/pressly/goose) for database migrations, supporting both SQLite and PostgreSQL.
+This project uses [goose](https://github.com/pressly/goose) for SQLite database migrations.
 
 ### Prerequisites
 
-Set the `DATABASE_URL` environment variable to your database connection string:
+Set the `DATABASE_URL` environment variable to your SQLite database file path:
 
 ```bash
-# For SQLite
 export DATABASE_URL=./database.db
-
-# For PostgreSQL
-export DATABASE_URL=postgresql://user:password@localhost:5432/mjrwtf
 ```
 
 Alternatively, you can copy `.env.example` to `.env` and configure it there.
@@ -438,11 +421,8 @@ You can also use the migrate tool directly:
 # Build the migrate tool
 go build -o bin/migrate ./cmd/migrate
 
-# Run migrations with explicit driver and URL
-./bin/migrate -driver sqlite3 -url ./database.db up
-
-# Run migrations for PostgreSQL
-./bin/migrate -driver postgres -url "postgresql://user:pass@localhost/dbname" up
+# Run migrations (uses embedded SQLite migrations by default)
+./bin/migrate -url ./database.db up
 
 # Show help
 ./bin/migrate
@@ -451,8 +431,7 @@ go build -o bin/migrate ./cmd/migrate
 ### Migration Files
 
 Migration files are located in:
-- `internal/migrations/sqlite/` - SQLite-specific migrations
-- `internal/migrations/postgres/` - PostgreSQL-specific migrations
+- `internal/migrations/sqlite/` - SQLite migrations
 
 Each migration consists of:
 - An `.sql` file with `-- +goose Up` and `-- +goose Down` sections
@@ -464,11 +443,7 @@ Each migration consists of:
 To create a new migration:
 
 ```bash
-# For SQLite (default)
 make migrate-create NAME=add_users_table
-
-# For PostgreSQL
-DATABASE_URL=postgresql://... make migrate-create NAME=add_users_table
 ```
 
 This will create a new timestamped migration file in the appropriate directory.

@@ -8,7 +8,7 @@ import (
 
 func TestLoadConfig_Success(t *testing.T) {
 	// Set required environment variables
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	defer cleanEnv()
 
@@ -17,8 +17,8 @@ func TestLoadConfig_Success(t *testing.T) {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	if config.DatabaseURL != "postgresql://user:pass@localhost:5432/test" {
-		t.Errorf("Expected DATABASE_URL to be 'postgresql://user:pass@localhost:5432/test', got: %s", config.DatabaseURL)
+	if config.DatabaseURL != "./database.db" {
+		t.Errorf("Expected DATABASE_URL to be './database.db', got: %s", config.DatabaseURL)
 	}
 
 	if config.AuthToken != "test-token" {
@@ -28,6 +28,17 @@ func TestLoadConfig_Success(t *testing.T) {
 	// Check default value for ServerPort
 	if config.ServerPort != 8080 {
 		t.Errorf("Expected default ServerPort to be 8080, got: %d", config.ServerPort)
+	}
+}
+
+func TestLoadConfig_RejectsURLScheme(t *testing.T) {
+	os.Setenv("DATABASE_URL", "unsupported://example")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for URL-form DATABASE_URL, got nil")
 	}
 }
 
@@ -50,7 +61,7 @@ func TestLoadConfig_MissingDatabaseURL(t *testing.T) {
 
 func TestLoadConfig_MissingAuthToken(t *testing.T) {
 	// Set only DATABASE_URL, leave AUTH_TOKEN empty
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Unsetenv("AUTH_TOKEN")
 	defer cleanEnv()
 
@@ -67,7 +78,7 @@ func TestLoadConfig_MissingAuthToken(t *testing.T) {
 
 func TestLoadConfig_CustomServerPort(t *testing.T) {
 	// Set required environment variables with custom port
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("SERVER_PORT", "9000")
 	defer cleanEnv()
@@ -84,7 +95,7 @@ func TestLoadConfig_CustomServerPort(t *testing.T) {
 
 func TestLoadConfig_InvalidServerPort(t *testing.T) {
 	// Set required environment variables with invalid port
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("SERVER_PORT", "70000")
 	defer cleanEnv()
@@ -102,7 +113,7 @@ func TestLoadConfig_InvalidServerPort(t *testing.T) {
 
 func TestLoadConfig_DiscordWebhookURL(t *testing.T) {
 	// Set required environment variables with Discord webhook
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/123/abc")
 	defer cleanEnv()
@@ -119,7 +130,7 @@ func TestLoadConfig_DiscordWebhookURL(t *testing.T) {
 
 func TestLoadConfig_GeoIPEnabled(t *testing.T) {
 	// Set required environment variables with GeoIP enabled
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("GEOIP_ENABLED", "true")
 	os.Setenv("GEOIP_DATABASE", "/path/to/geoip.db")
@@ -141,7 +152,7 @@ func TestLoadConfig_GeoIPEnabled(t *testing.T) {
 
 func TestLoadConfig_GeoIPEnabledWithoutDatabase(t *testing.T) {
 	// Set required environment variables with GeoIP enabled but no database
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("GEOIP_ENABLED", "true")
 	os.Unsetenv("GEOIP_DATABASE")
@@ -160,7 +171,7 @@ func TestLoadConfig_GeoIPEnabledWithoutDatabase(t *testing.T) {
 
 func TestLoadConfig_DefaultValues(t *testing.T) {
 	// Set only required environment variables
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	defer cleanEnv()
 
@@ -196,7 +207,7 @@ func TestLoadConfig_DefaultValues(t *testing.T) {
 }
 
 func TestLoadConfig_CustomRateLimits(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("REDIRECT_RATE_LIMIT_PER_MINUTE", "10")
 	os.Setenv("API_RATE_LIMIT_PER_MINUTE", "5")
@@ -217,7 +228,7 @@ func TestLoadConfig_CustomRateLimits(t *testing.T) {
 }
 
 func TestLoadConfig_InvalidRateLimits(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("REDIRECT_RATE_LIMIT_PER_MINUTE", "0")
 	os.Setenv("API_RATE_LIMIT_PER_MINUTE", "-1")
@@ -235,7 +246,7 @@ func TestLoadConfig_InvalidRateLimits(t *testing.T) {
 }
 
 func TestLoadConfig_RateLimitsInvalidStringsFallbackToDefaults(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("REDIRECT_RATE_LIMIT_PER_MINUTE", "abc")
 	os.Setenv("API_RATE_LIMIT_PER_MINUTE", "def")
@@ -321,7 +332,7 @@ func cleanEnv() {
 }
 
 func TestLoadConfig_LoggingDefaults(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	defer cleanEnv()
 
@@ -339,7 +350,7 @@ func TestLoadConfig_LoggingDefaults(t *testing.T) {
 }
 
 func TestLoadConfig_CustomLogLevel(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("LOG_LEVEL", "debug")
 	defer cleanEnv()
@@ -355,7 +366,7 @@ func TestLoadConfig_CustomLogLevel(t *testing.T) {
 }
 
 func TestLoadConfig_CustomLogFormat(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("LOG_FORMAT", "pretty")
 	defer cleanEnv()
@@ -371,7 +382,7 @@ func TestLoadConfig_CustomLogFormat(t *testing.T) {
 }
 
 func TestLoadConfig_MetricsAuthEnabled(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("METRICS_AUTH_ENABLED", "true")
 	defer cleanEnv()
@@ -387,7 +398,7 @@ func TestLoadConfig_MetricsAuthEnabled(t *testing.T) {
 }
 
 func TestLoadConfig_MetricsAuthDefaultFalse(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	defer cleanEnv()
 
@@ -402,7 +413,7 @@ func TestLoadConfig_MetricsAuthDefaultFalse(t *testing.T) {
 }
 
 func TestLoadConfig_DBTimeoutDefault(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	defer cleanEnv()
 
@@ -418,7 +429,7 @@ func TestLoadConfig_DBTimeoutDefault(t *testing.T) {
 }
 
 func TestLoadConfig_CustomDBTimeout(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("DB_TIMEOUT", "10s")
 	defer cleanEnv()
@@ -435,7 +446,7 @@ func TestLoadConfig_CustomDBTimeout(t *testing.T) {
 }
 
 func TestLoadConfig_InvalidDBTimeout(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	os.Setenv("DB_TIMEOUT", "invalid")
 	defer cleanEnv()

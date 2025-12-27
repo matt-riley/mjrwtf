@@ -139,7 +139,7 @@ The mjr.wtf project has **excellent foundation** for GitHub Copilot integration 
 ```markdown
 ## Troubleshooting
 
-**"undefined: postgresrepo"**
+**"undefined: sqliterepo"**
 - Cause: sqlc code not generated
 - Fix: Run `sqlc generate`
 
@@ -226,7 +226,7 @@ Repository implementations using sqlc-generated code.
 
 ## Critical Rules
 
-1. **Never Edit Generated Code**: Files in `sqlc/sqlite/` and `sqlc/postgres/` are auto-generated
+1. **Never Edit Generated Code**: Files in `sqlc/sqlite/` and `sqlc/sqlite/` are auto-generated
 2. **Modify Queries**: Edit `queries.sql` files, then run `sqlc generate`
 3. **Test Both Databases**: Every repository must have SQLite and PostgreSQL tests
 4. **Error Mapping**: Map database errors to domain errors
@@ -236,7 +236,7 @@ Repository implementations using sqlc-generated code.
 ```go
 type urlRepository struct {
     sqliteQueries  *sqliterepo.Queries
-    postgresQueries *postgresrepo.Queries
+    sqliteQueries *sqliterepo.Queries
     dbType string
 }
 
@@ -614,7 +614,7 @@ cache:
 
 # Common issues and solutions
 troubleshooting:
-  - issue: "undefined: postgresrepo"
+  - issue: "undefined: sqliterepo"
     solution: "Run: sqlc generate"
   
   - issue: "bin/migrate: command not found"
@@ -948,9 +948,8 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_urls_status ON urls(status);
 # Create migration
 make migrate-create NAME=add_user_roles
 
-# Edit both files:
+# Edit the migration file:
 # - internal/migrations/sqlite/XXXXXX_add_user_roles.sql
-# - internal/migrations/postgres/XXXXXX_add_user_roles.sql
 
 # Rebuild migrate tool (migrations are embedded)
 make build-migrate
