@@ -88,7 +88,7 @@ func normalizePath(path string) string {
 	// Handle common static paths - add new static routes here to prevent
 	// them from being incorrectly treated as short codes
 	switch path {
-	case "/", "/health", "/metrics", "/dashboard", "/create",
+	case "/", "/health", "/ready", "/metrics", "/dashboard", "/create",
 		"/about", "/admin", "/api", "/login", "/logout",
 		"/register", "/settings", "/favicon.ico", "/robots.txt":
 		return path

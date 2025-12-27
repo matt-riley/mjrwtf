@@ -74,6 +74,58 @@ func TestHealthCheckHandler(t *testing.T) {
 	}
 }
 
+func TestReadyCheckHandler_Ready(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := testConfig()
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	expected := `{"status":"ready"}`
+	if rec.Body.String() != expected {
+		t.Errorf("expected response %s, got %s", expected, rec.Body.String())
+	}
+}
+
+func TestReadyCheckHandler_UnavailableWhenDBClosed(t *testing.T) {
+	db := setupTestDB(t)
+	db.Close()
+
+	cfg := testConfig()
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected status %d, got %d", http.StatusServiceUnavailable, rec.Code)
+	}
+
+	expected := `{"status":"unavailable"}`
+	if rec.Body.String() != expected {
+		t.Errorf("expected response %s, got %s", expected, rec.Body.String())
+	}
+}
+
 func TestServer_MiddlewareOrder(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
