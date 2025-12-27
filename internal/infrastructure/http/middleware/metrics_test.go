@@ -87,6 +87,7 @@ func TestNormalizePath(t *testing.T) {
 	}{
 		{"root path", "/", "/"},
 		{"health endpoint", "/health", "/health"},
+		{"ready endpoint", "/ready", "/ready"},
 		{"metrics endpoint", "/metrics", "/metrics"},
 		{"dashboard", "/dashboard", "/dashboard"},
 		{"create page", "/create", "/create"},

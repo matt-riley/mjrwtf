@@ -242,11 +242,17 @@ curl -L https://mjr.wtf/abc123
 
 ### Health & Monitoring
 
-#### Health Check
+#### Health Check (Liveness)
 
 **GET** `/health`
 
-Returns the health status of the service.
+Lightweight liveness check. Does not validate external dependencies.
+
+#### Readiness Check
+
+**GET** `/ready`
+
+Readiness check that validates dependencies (currently: database connectivity).
 
 **Authentication:** None
 
@@ -260,6 +266,25 @@ Returns the health status of the service.
 **Example:**
 ```bash
 curl https://mjr.wtf/health
+```
+
+**Readiness Response (200 OK):**
+```json
+{
+  "status": "ready"
+}
+```
+
+**Readiness Response (503 Service Unavailable):**
+```json
+{
+  "status": "unavailable"
+}
+```
+
+**Readiness Example:**
+```bash
+curl https://mjr.wtf/ready
 ```
 
 ---

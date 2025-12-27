@@ -141,8 +141,13 @@ func (s *Server) setupRoutes() error {
 
 	s.rateLimiters = []*middleware.RateLimiterMiddleware{redirectRateLimiter, apiRateLimiter}
 
-	// Health check endpoint
+	// Health check endpoint (liveness)
+	// This is a lightweight check that does not validate external dependencies.
 	s.router.Get("/health", s.healthCheckHandler)
+
+	// Readiness endpoint
+	// This validates required dependencies (e.g. database connectivity).
+	s.router.Get("/ready", s.readyCheckHandler)
 
 	// Prometheus metrics endpoint
 	// Note: Authentication can be enabled via METRICS_AUTH_ENABLED environment variable.
@@ -246,6 +251,34 @@ func (s *Server) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status":"ok"}`))
+}
+
+// readyCheckHandler returns readiness status and validates external dependencies.
+func (s *Server) readyCheckHandler(w http.ResponseWriter, r *http.Request) {
+	timeout := s.config.DBTimeout
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+	defer cancel()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if s.db == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"status":"unavailable"}`))
+		return
+	}
+
+	if err := s.db.PingContext(ctx); err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"status":"unavailable"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`{"status":"ready"}`))
 }
 
 // Start starts the HTTP server

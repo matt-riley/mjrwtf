@@ -34,7 +34,8 @@ The main HTTP server with:
 - **Router**: Uses `chi` router for efficient routing
 - **Graceful Shutdown**: Handles SIGTERM/SIGINT with 30s timeout
 - **Timeouts**: Configurable read (15s), write (15s), and idle (60s) timeouts
-- **Health Check**: `/health` endpoint for monitoring
+- **Health Check (Liveness)**: `/health` endpoint for monitoring
+- **Readiness Check**: `/ready` endpoint for dependency checks (e.g. DB)
 - **HTML Rendering**: Serves HTML pages using Templ templates
 - **API Routes**: RESTful API endpoints for URL management
 

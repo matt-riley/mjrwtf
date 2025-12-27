@@ -29,7 +29,8 @@ swagger-cli validate openapi.yaml
 - `DELETE /api/urls/{shortCode}` - Delete URL (requires auth)
 - `GET /api/urls/{shortCode}/analytics` - Get analytics with optional time range (requires auth)
 - `GET /{shortCode}` - Redirect to original URL (public)
-- `GET /health` - Health check (public)
+- `GET /health` - Health check / liveness (public)
+- `GET /ready` - Readiness check (public)
 - `GET /metrics` - Prometheus metrics (optional auth)
 
 See the [OpenAPI specification](openapi.yaml) for detailed request/response schemas, authentication, and error handling.
@@ -70,7 +71,10 @@ export DATABASE_URL=postgresql://mjrwtf:INSECURE_CHANGE_ME@localhost:5432/mjrwtf
 ./bin/migrate up
 
 # 4. Verify the application is running
+# Liveness:
 curl http://localhost:8080/health
+# Readiness (checks DB connectivity):
+curl http://localhost:8080/ready
 
 # View logs
 make docker-compose-logs
@@ -280,7 +284,8 @@ Public endpoints (no authentication required):
 - `GET /create` - URL creation form
 - `GET /login` - Login page
 - `GET /:code` - Redirect to original URL
-- `GET /health` - Health check
+- `GET /health` - Health check (liveness)
+- `GET /ready` - Readiness check (DB connectivity)
 - `GET /metrics` - Prometheus metrics (can be optionally protected, see below)
 
 ### Protecting the Metrics Endpoint

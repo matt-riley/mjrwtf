@@ -74,6 +74,68 @@ func TestHealthCheckHandler(t *testing.T) {
 	}
 }
 
+func TestReadyCheckHandler_Ready(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := testConfig()
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	expected := `{"status":"ready"}`
+	if rec.Body.String() != expected {
+		t.Errorf("expected response %s, got %s", expected, rec.Body.String())
+	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("expected Content-Type application/json, got %s", contentType)
+	}
+}
+
+func TestReadyCheckHandler_UnavailableWhenDBClosed(t *testing.T) {
+	db := setupTestDB(t)
+	db.Close()
+
+	cfg := testConfig()
+
+	srv, err := New(cfg, db, testLogger())
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected status %d, got %d", http.StatusServiceUnavailable, rec.Code)
+	}
+
+	expected := `{"status":"unavailable"}`
+	if rec.Body.String() != expected {
+		t.Errorf("expected response %s, got %s", expected, rec.Body.String())
+	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("expected Content-Type application/json, got %s", contentType)
+	}
+}
+
 func TestServer_MiddlewareOrder(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
@@ -450,124 +512,149 @@ func ExampleServer_Start() {
 	srv.Shutdown(ctx)
 }
 
+func TestReadyCheckHandler_UnavailableWhenDBNil(t *testing.T) {
+cfg := testConfig()
+
+srv := &Server{config: cfg, db: nil}
+
+req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+rec := httptest.NewRecorder()
+
+srv.readyCheckHandler(rec, req)
+
+if rec.Code != http.StatusServiceUnavailable {
+t.Errorf("expected status %d, got %d", http.StatusServiceUnavailable, rec.Code)
+}
+
+expected := `{"status":"unavailable"}`
+if rec.Body.String() != expected {
+t.Errorf("expected response %s, got %s", expected, rec.Body.String())
+}
+
+contentType := rec.Header().Get("Content-Type")
+if contentType != "application/json" {
+t.Errorf("expected Content-Type application/json, got %s", contentType)
+}
+}
+
 func TestServer_SecurityHeaders_HTMLRoute(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
+db := setupTestDB(t)
+defer db.Close()
 
-	cfg := testConfig()
+cfg := testConfig()
 
-	srv, err := New(cfg, db, testLogger())
-	if err != nil {
-		t.Fatalf("failed to create server: %v", err)
-	}
+srv, err := New(cfg, db, testLogger())
+if err != nil {
+t.Fatalf("failed to create server: %v", err)
+}
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
+req := httptest.NewRequest(http.MethodGet, "/", nil)
+rec := httptest.NewRecorder()
 
-	srv.router.ServeHTTP(rec, req)
+srv.router.ServeHTTP(rec, req)
 
-	// Verify security headers are set on HTML routes
-	expectedHeaders := map[string]string{
-		"X-Content-Type-Options":  "nosniff",
-		"X-Frame-Options":         "DENY",
-		"Referrer-Policy":         "strict-origin-when-cross-origin",
-		"Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
-	}
+// Verify security headers are set on HTML routes
+expectedHeaders := map[string]string{
+"X-Content-Type-Options":  "nosniff",
+"X-Frame-Options":         "DENY",
+"Referrer-Policy":         "strict-origin-when-cross-origin",
+"Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+}
 
-	for headerName, expectedValue := range expectedHeaders {
-		actualValue := rec.Header().Get(headerName)
-		if actualValue != expectedValue {
-			t.Errorf("expected %s header %q, got %q", headerName, expectedValue, actualValue)
-		}
-	}
+for headerName, expectedValue := range expectedHeaders {
+actualValue := rec.Header().Get(headerName)
+if actualValue != expectedValue {
+t.Errorf("expected %s header %q, got %q", headerName, expectedValue, actualValue)
+}
+}
 
-	// HSTS should not be set by default (EnableHSTS defaults to false)
-	hsts := rec.Header().Get("Strict-Transport-Security")
-	if hsts != "" {
-		t.Errorf("expected no Strict-Transport-Security header by default, got %q", hsts)
-	}
+// HSTS should not be set by default (EnableHSTS defaults to false)
+hsts := rec.Header().Get("Strict-Transport-Security")
+if hsts != "" {
+t.Errorf("expected no Strict-Transport-Security header by default, got %q", hsts)
+}
 }
 
 func TestServer_SecurityHeaders_APIRoute(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
+db := setupTestDB(t)
+defer db.Close()
 
-	cfg := testConfig()
+cfg := testConfig()
 
-	srv, err := New(cfg, db, testLogger())
-	if err != nil {
-		t.Fatalf("failed to create server: %v", err)
-	}
+srv, err := New(cfg, db, testLogger())
+if err != nil {
+t.Fatalf("failed to create server: %v", err)
+}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
-	req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
-	rec := httptest.NewRecorder()
+req := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+rec := httptest.NewRecorder()
 
-	srv.router.ServeHTTP(rec, req)
+srv.router.ServeHTTP(rec, req)
 
-	// Verify security headers are set on API routes
-	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
-		t.Error("expected X-Content-Type-Options header on API route")
-	}
+// Verify security headers are set on API routes
+if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+t.Error("expected X-Content-Type-Options header on API route")
+}
 
-	if rec.Header().Get("X-Frame-Options") != "DENY" {
-		t.Error("expected X-Frame-Options header on API route")
-	}
+if rec.Header().Get("X-Frame-Options") != "DENY" {
+t.Error("expected X-Frame-Options header on API route")
+}
 
-	if rec.Header().Get("Referrer-Policy") != "strict-origin-when-cross-origin" {
-		t.Error("expected Referrer-Policy header on API route")
-	}
+if rec.Header().Get("Referrer-Policy") != "strict-origin-when-cross-origin" {
+t.Error("expected Referrer-Policy header on API route")
+}
 
-	if rec.Header().Get("Content-Security-Policy") == "" {
-		t.Error("expected Content-Security-Policy header on API route")
-	}
+if rec.Header().Get("Content-Security-Policy") == "" {
+t.Error("expected Content-Security-Policy header on API route")
+}
 }
 
 func TestServer_SecurityHeaders_HSTS_Enabled(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
+db := setupTestDB(t)
+defer db.Close()
 
-	cfg := testConfig()
-	cfg.EnableHSTS = true // Enable HSTS
+cfg := testConfig()
+cfg.EnableHSTS = true // Enable HSTS
 
-	srv, err := New(cfg, db, testLogger())
-	if err != nil {
-		t.Fatalf("failed to create server: %v", err)
-	}
+srv, err := New(cfg, db, testLogger())
+if err != nil {
+t.Fatalf("failed to create server: %v", err)
+}
 
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
-	rec := httptest.NewRecorder()
+req := httptest.NewRequest(http.MethodGet, "/health", nil)
+rec := httptest.NewRecorder()
 
-	srv.router.ServeHTTP(rec, req)
+srv.router.ServeHTTP(rec, req)
 
-	// Verify HSTS header is set when enabled
-	hsts := rec.Header().Get("Strict-Transport-Security")
-	expectedHSTS := "max-age=31536000; includeSubDomains"
-	if hsts != expectedHSTS {
-		t.Errorf("expected HSTS header %q, got %q", expectedHSTS, hsts)
-	}
+// Verify HSTS header is set when enabled
+hsts := rec.Header().Get("Strict-Transport-Security")
+expectedHSTS := "max-age=31536000; includeSubDomains"
+if hsts != expectedHSTS {
+t.Errorf("expected HSTS header %q, got %q", expectedHSTS, hsts)
+}
 }
 
 func TestServer_SecurityHeaders_HSTS_Disabled(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
+db := setupTestDB(t)
+defer db.Close()
 
-	cfg := testConfig()
-	// EnableHSTS defaults to false, no need to set it
+cfg := testConfig()
+// EnableHSTS defaults to false, no need to set it
 
-	srv, err := New(cfg, db, testLogger())
-	if err != nil {
-		t.Fatalf("failed to create server: %v", err)
-	}
+srv, err := New(cfg, db, testLogger())
+if err != nil {
+t.Fatalf("failed to create server: %v", err)
+}
 
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
-	rec := httptest.NewRecorder()
+req := httptest.NewRequest(http.MethodGet, "/health", nil)
+rec := httptest.NewRecorder()
 
-	srv.router.ServeHTTP(rec, req)
+srv.router.ServeHTTP(rec, req)
 
-	// Verify HSTS header is not set when disabled
-	hsts := rec.Header().Get("Strict-Transport-Security")
-	if hsts != "" {
-		t.Errorf("expected no HSTS header when disabled, got %q", hsts)
-	}
+// Verify HSTS header is not set when disabled
+hsts := rec.Header().Get("Strict-Transport-Security")
+if hsts != "" {
+t.Errorf("expected no HSTS header when disabled, got %q", hsts)
+}
 }
