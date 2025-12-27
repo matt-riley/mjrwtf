@@ -364,7 +364,7 @@ See `.env.example` for all available environment variables:
 
 ## Health Checks
 
-The container includes a health check that queries the `/health` endpoint:
+The container includes a health check that queries the `/health` endpoint (liveness). For orchestrator-style readiness probes, use `/ready`.
 
 ```bash
 # Check container health
