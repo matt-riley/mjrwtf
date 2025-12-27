@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -66,10 +65,10 @@ func (h *URLHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse request body
+	// Parse request body (strict JSON + size limits)
 	var req CreateURLRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, "invalid request body", http.StatusBadRequest)
+	if err := decodeJSONBody(w, r, &req); err != nil {
+		respondJSONDecodeError(w, err)
 		return
 	}
 
