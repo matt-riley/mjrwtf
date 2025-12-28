@@ -146,12 +146,14 @@ See `.env.example` for full configuration options.
 
 ### Recovery Middleware
 
-Catches panics in request handlers and returns a 500 Internal Server Error:
+Catches panics in request handlers and returns a 500 Internal Server Error (when headers have not yet been written):
 
 ```go
 // Automatically applied to all routes
-// Logs panic with stack trace
-// Returns plain text error response
+// Logs panic details and (optionally) stack traces
+// Stack traces can be disabled via LOG_STACK_TRACES=false
+// Re-panics http.ErrAbortHandler to preserve net/http semantics
+// Returns a plain text 500 response when possible
 ```
 
 ### Logger Middleware

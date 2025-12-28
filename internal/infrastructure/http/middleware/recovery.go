@@ -2,16 +2,31 @@ package middleware
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"runtime/debug"
+	"strconv"
 	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/notification"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
 	"github.com/rs/zerolog"
 )
+
+func stackTracesEnabled() bool {
+	v, ok := os.LookupEnv("LOG_STACK_TRACES")
+	if !ok {
+		return true // backward compatible default
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return true
+	}
+	return b
+}
 
 // recoveryWriter wraps http.ResponseWriter to track if headers have been written
 type recoveryWriter struct {
@@ -69,20 +84,34 @@ func RecoveryWithNotifier(logger zerolog.Logger, notifier *notification.DiscordN
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			rw := &recoveryWriter{ResponseWriter: w}
 			defer func() {
-				if err := recover(); err != nil {
+				if rec := recover(); rec != nil {
+					if rec == http.ErrAbortHandler {
+						panic(rec)
+					}
+					if e, ok := rec.(error); ok && errors.Is(e, http.ErrAbortHandler) {
+						panic(rec)
+					}
+
 					// Try to get logger from context first, fall back to provided logger
 					ctxLogger := logging.FromContext(r.Context())
 					if ctxLogger.GetLevel() == zerolog.Disabled {
 						ctxLogger = logger
 					}
 
-					stackTrace := string(debug.Stack())
-					errorMsg := fmt.Sprintf("%v", err)
+					includeStack := stackTracesEnabled()
+					stackTrace := ""
+					if includeStack {
+						stackTrace = string(debug.Stack())
+					}
+					errorMsg := fmt.Sprintf("%v", rec)
 
-					ctxLogger.Error().
-						Interface("panic", err).
-						Str("stack", stackTrace).
-						Msg("panic recovered")
+					evt := ctxLogger.Error().
+						Str("panic_type", fmt.Sprintf("%T", rec)).
+						Str("panic", errorMsg)
+					if includeStack {
+						evt = evt.Str("stack", stackTrace)
+					}
+					evt.Msg("panic recovered")
 
 					// Send notification to Discord if notifier is configured
 					if notifier != nil && notifier.IsEnabled() {
@@ -119,13 +148,30 @@ func Recovery(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := &recoveryWriter{ResponseWriter: w}
 		defer func() {
-			if err := recover(); err != nil {
+			if rec := recover(); rec != nil {
+				if rec == http.ErrAbortHandler {
+					panic(rec)
+				}
+				if e, ok := rec.(error); ok && errors.Is(e, http.ErrAbortHandler) {
+					panic(rec)
+				}
+
 				logger := logging.FromContext(r.Context())
 
-				logger.Error().
-					Interface("panic", err).
-					Str("stack", string(debug.Stack())).
-					Msg("panic recovered")
+				includeStack := stackTracesEnabled()
+				stackTrace := ""
+				if includeStack {
+					stackTrace = string(debug.Stack())
+				}
+				errorMsg := fmt.Sprintf("%v", rec)
+
+				evt := logger.Error().
+					Str("panic_type", fmt.Sprintf("%T", rec)).
+					Str("panic", errorMsg)
+				if includeStack {
+					evt = evt.Str("stack", stackTrace)
+				}
+				evt.Msg("panic recovered")
 
 				if !rw.wroteHeader {
 					rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
