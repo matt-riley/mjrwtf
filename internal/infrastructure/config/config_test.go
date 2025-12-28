@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -40,6 +41,9 @@ func TestLoadConfig_RejectsURLScheme(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error for URL-form DATABASE_URL, got nil")
 	}
+	if !errors.Is(err, ErrUnsupportedDatabaseURLScheme) {
+		t.Fatalf("Expected ErrUnsupportedDatabaseURLScheme, got: %v", err)
+	}
 }
 
 func TestLoadConfig_MissingDatabaseURL(t *testing.T) {
@@ -53,9 +57,8 @@ func TestLoadConfig_MissingDatabaseURL(t *testing.T) {
 		t.Fatal("Expected error for missing DATABASE_URL, got nil")
 	}
 
-	expectedError := "DATABASE_URL is required"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrMissingDatabaseURL) {
+		t.Fatalf("Expected ErrMissingDatabaseURL, got: %v", err)
 	}
 }
 
@@ -70,9 +73,8 @@ func TestLoadConfig_MissingAuthToken(t *testing.T) {
 		t.Fatal("Expected error for missing AUTH_TOKEN, got nil")
 	}
 
-	expectedError := "AUTH_TOKEN is required"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrMissingAuthToken) {
+		t.Fatalf("Expected ErrMissingAuthToken, got: %v", err)
 	}
 }
 
@@ -104,9 +106,8 @@ func TestLoadConfig_InvalidServerPortString(t *testing.T) {
 		t.Fatal("Expected error for invalid SERVER_PORT, got nil")
 	}
 
-	expectedError := "SERVER_PORT must be an integer, got \"abc\""
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarNotInt) {
+		t.Fatalf("Expected ErrEnvVarNotInt, got: %v", err)
 	}
 }
 
@@ -122,9 +123,8 @@ func TestLoadConfig_InvalidServerPort(t *testing.T) {
 		t.Fatal("Expected error for invalid SERVER_PORT, got nil")
 	}
 
-	expectedError := "SERVER_PORT must be between 1 and 65535"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrInvalidServerPortRange) {
+		t.Fatalf("Expected ErrInvalidServerPortRange, got: %v", err)
 	}
 }
 
@@ -180,9 +180,8 @@ func TestLoadConfig_GeoIPEnabledWithoutDatabase(t *testing.T) {
 		t.Fatal("Expected error for GEOIP_ENABLED without GEOIP_DATABASE, got nil")
 	}
 
-	expectedError := "GEOIP_DATABASE is required when GEOIP_ENABLED is true"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrMissingGeoIPDatabase) {
+		t.Fatalf("Expected ErrMissingGeoIPDatabase, got: %v", err)
 	}
 }
 
@@ -264,9 +263,8 @@ func TestLoadConfig_InvalidRateLimits(t *testing.T) {
 		t.Fatal("Expected error for invalid rate limits, got nil")
 	}
 
-	expectedError := "REDIRECT_RATE_LIMIT_PER_MINUTE must be greater than 0"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrInvalidRedirectRateLimit) {
+		t.Fatalf("Expected ErrInvalidRedirectRateLimit, got: %v", err)
 	}
 }
 
@@ -282,9 +280,8 @@ func TestLoadConfig_RateLimitsInvalidStringsFallbackToDefaults(t *testing.T) {
 		t.Fatal("Expected error for invalid rate limit values, got nil")
 	}
 
-	expectedError := "REDIRECT_RATE_LIMIT_PER_MINUTE must be an integer, got \"abc\""
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarNotInt) {
+		t.Fatalf("Expected ErrEnvVarNotInt, got: %v", err)
 	}
 }
 
@@ -299,9 +296,8 @@ func TestLoadConfig_InvalidRedirectClickWorkers(t *testing.T) {
 		t.Fatal("Expected error for invalid REDIRECT_CLICK_WORKERS, got nil")
 	}
 
-	expectedError := "REDIRECT_CLICK_WORKERS must be greater than 0"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrInvalidRedirectClickWorkers) {
+		t.Fatalf("Expected ErrInvalidRedirectClickWorkers, got: %v", err)
 	}
 }
 
@@ -316,9 +312,8 @@ func TestLoadConfig_InvalidRedirectClickQueueSize(t *testing.T) {
 		t.Fatal("Expected error for invalid REDIRECT_CLICK_QUEUE_SIZE, got nil")
 	}
 
-	expectedError := "REDIRECT_CLICK_QUEUE_SIZE must be greater than 0"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrInvalidRedirectClickQueueSize) {
+		t.Fatalf("Expected ErrInvalidRedirectClickQueueSize, got: %v", err)
 	}
 }
 
@@ -333,9 +328,8 @@ func TestLoadConfig_RedirectClickConfigInvalidStrings(t *testing.T) {
 		t.Fatal("Expected error for invalid redirect click config values, got nil")
 	}
 
-	expectedError := "REDIRECT_CLICK_WORKERS must be an integer, got \"abc\""
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarNotInt) {
+		t.Fatalf("Expected ErrEnvVarNotInt, got: %v", err)
 	}
 }
 
@@ -348,9 +342,8 @@ func TestGetEnvAsInt_InvalidValue(t *testing.T) {
 		t.Fatal("Expected error for invalid int, got nil")
 	}
 
-	expectedError := "TEST_INT must be an integer, got \"not-a-number\""
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarNotInt) {
+		t.Fatalf("Expected ErrEnvVarNotInt, got: %v", err)
 	}
 }
 
@@ -363,9 +356,8 @@ func TestGetEnvAsInt_EmptyString(t *testing.T) {
 		t.Fatal("Expected error for empty int env var, got nil")
 	}
 
-	expectedError := "TEST_INT must not be empty"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarEmpty) {
+		t.Fatalf("Expected ErrEnvVarEmpty, got: %v", err)
 	}
 }
 
@@ -378,9 +370,8 @@ func TestGetEnvAsBool_InvalidValue(t *testing.T) {
 		t.Fatal("Expected error for invalid bool, got nil")
 	}
 
-	expectedError := "TEST_BOOL must be a boolean, got \"not-a-bool\""
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarNotBool) {
+		t.Fatalf("Expected ErrEnvVarNotBool, got: %v", err)
 	}
 }
 
@@ -393,9 +384,8 @@ func TestGetEnvAsBool_EmptyString(t *testing.T) {
 		t.Fatal("Expected error for empty bool env var, got nil")
 	}
 
-	expectedError := "TEST_BOOL must not be empty"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarEmpty) {
+		t.Fatalf("Expected ErrEnvVarEmpty, got: %v", err)
 	}
 }
 
@@ -438,9 +428,8 @@ func TestGetEnvAsDuration_InvalidValue(t *testing.T) {
 		t.Fatal("Expected error for invalid duration, got nil")
 	}
 
-	expectedError := "TEST_DURATION must be a duration, got \"not-a-duration\""
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarNotDuration) {
+		t.Fatalf("Expected ErrEnvVarNotDuration, got: %v", err)
 	}
 }
 
@@ -453,9 +442,8 @@ func TestGetEnvAsDuration_EmptyString(t *testing.T) {
 		t.Fatal("Expected error for empty duration env var, got nil")
 	}
 
-	expectedError := "TEST_DURATION must not be empty"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarEmpty) {
+		t.Fatalf("Expected ErrEnvVarEmpty, got: %v", err)
 	}
 }
 
@@ -602,8 +590,7 @@ func TestLoadConfig_InvalidDBTimeout(t *testing.T) {
 		t.Fatal("Expected error for invalid DB_TIMEOUT, got nil")
 	}
 
-	expectedError := "DB_TIMEOUT must be a duration, got \"invalid\""
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	if !errors.Is(err, ErrEnvVarNotDuration) {
+		t.Fatalf("Expected ErrEnvVarNotDuration, got: %v", err)
 	}
 }
