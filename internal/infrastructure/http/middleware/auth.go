@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/json"
 	"net/http"
@@ -43,8 +44,11 @@ func Auth(authTokens []string) func(http.Handler) http.Handler {
 			}
 
 			if len(authTokens) == 0 {
-				// Keep timing characteristics closer to the "invalid token" path.
-				_ = subtle.ConstantTimeCompare([]byte(token), []byte(token))
+				// Fail closed even if a caller misconfigures authTokens.
+				// Use a fixed-size comparison to keep timing characteristics closer
+				// to the normal token-validation path.
+				h := sha256.Sum256([]byte(token))
+				_ = subtle.ConstantTimeCompare(h[:], h[:])
 				respondJSONError(w, "Unauthorized: no valid tokens configured", http.StatusUnauthorized)
 				return
 			}
