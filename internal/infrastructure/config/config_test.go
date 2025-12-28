@@ -146,6 +146,58 @@ func TestLoadConfig_AuthTokens_TakesPrecedenceOverAuthToken(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_AuthTokens_Deduplicates(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKENS", "tokenA,tokenA,tokenB,tokenA")
+	defer cleanEnv()
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	if len(cfg.AuthTokens) != 2 || cfg.AuthTokens[0] != "tokenA" || cfg.AuthTokens[1] != "tokenB" {
+		t.Fatalf("Expected AuthTokens to be ['tokenA','tokenB'], got: %#v", cfg.AuthTokens)
+	}
+}
+
+func TestConfig_ActiveAuthTokens(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *Config
+		want []string
+	}{
+		{
+			name: "uses AuthTokens when populated",
+			cfg:  &Config{AuthTokens: []string{"a", "b"}, AuthToken: "legacy"},
+			want: []string{"a", "b"},
+		},
+		{
+			name: "falls back to AuthToken when AuthTokens empty",
+			cfg:  &Config{AuthToken: "a"},
+			want: []string{"a"},
+		},
+		{
+			name: "nil when both empty",
+			cfg:  &Config{},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.cfg.ActiveAuthTokens()
+			if len(got) != len(tt.want) {
+				t.Fatalf("len = %d, want %d (got=%#v)", len(got), len(tt.want), got)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Fatalf("[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestLoadConfig_CustomServerPort(t *testing.T) {
 	// Set required environment variables with custom port
 	os.Setenv("DATABASE_URL", "./database.db")

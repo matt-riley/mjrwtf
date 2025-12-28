@@ -206,11 +206,17 @@ func getEnvAuthTokens() ([]string, error) {
 	if raw, ok := os.LookupEnv("AUTH_TOKENS"); ok {
 		parts := strings.Split(raw, ",")
 		tokens := make([]string, 0, len(parts))
+		seen := make(map[string]struct{}, len(parts))
 		for _, p := range parts {
 			t := strings.TrimSpace(p)
-			if t != "" {
-				tokens = append(tokens, t)
+			if t == "" {
+				continue
 			}
+			if _, ok := seen[t]; ok {
+				continue
+			}
+			seen[t] = struct{}{}
+			tokens = append(tokens, t)
 		}
 		if len(tokens) == 0 {
 			return nil, ErrMissingAuthToken
