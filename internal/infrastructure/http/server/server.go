@@ -124,6 +124,35 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 
 // setupRoutes configures the HTTP routes
 func (s *Server) setupRoutes() error {
+	redirectRateLimiter, apiRateLimiter := s.setupRateLimiters()
+
+	s.setupHealthRoutes()
+	s.setupMetricsRoutes()
+
+	h, err := s.buildHandlers()
+	if err != nil {
+		return err
+	}
+
+	s.setupPageRoutes(h.pageHandler)
+
+	// Public redirect endpoint (no authentication required)
+	// Must come after specific routes to avoid capturing them
+	s.setupRedirectRoutes(h.redirectHandler, redirectRateLimiter)
+
+	s.setupAPIRoutes(h.urlHandler, h.analyticsHandler, apiRateLimiter)
+
+	return nil
+}
+
+type routeHandlers struct {
+	urlHandler       *handlers.URLHandler
+	analyticsHandler *handlers.AnalyticsHandler
+	redirectHandler  *handlers.RedirectHandler
+	pageHandler      *handlers.PageHandler
+}
+
+func (s *Server) setupRateLimiters() (*middleware.RateLimiterMiddleware, *middleware.RateLimiterMiddleware) {
 	// Defensive defaults: server.New can be called with a manually-constructed config
 	// (e.g. in tests), which bypasses config.LoadConfig() validation.
 	redirectRateLimit := s.config.RedirectRateLimitPerMinute
@@ -141,6 +170,10 @@ func (s *Server) setupRoutes() error {
 
 	s.rateLimiters = []*middleware.RateLimiterMiddleware{redirectRateLimiter, apiRateLimiter}
 
+	return redirectRateLimiter, apiRateLimiter
+}
+
+func (s *Server) setupHealthRoutes() {
 	// Health check endpoint (liveness)
 	// This is a lightweight check that does not validate external dependencies.
 	s.router.Get("/health", s.healthCheckHandler)
@@ -148,7 +181,9 @@ func (s *Server) setupRoutes() error {
 	// Readiness endpoint
 	// This validates required dependencies (e.g. database connectivity).
 	s.router.Get("/ready", s.readyCheckHandler)
+}
 
+func (s *Server) setupMetricsRoutes() {
 	// Prometheus metrics endpoint
 	// Note: Authentication can be enabled via METRICS_AUTH_ENABLED environment variable.
 	// In production, either enable authentication or restrict access via network policies/reverse proxy.
@@ -156,10 +191,13 @@ func (s *Server) setupRoutes() error {
 	// which may be sensitive. Apply authentication if exposed to the public internet.
 	if s.config.MetricsAuthEnabled {
 		s.router.With(middleware.Auth(s.config.AuthToken)).Handle("/metrics", s.metrics.Handler())
-	} else {
-		s.router.Handle("/metrics", s.metrics.Handler())
+		return
 	}
 
+	s.router.Handle("/metrics", s.metrics.Handler())
+}
+
+func (s *Server) buildHandlers() (*routeHandlers, error) {
 	// Initialize repositories (SQLite only)
 	var urlRepo url.Repository = repository.NewSQLiteURLRepository(s.db)
 	var clickRepo click.Repository = repository.NewSQLiteClickRepository(s.db)
@@ -178,7 +216,7 @@ func (s *Server) setupRoutes() error {
 	// Initialize URL generator
 	generator, err := url.NewGenerator(urlRepo, url.DefaultGeneratorConfig())
 	if err != nil {
-		return fmt.Errorf("failed to create URL generator: %w", err)
+		return nil, fmt.Errorf("failed to create URL generator: %w", err)
 	}
 
 	// Initialize use cases
@@ -194,6 +232,15 @@ func (s *Server) setupRoutes() error {
 	redirectHandler := handlers.NewRedirectHandler(s.redirectUseCase)
 	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, s.config.AuthToken, s.sessionStore, s.config.SecureCookies)
 
+	return &routeHandlers{
+		urlHandler:       urlHandler,
+		analyticsHandler: analyticsHandler,
+		redirectHandler:  redirectHandler,
+		pageHandler:      pageHandler,
+	}, nil
+}
+
+func (s *Server) setupPageRoutes(pageHandler *handlers.PageHandler) {
 	// HTML page routes
 	s.router.Get("/", pageHandler.Home)
 	s.router.HandleFunc("/create", pageHandler.CreatePage)
@@ -202,11 +249,13 @@ func (s *Server) setupRoutes() error {
 
 	// Protected dashboard route (requires session)
 	s.router.With(middleware.RequireSession(s.sessionStore, "/login")).Get("/dashboard", pageHandler.Dashboard)
+}
 
-	// Public redirect endpoint (no authentication required)
-	// Must come after specific routes to avoid capturing them
+func (s *Server) setupRedirectRoutes(redirectHandler *handlers.RedirectHandler, redirectRateLimiter *middleware.RateLimiterMiddleware) {
 	s.router.With(redirectRateLimiter.Middleware).Get("/{shortCode}", redirectHandler.Redirect)
+}
 
+func (s *Server) setupAPIRoutes(urlHandler *handlers.URLHandler, analyticsHandler *handlers.AnalyticsHandler, apiRateLimiter *middleware.RateLimiterMiddleware) {
 	// API routes with authentication
 	s.router.Route("/api", func(r chi.Router) {
 		r.Use(apiRateLimiter.Middleware)
@@ -214,20 +263,7 @@ func (s *Server) setupRoutes() error {
 		r.Route("/urls", func(r chi.Router) {
 			// Apply auth middleware to all URL endpoints
 			// Support both Bearer token auth (for API) and session auth (for dashboard)
-			r.Use(func(next http.Handler) http.Handler {
-				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-					// Check for session first
-					if userID, ok := middleware.GetSessionUserID(req.Context()); ok && userID != "" {
-						// Valid session, set UserIDKey for API handlers
-						ctx := context.WithValue(req.Context(), middleware.UserIDKey, userID)
-						next.ServeHTTP(w, req.WithContext(ctx))
-						return
-					}
-
-					// Fall back to Bearer token auth
-					middleware.Auth(s.config.AuthToken)(next).ServeHTTP(w, req)
-				})
-			})
+			r.Use(middleware.SessionOrBearerAuth(s.config.AuthToken))
 
 			r.Post("/", urlHandler.Create)
 			r.Get("/", urlHandler.List)
@@ -235,8 +271,6 @@ func (s *Server) setupRoutes() error {
 			r.Get("/{shortCode}/analytics", analyticsHandler.GetAnalytics)
 		})
 	})
-
-	return nil
 }
 
 // healthCheckHandler returns a simple health check response
