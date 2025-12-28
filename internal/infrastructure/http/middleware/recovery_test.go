@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -22,20 +21,6 @@ func resetStackTracesEnabledCache() {
 	// Tests in this package intentionally do not use t.Parallel().
 	// We reset shared package-level state, which would be racy under parallelism.
 	stackTracesOnce = sync.Once{}
-}
-
-func unsetEnv(t *testing.T, key string) {
-	t.Helper()
-
-	prev, ok := os.LookupEnv(key)
-	_ = os.Unsetenv(key)
-	t.Cleanup(func() {
-		if ok {
-			_ = os.Setenv(key, prev)
-			return
-		}
-		_ = os.Unsetenv(key)
-	})
 }
 
 func TestRecovery_RecoverFromPanic(t *testing.T) {
