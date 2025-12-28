@@ -1,0 +1,47 @@
+version: 2
+
+project_name: mjrwtf
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: server
+    main: ./cmd/server
+    binary: server
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=1
+
+  - id: migrate
+    main: ./cmd/migrate
+    binary: migrate
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=1
+
+archives:
+  - id: server
+    builds:
+      - server
+    format: binary
+    name_template: "server_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+  - id: migrate
+    builds:
+      - migrate
+    format: binary
+    name_template: "migrate_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+release:
+  mode: keep-existing

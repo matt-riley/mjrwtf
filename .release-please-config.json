@@ -1,0 +1,9 @@
+{
+  "packages": {
+    ".": {
+      "package-name": "mjrwtf",
+      "release-type": "simple",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}
