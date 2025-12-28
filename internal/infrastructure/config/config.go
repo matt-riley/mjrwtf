@@ -136,43 +136,43 @@ func LoadConfig() (*Config, error) {
 // Validate checks that required configuration values are present
 func (c *Config) Validate() error {
 	if c.DatabaseURL == "" {
-		return fmt.Errorf("DATABASE_URL is required")
+		return ErrMissingDatabaseURL
 	}
 
 	// SQLite-only: reject URL-form connection strings (e.g. network URLs),
 	// to avoid sqlite creating a local file literally named after the URL.
 	if strings.Contains(c.DatabaseURL, "://") {
 		scheme, _, _ := strings.Cut(strings.ToLower(c.DatabaseURL), "://")
-		return fmt.Errorf("DATABASE_URL has unsupported scheme %q (SQLite file paths only)", scheme)
+		return fmt.Errorf("%w %q (SQLite file paths only)", ErrUnsupportedDatabaseURLScheme, scheme)
 	}
 
 	if c.AuthToken == "" {
-		return fmt.Errorf("AUTH_TOKEN is required")
+		return ErrMissingAuthToken
 	}
 
 	if c.ServerPort < 1 || c.ServerPort > 65535 {
-		return fmt.Errorf("SERVER_PORT must be between 1 and 65535")
+		return ErrInvalidServerPortRange
 	}
 
 	if c.RedirectRateLimitPerMinute < 1 {
-		return fmt.Errorf("REDIRECT_RATE_LIMIT_PER_MINUTE must be greater than 0")
+		return ErrInvalidRedirectRateLimit
 	}
 
 	if c.APIRateLimitPerMinute < 1 {
-		return fmt.Errorf("API_RATE_LIMIT_PER_MINUTE must be greater than 0")
+		return ErrInvalidAPIRateLimit
 	}
 
 	if c.RedirectClickWorkers < 1 {
-		return fmt.Errorf("REDIRECT_CLICK_WORKERS must be greater than 0")
+		return ErrInvalidRedirectClickWorkers
 	}
 
 	if c.RedirectClickQueueSize < 1 {
-		return fmt.Errorf("REDIRECT_CLICK_QUEUE_SIZE must be greater than 0")
+		return ErrInvalidRedirectClickQueueSize
 	}
 
 	// If GeoIP is enabled, database path is required
 	if c.GeoIPEnabled && c.GeoIPDatabase == "" {
-		return fmt.Errorf("GEOIP_DATABASE is required when GEOIP_ENABLED is true")
+		return ErrMissingGeoIPDatabase
 	}
 
 	return nil
@@ -194,12 +194,12 @@ func getEnvAsInt(key string, defaultValue int) (int, error) {
 		return defaultValue, nil
 	}
 	if valueStr == "" {
-		return 0, fmt.Errorf("%s must not be empty", key)
+		return 0, fmt.Errorf("%s %w", key, ErrEnvVarEmpty)
 	}
 
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
-		return 0, fmt.Errorf("%s must be an integer, got %q", key, valueStr)
+		return 0, fmt.Errorf("%s %w, got %q", key, ErrEnvVarNotInt, valueStr)
 	}
 
 	return value, nil
@@ -213,12 +213,12 @@ func getEnvAsBool(key string, defaultValue bool) (bool, error) {
 		return defaultValue, nil
 	}
 	if valueStr == "" {
-		return false, fmt.Errorf("%s must not be empty", key)
+		return false, fmt.Errorf("%s %w", key, ErrEnvVarEmpty)
 	}
 
 	value, err := strconv.ParseBool(valueStr)
 	if err != nil {
-		return false, fmt.Errorf("%s must be a boolean, got %q", key, valueStr)
+		return false, fmt.Errorf("%s %w, got %q", key, ErrEnvVarNotBool, valueStr)
 	}
 
 	return value, nil
@@ -233,12 +233,12 @@ func getEnvAsDuration(key string, defaultValue time.Duration) (time.Duration, er
 		return defaultValue, nil
 	}
 	if valueStr == "" {
-		return 0, fmt.Errorf("%s must not be empty", key)
+		return 0, fmt.Errorf("%s %w", key, ErrEnvVarEmpty)
 	}
 
 	value, err := time.ParseDuration(valueStr)
 	if err != nil {
-		return 0, fmt.Errorf("%s must be a duration, got %q", key, valueStr)
+		return 0, fmt.Errorf("%s %w, got %q", key, ErrEnvVarNotDuration, valueStr)
 	}
 
 	return value, nil
