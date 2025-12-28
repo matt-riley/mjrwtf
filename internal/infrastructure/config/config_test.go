@@ -295,6 +295,21 @@ func TestGetEnvAsInt_InvalidValue(t *testing.T) {
 	}
 }
 
+func TestGetEnvAsInt_EmptyString(t *testing.T) {
+	os.Setenv("TEST_INT", "")
+	defer os.Unsetenv("TEST_INT")
+
+	_, err := getEnvAsInt("TEST_INT", 42)
+	if err == nil {
+		t.Fatal("Expected error for empty int env var, got nil")
+	}
+
+	expectedError := "TEST_INT must not be empty"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
 func TestGetEnvAsBool_InvalidValue(t *testing.T) {
 	os.Setenv("TEST_BOOL", "not-a-bool")
 	defer os.Unsetenv("TEST_BOOL")
@@ -305,6 +320,21 @@ func TestGetEnvAsBool_InvalidValue(t *testing.T) {
 	}
 
 	expectedError := "TEST_BOOL must be a boolean, got \"not-a-bool\""
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
+func TestGetEnvAsBool_EmptyString(t *testing.T) {
+	os.Setenv("TEST_BOOL", "")
+	defer os.Unsetenv("TEST_BOOL")
+
+	_, err := getEnvAsBool("TEST_BOOL", true)
+	if err == nil {
+		t.Fatal("Expected error for empty bool env var, got nil")
+	}
+
+	expectedError := "TEST_BOOL must not be empty"
 	if err.Error() != expectedError {
 		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
 	}
