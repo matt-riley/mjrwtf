@@ -19,6 +19,8 @@ import (
 )
 
 func resetStackTracesEnabledCache() {
+	// Tests in this package intentionally do not use t.Parallel().
+	// We reset shared package-level state, which would be racy under parallelism.
 	stackTracesOnce = sync.Once{}
 }
 
@@ -151,7 +153,7 @@ func TestRecoveryWithLogger_UsesContextLogger(t *testing.T) {
 
 func TestRecoveryWithLogger_LogsPanicDetails(t *testing.T) {
 	resetStackTracesEnabledCache()
-	unsetEnv(t, "LOG_STACK_TRACES")
+	t.Setenv("LOG_STACK_TRACES", "true")
 
 	var logBuf bytes.Buffer
 	logger := zerolog.New(&logBuf)
@@ -406,6 +408,18 @@ func TestRecoveryWithLogger_StackTraceDisabled(t *testing.T) {
 	if strings.Contains(logOutput, `"stack"`) {
 		t.Errorf("expected no stack trace in log output when LOG_STACK_TRACES=false, got: %s", logOutput)
 	}
+	if !strings.Contains(logOutput, `"panic_type"`) {
+		t.Errorf("expected panic_type in log output when LOG_STACK_TRACES=false, got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, `"panic"`) {
+		t.Errorf("expected panic in log output when LOG_STACK_TRACES=false, got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, `"level":"error"`) {
+		t.Errorf("expected error level in log output when LOG_STACK_TRACES=false, got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, "panic recovered") {
+		t.Errorf("expected message in log output when LOG_STACK_TRACES=false, got: %s", logOutput)
+	}
 }
 
 func TestRecoveryWithNotifier_StackTraceDisabled(t *testing.T) {
@@ -444,6 +458,12 @@ func TestRecoveryWithNotifier_StackTraceDisabled(t *testing.T) {
 
 	if strings.Contains(payload, "Stack Trace") {
 		t.Errorf("expected no stack trace field in Discord payload when LOG_STACK_TRACES=false, got: %s", payload)
+	}
+	if !strings.Contains(payload, "Error Message") {
+		t.Errorf("expected Error Message field in Discord payload, got: %s", payload)
+	}
+	if !strings.Contains(payload, "panic without stack") {
+		t.Errorf("expected panic message in Discord payload, got: %s", payload)
 	}
 }
 
