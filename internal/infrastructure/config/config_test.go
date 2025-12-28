@@ -370,6 +370,36 @@ func TestGetEnvAsBool_ValidValues(t *testing.T) {
 	}
 }
 
+func TestGetEnvAsDuration_InvalidValue(t *testing.T) {
+	os.Setenv("TEST_DURATION", "not-a-duration")
+	defer os.Unsetenv("TEST_DURATION")
+
+	_, err := getEnvAsDuration("TEST_DURATION", 5*time.Second)
+	if err == nil {
+		t.Fatal("Expected error for invalid duration, got nil")
+	}
+
+	expectedError := "TEST_DURATION must be a duration, got \"not-a-duration\""
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
+func TestGetEnvAsDuration_EmptyString(t *testing.T) {
+	os.Setenv("TEST_DURATION", "")
+	defer os.Unsetenv("TEST_DURATION")
+
+	_, err := getEnvAsDuration("TEST_DURATION", 5*time.Second)
+	if err == nil {
+		t.Fatal("Expected error for empty duration env var, got nil")
+	}
+
+	expectedError := "TEST_DURATION must not be empty"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
 // cleanEnv clears all environment variables used in tests
 func cleanEnv() {
 	os.Unsetenv("DATABASE_URL")
