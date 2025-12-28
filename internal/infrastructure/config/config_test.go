@@ -128,6 +128,24 @@ func TestLoadConfig_AuthTokens_IgnoresEmptyEntries(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_AuthTokens_TakesPrecedenceOverAuthToken(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "legacy")
+	os.Setenv("AUTH_TOKENS", "tokenA,tokenB")
+	defer cleanEnv()
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	if cfg.AuthToken != "tokenA" {
+		t.Fatalf("Expected AuthToken to be first AUTH_TOKENS entry 'tokenA', got: %q", cfg.AuthToken)
+	}
+	if len(cfg.AuthTokens) != 2 || cfg.AuthTokens[0] != "tokenA" || cfg.AuthTokens[1] != "tokenB" {
+		t.Fatalf("Expected AuthTokens to be ['tokenA','tokenB'], got: %#v", cfg.AuthTokens)
+	}
+}
+
 func TestLoadConfig_CustomServerPort(t *testing.T) {
 	// Set required environment variables with custom port
 	os.Setenv("DATABASE_URL", "./database.db")

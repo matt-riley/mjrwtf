@@ -43,6 +43,8 @@ func Auth(authTokens []string) func(http.Handler) http.Handler {
 			}
 
 			if len(authTokens) == 0 {
+				// Keep timing characteristics closer to the "invalid token" path.
+				_ = subtle.ConstantTimeCompare([]byte(token), []byte(token))
 				respondJSONError(w, "Unauthorized: no valid tokens configured", http.StatusUnauthorized)
 				return
 			}
