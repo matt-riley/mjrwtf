@@ -38,6 +38,7 @@ func TestWorkflowPolicyCheck_PassesWithPinnedActionsAndCodegen(t *testing.T) {
 	root := t.TempDir()
 
 	writeFile(t, filepath.Join(root, ".github/workflows/a.yml"), "name: A\nsteps:\n  - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n")
+	writeFile(t, filepath.Join(root, ".github/workflows/local.yml"), "name: Local\nsteps:\n  - uses: \"./.github/actions/my-action\"\n")
 	writeFile(t, filepath.Join(root, ".github/workflows/goreleaser.yml"), "name: GoReleaser\njobs:\n  x:\n    steps:\n      - name: Install sqlc\n        run: echo ok\n      - name: Install templ\n        run: echo ok\n")
 	writeFile(t, filepath.Join(root, ".goreleaser.yaml"), "before:\n  hooks:\n    - go mod download\n    - sqlc generate\n    - templ generate\n")
 
