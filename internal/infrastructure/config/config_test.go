@@ -288,6 +288,57 @@ func TestLoadConfig_RateLimitsInvalidStringsFallbackToDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_InvalidRedirectClickWorkers(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("REDIRECT_CLICK_WORKERS", "0")
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for invalid REDIRECT_CLICK_WORKERS, got nil")
+	}
+
+	expectedError := "REDIRECT_CLICK_WORKERS must be greater than 0"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
+func TestLoadConfig_InvalidRedirectClickQueueSize(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("REDIRECT_CLICK_QUEUE_SIZE", "0")
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for invalid REDIRECT_CLICK_QUEUE_SIZE, got nil")
+	}
+
+	expectedError := "REDIRECT_CLICK_QUEUE_SIZE must be greater than 0"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
+func TestLoadConfig_RedirectClickConfigInvalidStrings(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("REDIRECT_CLICK_WORKERS", "abc")
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for invalid redirect click config values, got nil")
+	}
+
+	expectedError := "REDIRECT_CLICK_WORKERS must be an integer, got \"abc\""
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
 func TestGetEnvAsInt_InvalidValue(t *testing.T) {
 	os.Setenv("TEST_INT", "not-a-number")
 	defer os.Unsetenv("TEST_INT")
