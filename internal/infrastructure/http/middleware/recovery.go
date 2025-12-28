@@ -22,6 +22,14 @@ var (
 	stackTracesCached bool
 )
 
+func isAbortHandlerPanic(rec any) bool {
+	if rec == http.ErrAbortHandler {
+		return true
+	}
+	err, ok := rec.(error)
+	return ok && errors.Is(err, http.ErrAbortHandler)
+}
+
 func stackTracesEnabled() bool {
 	stackTracesOnce.Do(func() {
 		stackTracesCached = readStackTracesEnabled()
@@ -41,7 +49,7 @@ func readStackTracesEnabled() bool {
 			Err(err).
 			Str("env", "LOG_STACK_TRACES").
 			Str("value", v).
-			Msg("invalid boolean value for LOG_STACK_TRACES; defaulting to true")
+			Msg("invalid boolean value for LOG_STACK_TRACES; valid values are: true, false, 1, 0, t, f, T, F, TRUE, FALSE, True, False; defaulting to true")
 		return true
 	}
 	return b
@@ -104,10 +112,7 @@ func RecoveryWithNotifier(logger zerolog.Logger, notifier *notification.DiscordN
 			rw := &recoveryWriter{ResponseWriter: w}
 			defer func() {
 				if rec := recover(); rec != nil {
-					if rec == http.ErrAbortHandler {
-						panic(rec)
-					}
-					if e, ok := rec.(error); ok && errors.Is(e, http.ErrAbortHandler) {
+					if isAbortHandlerPanic(rec) {
 						panic(rec)
 					}
 
@@ -168,10 +173,7 @@ func Recovery(next http.Handler) http.Handler {
 		rw := &recoveryWriter{ResponseWriter: w}
 		defer func() {
 			if rec := recover(); rec != nil {
-				if rec == http.ErrAbortHandler {
-					panic(rec)
-				}
-				if e, ok := rec.(error); ok && errors.Is(e, http.ErrAbortHandler) {
+				if isAbortHandlerPanic(rec) {
 					panic(rec)
 				}
 
