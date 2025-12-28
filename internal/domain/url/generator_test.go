@@ -335,7 +335,7 @@ func TestGenerator_GenerateUniqueShortCode(t *testing.T) {
 		}
 
 		_, err = testGen.GenerateUniqueShortCode(context.Background())
-		if err != ErrMaxRetriesExceeded {
+		if !errors.Is(err, ErrMaxRetriesExceeded) {
 			t.Errorf("GenerateUniqueShortCode() error = %v, want %v", err, ErrMaxRetriesExceeded)
 		}
 
@@ -467,7 +467,7 @@ func TestGenerator_ShortenURL(t *testing.T) {
 					t.Errorf("ShortenURL() error = nil, wantErr %v", tt.wantErr)
 					return
 				}
-				if err != tt.wantErr && !strings.Contains(err.Error(), tt.wantErr.Error()) {
+				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("ShortenURL() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
@@ -550,7 +550,7 @@ func TestGenerator_ShortenURL_MaxRetriesExceeded(t *testing.T) {
 	gen.repository = &mockAlwaysCollisionRepo{wrapped: repo, attempts: &attempts}
 
 	_, err = gen.ShortenURL(context.Background(), "https://example.com", "user1")
-	if err != ErrMaxRetriesExceeded {
+	if !errors.Is(err, ErrMaxRetriesExceeded) {
 		t.Errorf("ShortenURL() error = %v, want %v", err, ErrMaxRetriesExceeded)
 	}
 }
@@ -568,8 +568,8 @@ func TestGenerator_ShortenURL_CreateError(t *testing.T) {
 	if err == nil {
 		t.Error("ShortenURL() expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "database error") {
-		t.Errorf("ShortenURL() error = %v, want database error", err)
+	if !errors.Is(err, repo.createErr) {
+		t.Errorf("ShortenURL() error = %v, want %v", err, repo.createErr)
 	}
 }
 

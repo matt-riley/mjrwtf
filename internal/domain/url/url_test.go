@@ -1,7 +1,7 @@
 package url
 
 import (
-	"strings"
+	"errors"
 	"testing"
 )
 
@@ -129,7 +129,7 @@ func TestNewURL(t *testing.T) {
 					t.Errorf("NewURL() error = nil, wantErr %v", tt.wantErr)
 					return
 				}
-				if err != tt.wantErr && !strings.Contains(err.Error(), tt.wantErr.Error()) {
+				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("NewURL() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
@@ -301,6 +301,11 @@ func TestValidateOriginalURL(t *testing.T) {
 			wantErr:     ErrInvalidURLScheme,
 		},
 		{
+			name:        "URL with parse error",
+			originalURL: "http://example.com/%zz",
+			wantErr:     ErrInvalidOriginalURL,
+		},
+		{
 			name:        "URL without host",
 			originalURL: "https://",
 			wantErr:     ErrMissingURLHost,
@@ -320,7 +325,7 @@ func TestValidateOriginalURL(t *testing.T) {
 					t.Errorf("ValidateOriginalURL() error = nil, wantErr %v", tt.wantErr)
 					return
 				}
-				if err != tt.wantErr && !strings.Contains(err.Error(), tt.wantErr.Error()) {
+				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("ValidateOriginalURL() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
@@ -385,7 +390,7 @@ func TestURL_Validate(t *testing.T) {
 					t.Errorf("URL.Validate() error = nil, wantErr %v", tt.wantErr)
 					return
 				}
-				if err != tt.wantErr && !strings.Contains(err.Error(), tt.wantErr.Error()) {
+				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("URL.Validate() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
