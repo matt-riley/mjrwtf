@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"errors"
-	"strings"
 	"testing"
 	"time"
 
@@ -173,7 +172,7 @@ func TestDeleteURLUseCase_Execute(t *testing.T) {
 					t.Errorf("Execute() error = nil, wantErr %v", tt.wantErr)
 					return
 				}
-				if !errors.Is(err, tt.wantErr) && !strings.Contains(err.Error(), tt.wantErr.Error()) {
+				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return

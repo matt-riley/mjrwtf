@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -224,8 +225,7 @@ func TestCreateURLUseCase_Execute(t *testing.T) {
 					t.Errorf("Execute() error = nil, wantErr %v", tt.wantErr)
 					return
 				}
-				// Check if error message contains expected error
-				if !strings.Contains(err.Error(), tt.wantErr.Error()) {
+				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
@@ -313,8 +313,8 @@ func TestCreateURLUseCase_Execute_MaxRetriesExceeded(t *testing.T) {
 		return
 	}
 
-	if !strings.Contains(err.Error(), url.ErrMaxRetriesExceeded.Error()) {
-		t.Errorf("Execute() error = %v, want error containing %v", err, url.ErrMaxRetriesExceeded)
+	if !errors.Is(err, url.ErrMaxRetriesExceeded) {
+		t.Errorf("Execute() error = %v, want %v", err, url.ErrMaxRetriesExceeded)
 	}
 }
 
