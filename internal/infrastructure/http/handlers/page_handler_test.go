@@ -372,70 +372,70 @@ func TestPageHandler_CreatePage_POST_InvalidToken(t *testing.T) {
 }
 
 func TestPageHandler_CreatePage_POST_Success_SecondaryToken(t *testing.T) {
-mockUseCase := &mockCreateURLUseCase{
-executeFunc: func(ctx context.Context, req application.CreateURLRequest) (*application.CreateURLResponse, error) {
-return &application.CreateURLResponse{
-ShortCode:   "abc123",
-ShortURL:    "http://localhost:8080/abc123",
-OriginalURL: req.OriginalURL,
-}, nil
-},
-}
-h := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, []string{"tokenA", "tokenB"}, newTestSessionStore(t), false)
+	mockUseCase := &mockCreateURLUseCase{
+		executeFunc: func(ctx context.Context, req application.CreateURLRequest) (*application.CreateURLResponse, error) {
+			return &application.CreateURLResponse{
+				ShortCode:   "abc123",
+				ShortURL:    "http://localhost:8080/abc123",
+				OriginalURL: req.OriginalURL,
+			}, nil
+		},
+	}
+	h := NewPageHandler(mockUseCase, &mockListURLsUseCase{}, []string{"tokenA", "tokenB"}, newTestSessionStore(t), false)
 
-form := url.Values{}
-form.Add("original_url", "https://example.com")
-form.Add("auth_token", "tokenB")
+	form := url.Values{}
+	form.Add("original_url", "https://example.com")
+	form.Add("auth_token", "tokenB")
 
-req := httptest.NewRequest(http.MethodPost, "/create", strings.NewReader(form.Encode()))
-req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/create", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
 
-h.CreatePage(w, req)
+	h.CreatePage(w, req)
 
-if w.Result().StatusCode != http.StatusOK {
-t.Fatalf("expected status 200, got %d", w.Result().StatusCode)
-}
+	if w.Result().StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Result().StatusCode)
+	}
 }
 
 func TestPageHandler_Login_POST_Success_SecondaryToken(t *testing.T) {
-h := NewPageHandler(&mockCreateURLUseCase{}, &mockListURLsUseCase{}, []string{"tokenA", "tokenB"}, newTestSessionStore(t), false)
+	h := NewPageHandler(&mockCreateURLUseCase{}, &mockListURLsUseCase{}, []string{"tokenA", "tokenB"}, newTestSessionStore(t), false)
 
-form := url.Values{}
-form.Add("auth_token", "tokenB")
+	form := url.Values{}
+	form.Add("auth_token", "tokenB")
 
-req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
-req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
 
-h.Login(w, req)
+	h.Login(w, req)
 
-resp := w.Result()
-defer resp.Body.Close()
-if resp.StatusCode != http.StatusSeeOther {
-t.Fatalf("expected status 303, got %d", resp.StatusCode)
-}
-if loc := resp.Header.Get("Location"); loc != "/dashboard" {
-t.Fatalf("expected redirect to /dashboard, got %q", loc)
-}
-if setCookie := resp.Header.Get("Set-Cookie"); setCookie == "" {
-t.Fatalf("expected Set-Cookie header to be set")
-}
+	resp := w.Result()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected status 303, got %d", resp.StatusCode)
+	}
+	if loc := resp.Header.Get("Location"); loc != "/dashboard" {
+		t.Fatalf("expected redirect to /dashboard, got %q", loc)
+	}
+	if setCookie := resp.Header.Get("Set-Cookie"); setCookie == "" {
+		t.Fatalf("expected Set-Cookie header to be set")
+	}
 }
 
 func TestPageHandler_Login_POST_InvalidToken(t *testing.T) {
-h := NewPageHandler(&mockCreateURLUseCase{}, &mockListURLsUseCase{}, []string{"tokenA"}, newTestSessionStore(t), false)
+	h := NewPageHandler(&mockCreateURLUseCase{}, &mockListURLsUseCase{}, []string{"tokenA"}, newTestSessionStore(t), false)
 
-form := url.Values{}
-form.Add("auth_token", "wrong")
+	form := url.Values{}
+	form.Add("auth_token", "wrong")
 
-req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
-req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
 
-h.Login(w, req)
+	h.Login(w, req)
 
-if w.Result().StatusCode != http.StatusUnauthorized {
-t.Fatalf("expected status 401, got %d", w.Result().StatusCode)
-}
+	if w.Result().StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", w.Result().StatusCode)
+	}
 }
