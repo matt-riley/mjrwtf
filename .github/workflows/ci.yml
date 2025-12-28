@@ -17,55 +17,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-      - name: Verify GitHub Actions are SHA-pinned
-        run: |
-          set -euo pipefail
-
-          if grep -RInE '^\s*uses:\s+[^#[:space:]]+@(main|master|HEAD)\b' .github/workflows; then
-            echo "Error: workflows must not pin actions to main/master/HEAD"
-            exit 1
-          fi
-
-          if grep -RInE '^\s*uses:\s+[^#[:space:]]+@v[0-9]+(\.[0-9]+)*\b' .github/workflows; then
-            echo "Error: workflows must pin actions by commit SHA (not @vX tags)"
-            exit 1
-          fi
-
-          while IFS= read -r line; do
-            content="$(echo "$line" | cut -d: -f3-)"
-            ref="$(echo "$content" | sed -E 's/^\s*uses:\s+([^#[:space:]]+).*/\1/')"
-            case "$ref" in
-              ./*) continue ;; # local action
-            esac
-            if ! echo "$ref" | grep -Eq '@[0-9a-f]{40}$'; then
-              echo "Error: unpinned action reference: $content"
-              exit 1
-            fi
-          done < <(grep -RInE '^\s*uses:\s+' .github/workflows)
-
-      - name: Verify release builds run codegen
-        run: |
-          set -euo pipefail
-
-          if ! grep -nE '^\s*-\s+sqlc generate\b' .goreleaser.yaml; then
-            echo "Error: .goreleaser.yaml must run 'sqlc generate' in release builds"
-            exit 1
-          fi
-
-          if ! grep -nE '^\s*-\s+templ generate\b' .goreleaser.yaml; then
-            echo "Error: .goreleaser.yaml must run 'templ generate' in release builds"
-            exit 1
-          fi
-
-          if ! grep -nE 'name:\s+Install sqlc\b' .github/workflows/goreleaser.yml; then
-            echo "Error: .github/workflows/goreleaser.yml must contain a step named 'Install sqlc'"
-            exit 1
-          fi
-
-          if ! grep -nE 'name:\s+Install templ\b' .github/workflows/goreleaser.yml; then
-            echo "Error: .github/workflows/goreleaser.yml must contain a step named 'Install templ'"
-            exit 1
-          fi
+      - name: Workflow policy checks
+        run: bash scripts/workflow-policy-check.sh
 
   generate-check:
     name: Generate & verify generated code
