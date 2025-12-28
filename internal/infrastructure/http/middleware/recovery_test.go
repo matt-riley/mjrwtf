@@ -122,6 +122,8 @@ func TestRecoveryWithLogger_UsesContextLogger(t *testing.T) {
 }
 
 func TestRecoveryWithLogger_LogsPanicDetails(t *testing.T) {
+	t.Setenv("LOG_STACK_TRACES", "true")
+
 	var logBuf bytes.Buffer
 	logger := zerolog.New(&logBuf)
 
@@ -345,6 +347,80 @@ func TestRecoveryWithNotifier_DisabledNotifier(t *testing.T) {
 	if !strings.Contains(logOutput, "panic recovered") {
 		t.Errorf("expected 'panic recovered' in log output")
 	}
+}
+
+func TestRecoveryWithLogger_StackTraceDisabled(t *testing.T) {
+	t.Setenv("LOG_STACK_TRACES", "false")
+
+	var logBuf bytes.Buffer
+	logger := zerolog.New(&logBuf)
+
+	handler := RecoveryWithLogger(logger)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("panic without stack")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	logOutput := logBuf.String()
+	if strings.Contains(logOutput, `"stack"`) {
+		t.Errorf("expected no stack trace in log output when LOG_STACK_TRACES=false, got: %s", logOutput)
+	}
+}
+
+func TestRecoveryWithNotifier_StackTraceDisabled(t *testing.T) {
+	t.Setenv("LOG_STACK_TRACES", "false")
+
+	var logBuf bytes.Buffer
+	logger := zerolog.New(&logBuf)
+
+	var payload string
+	mockClient := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			b, _ := io.ReadAll(req.Body)
+			payload = string(b)
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString("")),
+			}, nil
+		}),
+	}
+
+	notifier := notification.NewDiscordNotifier(
+		"https://discord.com/api/webhooks/test",
+		notification.WithHTTPClient(mockClient),
+		notification.WithAsyncSend(false),
+	)
+
+	handler := RecoveryWithNotifier(logger, notifier)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("panic without stack")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if strings.Contains(payload, "Stack Trace") {
+		t.Errorf("expected no stack trace field in Discord payload when LOG_STACK_TRACES=false, got: %s", payload)
+	}
+}
+
+func TestRecovery_RepanicsOnErrAbortHandler(t *testing.T) {
+	h := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic(http.ErrAbortHandler)
+	}))
+
+	defer func() {
+		rec := recover()
+		if rec != http.ErrAbortHandler {
+			t.Errorf("expected panic %v, got %v", http.ErrAbortHandler, rec)
+		}
+	}()
+
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/test", nil))
 }
 
 // roundTripFunc is a helper type for mocking HTTP transport
