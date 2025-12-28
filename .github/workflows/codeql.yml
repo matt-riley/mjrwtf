@@ -34,10 +34,10 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
       with:
         go-version: '1.25.5'
         cache: true
@@ -68,7 +68,7 @@ jobs:
 
     # Initialize CodeQL tools for scanning
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@27fcff4ecb39e96348e7ceddcc2d9ef42308b6fc # v4
       with:
         languages: ${{ matrix.language }}
         # CodeQL query suites to run
@@ -80,7 +80,7 @@ jobs:
     # Autobuild attempts to build any compiled languages (Go, C/C++, C#, Java, Swift)
     # If this step fails, remove it and uncomment the manual build commands below
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v4
+      uses: github/codeql-action/autobuild@27fcff4ecb39e96348e7ceddcc2d9ef42308b6fc # v4
 
     # Manual build steps (use if autobuild fails)
     # - name: Build project
@@ -89,7 +89,7 @@ jobs:
     #     make build-server
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@27fcff4ecb39e96348e7ceddcc2d9ef42308b6fc # v4
       with:
         category: "/language:${{matrix.language}}"
         # Upload results even if there are errors (for partial results)
@@ -99,7 +99,7 @@ jobs:
         
     # Optional: Upload SARIF file as artifact for external analysis
     - name: Upload SARIF as artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       if: always()
       with:
         name: codeql-sarif-results
