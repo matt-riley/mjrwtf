@@ -33,6 +33,7 @@ type RateLimiterMiddleware struct {
 	rl *rateLimiter
 }
 
+// NewRateLimiterMiddleware creates a per-client (IP-based) rate limiting middleware.
 func NewRateLimiterMiddleware(requestsPerMinute int, window time.Duration) *RateLimiterMiddleware {
 	return &RateLimiterMiddleware{rl: newRateLimiter(requestsPerMinute, window)}
 }
@@ -55,6 +56,7 @@ func (m *RateLimiterMiddleware) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// Shutdown stops the background cleanup goroutine for the rate limiter.
 func (m *RateLimiterMiddleware) Shutdown() {
 	m.rl.shutdown()
 }

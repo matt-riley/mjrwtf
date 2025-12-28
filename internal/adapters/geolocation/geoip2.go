@@ -1,6 +1,3 @@
-// Package geolocation provides adapters for IP geolocation services.
-// This package implements the geolocation.LookupService interface defined
-// in the domain layer using MaxMind GeoIP2 databases.
 package geolocation
 
 import (

@@ -25,9 +25,11 @@ import (
 
 const (
 	// Server timeout configurations
-	readTimeout     = 15 * time.Second
-	writeTimeout    = 15 * time.Second
-	idleTimeout     = 60 * time.Second
+	readTimeout  = 15 * time.Second
+	writeTimeout = 15 * time.Second
+	idleTimeout  = 60 * time.Second
+
+	// ShutdownTimeout is the maximum time allowed for graceful server shutdown.
 	ShutdownTimeout = 30 * time.Second
 
 	defaultRedirectRateLimitPerMinute = 120

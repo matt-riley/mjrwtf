@@ -1,5 +1,3 @@
-// Package application contains use case implementations for the mjrwtf URL shortener,
-// coordinating between domain entities and adapters.
 package application
 
 import (
