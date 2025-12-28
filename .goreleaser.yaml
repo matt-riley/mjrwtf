@@ -45,5 +45,16 @@ archives:
 checksum:
   name_template: checksums.txt
 
+# NOTE: This project expects an external tool (e.g., Release Please) to create and
+# publish the GitHub release before GoReleaser runs. The `mode: keep-existing`
+# setting tells GoReleaser to keep that pre-existing release and only attach
+# artifacts to it.
+#
+# CI workflows MUST ensure that:
+#   1. The release has already been created by Release Please (or similar).
+#   2. GoReleaser is only triggered after that release is fully available.
+#
+# If GoReleaser runs before the release exists, it may fail or behave
+# inconsistently. Adjust your workflow job ordering accordingly.
 release:
   mode: keep-existing
