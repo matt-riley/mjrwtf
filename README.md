@@ -2,6 +2,17 @@
 
 A simple URL shortener, written in Go.
 
+## Releases
+
+Releases are automated via GitHub Actions using **Release Please** (versioning + changelog) and **GoReleaser** (binary artifacts).
+
+- Commits merged into `main` drive a **Release PR** (semver bump + `CHANGELOG.md`).
+- Merging the Release PR publishes a tagged GitHub Release (`vX.Y.Z`).
+- Publishing the release triggers:
+  - `goreleaser.yml` to attach `server` + `migrate` binaries and `checksums.txt`.
+  - `docker-publish.yml` to build and publish the GHCR Docker images.
+
+
 ## API Documentation
 
 The API is fully documented using OpenAPI 3.0. You can find the specification in [`openapi.yaml`](openapi.yaml) at the repository root.

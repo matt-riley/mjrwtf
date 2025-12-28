@@ -2,6 +2,17 @@
 
 Thank you for your interest in contributing to mjr.wtf! This guide will help you get started.
 
+## Releases
+
+Releases are automated:
+
+- **Release Please** opens/updates a Release PR based on conventional commits.
+- Merging that PR creates a semver tag and publishes a GitHub Release.
+- The published release triggers **GoReleaser** to upload `server` + `migrate` binaries (and checksums), and also triggers the existing Docker publish workflow.
+
+To keep versioning predictable, prefer conventional commits (e.g. `feat: ...`, `fix: ...`). Use `feat!: ...` or a `BREAKING CHANGE:` footer for breaking changes.
+
+
 ## Development Workflow
 
 ### 1. Fork and Clone
