@@ -207,7 +207,7 @@ AUTH_TOKENS=token-current,token-next
 #### Recommended token rotation procedure (no downtime)
 
 1. Generate a new token.
-2. Deploy with both tokens enabled: `AUTH_TOKENS=<current>,<new>` (keep the current token first for any legacy code paths that still read a single “primary” token).
+2. Deploy with both tokens enabled: `AUTH_TOKENS=<current>,<new>`
 3. Update clients to use `<new>` and verify requests succeed.
 4. Deploy again with only the new token: `AUTH_TOKENS=<new>` (or switch back to `AUTH_TOKEN=<new>` if you don’t need multi-token support).
 

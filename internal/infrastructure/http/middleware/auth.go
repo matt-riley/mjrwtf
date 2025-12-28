@@ -42,6 +42,11 @@ func Auth(authTokens []string) func(http.Handler) http.Handler {
 				return
 			}
 
+			if len(authTokens) == 0 {
+				respondJSONError(w, "Unauthorized: no valid tokens configured", http.StatusUnauthorized)
+				return
+			}
+
 			// Validate token against configured secrets using constant-time comparison.
 			// Avoid early-exit across tokens to reduce timing signal during rotations.
 			match := 0
