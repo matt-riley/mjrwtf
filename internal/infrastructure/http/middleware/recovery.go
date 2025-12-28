@@ -129,13 +129,13 @@ func RecoveryWithNotifier(logger zerolog.Logger, notifier *notification.DiscordN
 					}
 					errorMsg := fmt.Sprintf("%v", rec)
 
-					evt := ctxLogger.Error().
+					logEvent := ctxLogger.Error().
 						Str("panic_type", fmt.Sprintf("%T", rec)).
 						Str("panic", errorMsg)
 					if includeStack {
-						evt = evt.Str("stack", stackTrace)
+						logEvent = logEvent.Str("stack", stackTrace)
 					}
-					evt.Msg("panic recovered")
+					logEvent.Msg("panic recovered")
 
 					// Send notification to Discord if notifier is configured
 					if notifier != nil && notifier.IsEnabled() {
@@ -186,13 +186,13 @@ func Recovery(next http.Handler) http.Handler {
 				}
 				errorMsg := fmt.Sprintf("%v", rec)
 
-				evt := logger.Error().
+				logEvent := logger.Error().
 					Str("panic_type", fmt.Sprintf("%T", rec)).
 					Str("panic", errorMsg)
 				if includeStack {
-					evt = evt.Str("stack", stackTrace)
+					logEvent = logEvent.Str("stack", stackTrace)
 				}
-				evt.Msg("panic recovered")
+				logEvent.Msg("panic recovered")
 
 				if !rw.wroteHeader {
 					rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
