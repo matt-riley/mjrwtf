@@ -126,7 +126,14 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 
 	// Validate auth token using constant-time comparison to prevent timing attacks.
 	// Avoid early-exit across tokens to reduce timing signal during rotations.
-	match, _ := middleware.ValidateTokenConstantTime(authToken, h.authTokens)
+	match, configured := middleware.ValidateTokenConstantTime(authToken, h.authTokens)
+	if !configured {
+		w.WriteHeader(http.StatusInternalServerError)
+		if err := pages.CreateWithError("Server authentication configuration error").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
 	if !match {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.CreateWithError("Invalid authentication token").Render(r.Context(), w); err != nil {
@@ -317,7 +324,14 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Validate auth token using constant-time comparison to prevent timing attacks.
 	// Avoid early-exit across tokens to reduce timing signal during rotations.
-	match, _ := middleware.ValidateTokenConstantTime(authToken, h.authTokens)
+	match, configured := middleware.ValidateTokenConstantTime(authToken, h.authTokens)
+	if !configured {
+		w.WriteHeader(http.StatusInternalServerError)
+		if err := pages.Login("Authentication is not properly configured").Render(r.Context(), w); err != nil {
+			w.Write([]byte("Error rendering page"))
+		}
+		return
+	}
 	if !match {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.Login("Invalid authentication token").Render(r.Context(), w); err != nil {

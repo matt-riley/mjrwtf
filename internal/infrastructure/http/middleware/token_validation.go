@@ -8,6 +8,10 @@ import (
 // ValidateTokenConstantTime checks whether token matches any of validTokens.
 // It avoids early-exit across the configured token list to reduce timing signal.
 //
+// Note: total runtime is proportional to len(validTokens), which may leak the
+// configured token count via timing. In practice this is typically 1–2 tokens
+// during rotations, and network jitter dominates.
+//
 // Returns:
 //   - match: true if token matches one of validTokens
 //   - configured: true if validTokens is non-empty
