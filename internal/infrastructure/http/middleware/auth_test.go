@@ -129,6 +129,29 @@ func TestAuth_ValidToken_MultipleTokens(t *testing.T) {
 	}
 }
 
+func TestAuth_NoTokensConfigured(t *testing.T) {
+	authMiddleware := Auth(nil)
+	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer any-token")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+	}
+
+	expected := `{"error":"Unauthorized: no valid tokens configured"}
+`
+	if rec.Body.String() != expected {
+		t.Fatalf("expected response %q, got %q", expected, rec.Body.String())
+	}
+}
+
 func TestAuth_UserIdentityInContext(t *testing.T) {
 	authMiddleware := Auth([]string{"test-secret-token"})
 
