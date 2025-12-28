@@ -9,7 +9,7 @@ Releases are automated via GitHub Actions using **Release Please** (versioning +
 - Commits merged into `main` drive a **Release PR** (semver bump + `CHANGELOG.md`).
 - Merging the Release PR publishes a tagged GitHub Release (`vX.Y.Z`).
 - Publishing the release triggers:
-  - `goreleaser.yml` to attach `server` + `migrate` binaries and `checksums.txt`.
+  - `.github/workflows/goreleaser.yml` (using `.goreleaser.yaml`) to attach `server` + `migrate` binaries and `checksums.txt`.
   - `docker-publish.yml` to build and publish the GHCR Docker images.
 
 
