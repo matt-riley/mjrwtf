@@ -46,10 +46,26 @@ jobs:
       - name: Verify release builds run codegen
         run: |
           set -euo pipefail
-          grep -nE '^\s*-\s+sqlc generate\b' .goreleaser.yaml
-          grep -nE '^\s*-\s+templ generate\b' .goreleaser.yaml
-          grep -nE 'name:\s+Install sqlc\b' .github/workflows/goreleaser.yml
-          grep -nE 'name:\s+Install templ\b' .github/workflows/goreleaser.yml
+
+          if ! grep -nE '^\s*-\s+sqlc generate\b' .goreleaser.yaml; then
+            echo "Error: .goreleaser.yaml must run 'sqlc generate' in release builds"
+            exit 1
+          fi
+
+          if ! grep -nE '^\s*-\s+templ generate\b' .goreleaser.yaml; then
+            echo "Error: .goreleaser.yaml must run 'templ generate' in release builds"
+            exit 1
+          fi
+
+          if ! grep -nE 'name:\s+Install sqlc\b' .github/workflows/goreleaser.yml; then
+            echo "Error: .github/workflows/goreleaser.yml must contain a step named 'Install sqlc'"
+            exit 1
+          fi
+
+          if ! grep -nE 'name:\s+Install templ\b' .github/workflows/goreleaser.yml; then
+            echo "Error: .github/workflows/goreleaser.yml must contain a step named 'Install templ'"
+            exit 1
+          fi
 
   generate-check:
     name: Generate & verify generated code
