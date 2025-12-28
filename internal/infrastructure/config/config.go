@@ -143,7 +143,7 @@ func (c *Config) Validate() error {
 	// to avoid sqlite creating a local file literally named after the URL.
 	if strings.Contains(c.DatabaseURL, "://") {
 		scheme, _, _ := strings.Cut(strings.ToLower(c.DatabaseURL), "://")
-		return fmt.Errorf("%w %q (SQLite file paths only)", ErrUnsupportedDatabaseURLScheme, scheme)
+		return fmt.Errorf("%w: %q (SQLite file paths only)", ErrUnsupportedDatabaseURLScheme, scheme)
 	}
 
 	if c.AuthToken == "" {
@@ -194,12 +194,12 @@ func getEnvAsInt(key string, defaultValue int) (int, error) {
 		return defaultValue, nil
 	}
 	if valueStr == "" {
-		return 0, fmt.Errorf("%s %w", key, ErrEnvVarEmpty)
+		return 0, fmt.Errorf("%w: %s", ErrEnvVarEmpty, key)
 	}
 
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
-		return 0, fmt.Errorf("%s %w, got %q", key, ErrEnvVarNotInt, valueStr)
+		return 0, fmt.Errorf("%w: %s (got %q)", ErrEnvVarNotInt, key, valueStr)
 	}
 
 	return value, nil
@@ -213,12 +213,12 @@ func getEnvAsBool(key string, defaultValue bool) (bool, error) {
 		return defaultValue, nil
 	}
 	if valueStr == "" {
-		return false, fmt.Errorf("%s %w", key, ErrEnvVarEmpty)
+		return false, fmt.Errorf("%w: %s", ErrEnvVarEmpty, key)
 	}
 
 	value, err := strconv.ParseBool(valueStr)
 	if err != nil {
-		return false, fmt.Errorf("%s %w, got %q", key, ErrEnvVarNotBool, valueStr)
+		return false, fmt.Errorf("%w: %s (got %q)", ErrEnvVarNotBool, key, valueStr)
 	}
 
 	return value, nil
@@ -233,12 +233,12 @@ func getEnvAsDuration(key string, defaultValue time.Duration) (time.Duration, er
 		return defaultValue, nil
 	}
 	if valueStr == "" {
-		return 0, fmt.Errorf("%s %w", key, ErrEnvVarEmpty)
+		return 0, fmt.Errorf("%w: %s", ErrEnvVarEmpty, key)
 	}
 
 	value, err := time.ParseDuration(valueStr)
 	if err != nil {
-		return 0, fmt.Errorf("%s %w, got %q", key, ErrEnvVarNotDuration, valueStr)
+		return 0, fmt.Errorf("%w: %s (got %q)", ErrEnvVarNotDuration, key, valueStr)
 	}
 
 	return value, nil
