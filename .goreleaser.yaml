@@ -5,6 +5,8 @@ project_name: mjrwtf
 before:
   hooks:
     - go mod download
+    - sqlc generate
+    - templ generate
 
 builds:
   - id: server
