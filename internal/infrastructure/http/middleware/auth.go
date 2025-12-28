@@ -16,8 +16,10 @@ const (
 	UserIDKey contextKey = "userID"
 )
 
-// Auth returns a middleware that validates Bearer token authentication
-func Auth(authToken string) func(http.Handler) http.Handler {
+// Auth returns a middleware that validates Bearer token authentication.
+//
+// It accepts multiple active tokens to support zero-downtime rotations.
+func Auth(authTokens []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Extract Authorization header
@@ -40,9 +42,13 @@ func Auth(authToken string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Validate token against configured secret using constant-time comparison
-			// to prevent timing attacks
-			if subtle.ConstantTimeCompare([]byte(token), []byte(authToken)) != 1 {
+			// Validate token against configured secrets using constant-time comparison.
+			// Avoid early-exit across tokens to reduce timing signal during rotations.
+			match := 0
+			for _, t := range authTokens {
+				match |= subtle.ConstantTimeCompare([]byte(token), []byte(t))
+			}
+			if match != 1 {
 				respondJSONError(w, "Unauthorized: invalid token", http.StatusUnauthorized)
 				return
 			}

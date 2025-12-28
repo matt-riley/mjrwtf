@@ -8,7 +8,7 @@ import (
 )
 
 func TestSessionOrBearerAuth_SessionWins(t *testing.T) {
-	mw := SessionOrBearerAuth("test-token")
+	mw := SessionOrBearerAuth([]string{"test-token"})
 
 	h := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := GetUserID(r.Context())
@@ -35,7 +35,7 @@ func TestSessionOrBearerAuth_SessionWins(t *testing.T) {
 }
 
 func TestSessionOrBearerAuth_BearerUsedWhenNoSession(t *testing.T) {
-	mw := SessionOrBearerAuth("test-token")
+	mw := SessionOrBearerAuth([]string{"test-token"})
 
 	h := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := GetUserID(r.Context())
@@ -61,7 +61,7 @@ func TestSessionOrBearerAuth_BearerUsedWhenNoSession(t *testing.T) {
 }
 
 func TestSessionOrBearerAuth_UnauthorizedWhenNoSessionOrBearer(t *testing.T) {
-	mw := SessionOrBearerAuth("test-token")
+	mw := SessionOrBearerAuth([]string{"test-token"})
 
 	h := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

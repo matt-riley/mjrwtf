@@ -95,7 +95,7 @@ router.Get("/custom", customPageHandler)
 
 // Add custom API routes
 router.Route("/api/custom", func(r chi.Router) {
-    r.Use(middleware.Auth(cfg.AuthToken))
+    r.Use(middleware.Auth(cfg.ActiveAuthTokens()))
     r.Get("/", handleList)
     r.Post("/", handleCreate)
 })

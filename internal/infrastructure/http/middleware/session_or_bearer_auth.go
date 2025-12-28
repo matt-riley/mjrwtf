@@ -10,7 +10,7 @@ import (
 //   - a valid Bearer token is provided (via Auth).
 //
 // If a session user is present, it is preferred over Bearer auth.
-func SessionOrBearerAuth(authToken string) func(http.Handler) http.Handler {
+func SessionOrBearerAuth(authTokens []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if userID, ok := GetSessionUserID(r.Context()); ok && userID != "" {
@@ -19,7 +19,7 @@ func SessionOrBearerAuth(authToken string) func(http.Handler) http.Handler {
 				return
 			}
 
-			Auth(authToken)(next).ServeHTTP(w, r)
+			Auth(authTokens)(next).ServeHTTP(w, r)
 		})
 	}
 }

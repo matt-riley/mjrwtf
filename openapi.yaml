@@ -398,8 +398,8 @@ components:
       type: http
       scheme: bearer
       description: |
-        Bearer token authentication. Configure your token via the AUTH_TOKEN environment variable.
-        Include the token in the Authorization header: `Authorization: Bearer YOUR_TOKEN_HERE`
+        Bearer token authentication. Configure via AUTH_TOKENS (preferred, comma-separated) or AUTH_TOKEN (legacy single token).
+        Include any active token in the Authorization header: `Authorization: Bearer YOUR_TOKEN_HERE`
 
   schemas:
     CreateURLRequest:

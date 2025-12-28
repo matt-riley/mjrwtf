@@ -25,6 +25,9 @@ func TestLoadConfig_Success(t *testing.T) {
 	if config.AuthToken != "test-token" {
 		t.Errorf("Expected AUTH_TOKEN to be 'test-token', got: %s", config.AuthToken)
 	}
+	if len(config.AuthTokens) != 1 || config.AuthTokens[0] != "test-token" {
+		t.Errorf("Expected AuthTokens to be ['test-token'], got: %#v", config.AuthTokens)
+	}
 
 	// Check default value for ServerPort
 	if config.ServerPort != 8080 {
@@ -63,18 +66,65 @@ func TestLoadConfig_MissingDatabaseURL(t *testing.T) {
 }
 
 func TestLoadConfig_MissingAuthToken(t *testing.T) {
-	// Set only DATABASE_URL, leave AUTH_TOKEN empty
+	// Set only DATABASE_URL, leave auth tokens empty
 	os.Setenv("DATABASE_URL", "./database.db")
 	os.Unsetenv("AUTH_TOKEN")
+	os.Unsetenv("AUTH_TOKENS")
 	defer cleanEnv()
 
 	_, err := LoadConfig()
 	if err == nil {
-		t.Fatal("Expected error for missing AUTH_TOKEN, got nil")
+		t.Fatal("Expected error for missing auth token(s), got nil")
 	}
 
 	if !errors.Is(err, ErrMissingAuthToken) {
 		t.Fatalf("Expected ErrMissingAuthToken, got: %v", err)
+	}
+}
+
+func TestLoadConfig_AuthTokens_Multiple(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKENS", "tokenA,tokenB")
+	defer cleanEnv()
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if cfg.AuthToken != "tokenA" {
+		t.Fatalf("Expected AuthToken to be 'tokenA' (first token), got: %q", cfg.AuthToken)
+	}
+	if len(cfg.AuthTokens) != 2 || cfg.AuthTokens[0] != "tokenA" || cfg.AuthTokens[1] != "tokenB" {
+		t.Fatalf("Expected AuthTokens to be ['tokenA','tokenB'], got: %#v", cfg.AuthTokens)
+	}
+}
+
+func TestLoadConfig_AuthTokens_EmptyOrMalformed(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKENS", ",   ,")
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for empty AUTH_TOKENS, got nil")
+	}
+	if !errors.Is(err, ErrMissingAuthToken) {
+		t.Fatalf("Expected ErrMissingAuthToken, got: %v", err)
+	}
+}
+
+func TestLoadConfig_AuthTokens_IgnoresEmptyEntries(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKENS", "tokenA,, tokenB,  ")
+	defer cleanEnv()
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	if len(cfg.AuthTokens) != 2 || cfg.AuthTokens[0] != "tokenA" || cfg.AuthTokens[1] != "tokenB" {
+		t.Fatalf("Expected AuthTokens to be ['tokenA','tokenB'], got: %#v", cfg.AuthTokens)
 	}
 }
 
@@ -452,6 +502,7 @@ func cleanEnv() {
 	os.Unsetenv("DATABASE_URL")
 	os.Unsetenv("SERVER_PORT")
 	os.Unsetenv("AUTH_TOKEN")
+	os.Unsetenv("AUTH_TOKENS")
 	os.Unsetenv("DISCORD_WEBHOOK_URL")
 	os.Unsetenv("GEOIP_ENABLED")
 	os.Unsetenv("GEOIP_DATABASE")

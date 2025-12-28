@@ -18,7 +18,7 @@ import (
 type PageHandler struct {
 	createUseCase CreateURLUseCase
 	listUseCase   ListURLsUseCase
-	authToken     string
+	authTokens    []string
 	sessionStore  *session.Store
 	secureCookies bool
 }
@@ -27,14 +27,14 @@ type PageHandler struct {
 func NewPageHandler(
 	createUseCase CreateURLUseCase,
 	listUseCase ListURLsUseCase,
-	authToken string,
+	authTokens []string,
 	sessionStore *session.Store,
 	secureCookies bool,
 ) *PageHandler {
 	return &PageHandler{
 		createUseCase: createUseCase,
 		listUseCase:   listUseCase,
-		authToken:     authToken,
+		authTokens:    authTokens,
 		sessionStore:  sessionStore,
 		secureCookies: secureCookies,
 	}
@@ -125,8 +125,13 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Validate auth token using constant-time comparison to prevent timing attacks
-	if subtle.ConstantTimeCompare([]byte(authToken), []byte(h.authToken)) != 1 {
+	// Validate auth token using constant-time comparison to prevent timing attacks.
+	// Avoid early-exit across tokens to reduce timing signal during rotations.
+	match := 0
+	for _, t := range h.authTokens {
+		match |= subtle.ConstantTimeCompare([]byte(authToken), []byte(t))
+	}
+	if match != 1 {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.CreateWithError("Invalid authentication token").Render(r.Context(), w); err != nil {
 			w.Write([]byte("Error rendering page"))
@@ -314,8 +319,13 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate auth token using constant-time comparison to prevent timing attacks
-	if subtle.ConstantTimeCompare([]byte(authToken), []byte(h.authToken)) != 1 {
+	// Validate auth token using constant-time comparison to prevent timing attacks.
+	// Avoid early-exit across tokens to reduce timing signal during rotations.
+	match := 0
+	for _, t := range h.authTokens {
+		match |= subtle.ConstantTimeCompare([]byte(authToken), []byte(t))
+	}
+	if match != 1 {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.Login("Invalid authentication token").Render(r.Context(), w); err != nil {
 			w.Write([]byte("Error rendering page"))
