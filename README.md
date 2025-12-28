@@ -181,19 +181,35 @@ The API uses token-based authentication to protect URL creation and deletion end
 
 #### Configuration
 
-Set the `AUTH_TOKEN` environment variable to configure your authentication token:
+mjr.wtf accepts either a single token (`AUTH_TOKEN`) or a comma-separated list (`AUTH_TOKENS`) to support token rotation.
+
+- **Preferred:** `AUTH_TOKENS` (comma-separated). If set, it **takes precedence** and `AUTH_TOKEN` is ignored.
+- **Backward compatible:** `AUTH_TOKEN` (single token) is used only when `AUTH_TOKENS` is **unset**.
 
 ```bash
+# Single token (legacy)
 export AUTH_TOKEN=your-secret-token-here
+
+# Multiple tokens (recommended for rotation)
+export AUTH_TOKENS=token-current,token-next
 ```
 
 Or add it to your `.env` file:
 
 ```
-AUTH_TOKEN=your-secret-token-here
+# AUTH_TOKENS takes precedence if set
+AUTH_TOKENS=token-current,token-next
+# AUTH_TOKEN=your-secret-token-here
 ```
 
-**Security Note:** The AUTH_TOKEN is required for the application to start. Choose a strong, randomly generated token for production deployments.
+**Security Note:** At least one auth token is required for the application to start. Choose strong, randomly generated tokens for production deployments.
+
+#### Recommended token rotation procedure (no downtime)
+
+1. Generate a new token.
+2. Deploy with both tokens enabled: `AUTH_TOKENS=<current>,<new>` (keep the current token first for any legacy code paths that still read a single “primary” token).
+3. Update clients to use `<new>` and verify requests succeed.
+4. Deploy again with only the new token: `AUTH_TOKENS=<new>` (or switch back to `AUTH_TOKEN=<new>` if you don’t need multi-token support).
 
 #### Making Authenticated Requests
 
@@ -220,7 +236,7 @@ Unauthorized: missing authorization header
 // Invalid format (not "Bearer <token>")
 Unauthorized: invalid authorization format
 
-// Token doesn't match configured AUTH_TOKEN
+// Token doesn't match configured AUTH_TOKENS/AUTH_TOKEN
 Unauthorized: invalid token
 ```
 
@@ -230,7 +246,7 @@ The web dashboard uses server-side session management with httpOnly cookies for 
 
 #### How It Works
 
-1. **Login**: Navigate to `/login` and enter your authentication token (the same `AUTH_TOKEN` configured above)
+1. **Login**: Navigate to `/login` and enter any active authentication token (from `AUTH_TOKENS` or `AUTH_TOKEN`)
 2. **Session Creation**: Upon successful login, the server creates a session and sets an httpOnly cookie
 3. **Session Duration**: Sessions last for 24 hours and are automatically refreshed on each request
 4. **Logout**: Navigate to `/logout` or click the logout button to end your session
@@ -341,9 +357,12 @@ mjr.wtf is configured through environment variables. Below is a comprehensive li
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `DATABASE_URL` | SQLite database file path (e.g. `./database.db`) | - | ✓ |
-| `AUTH_TOKEN` | Secret token for API authentication | - | ✓ |
+| `AUTH_TOKENS` | Secret tokens for API authentication (comma-separated); takes precedence over `AUTH_TOKEN` | - | ✓* |
+| `AUTH_TOKEN` | Secret token for API authentication (legacy single-token; used only if `AUTH_TOKENS` is unset) | - | ✓* |
 | `SERVER_PORT` | HTTP server port | `8080` | |
 | `BASE_URL` | Base URL for shortened links | `http://localhost:8080` | |
+
+\* At least one of `AUTH_TOKENS` or `AUTH_TOKEN` must be set.
 
 ### Database Configuration
 
@@ -381,7 +400,11 @@ The `DB_TIMEOUT` setting applies a bounded deadline to all database operations, 
 ```bash
 # .env file
 DATABASE_URL=./database.db
-AUTH_TOKEN=your-secret-token-here
+
+# Prefer AUTH_TOKENS (supports rotation); AUTH_TOKEN is legacy/back-compat.
+AUTH_TOKENS=token-current,token-next
+# AUTH_TOKEN=your-secret-token-here
+
 SERVER_PORT=8080
 BASE_URL=https://mjr.wtf
 DB_TIMEOUT=10s

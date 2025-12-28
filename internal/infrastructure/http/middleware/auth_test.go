@@ -7,7 +7,7 @@ import (
 )
 
 func TestAuth_MissingToken(t *testing.T) {
-	authMiddleware := Auth("test-secret-token")
+	authMiddleware := Auth([]string{"test-secret-token"})
 	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("protected resource"))
@@ -42,7 +42,7 @@ func TestAuth_InvalidTokenFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			authMiddleware := Auth("test-secret-token")
+			authMiddleware := Auth([]string{"test-secret-token"})
 			handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			}))
@@ -61,7 +61,7 @@ func TestAuth_InvalidTokenFormat(t *testing.T) {
 }
 
 func TestAuth_InvalidToken(t *testing.T) {
-	authMiddleware := Auth("correct-secret-token")
+	authMiddleware := Auth([]string{"correct-secret-token"})
 	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("protected resource"))
@@ -85,7 +85,7 @@ func TestAuth_InvalidToken(t *testing.T) {
 }
 
 func TestAuth_ValidToken(t *testing.T) {
-	authMiddleware := Auth("test-secret-token")
+	authMiddleware := Auth([]string{"test-secret-token"})
 	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("protected resource"))
@@ -107,8 +107,25 @@ func TestAuth_ValidToken(t *testing.T) {
 	}
 }
 
+func TestAuth_ValidToken_MultipleTokens(t *testing.T) {
+	authMiddleware := Auth([]string{"old-token", "new-token"})
+	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer new-token")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+}
+
 func TestAuth_UserIdentityInContext(t *testing.T) {
-	authMiddleware := Auth("test-secret-token")
+	authMiddleware := Auth([]string{"test-secret-token"})
 
 	var capturedUserID string
 	var userIDFound bool
@@ -138,7 +155,7 @@ func TestAuth_UserIdentityInContext(t *testing.T) {
 }
 
 func TestAuth_MultipleRequests(t *testing.T) {
-	authMiddleware := Auth("test-secret-token")
+	authMiddleware := Auth([]string{"test-secret-token"})
 	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -186,7 +203,7 @@ func TestGetUserID_NoContext(t *testing.T) {
 }
 
 func TestAuth_CaseSensitiveBearer(t *testing.T) {
-	authMiddleware := Auth("test-secret-token")
+	authMiddleware := Auth([]string{"test-secret-token"})
 	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))

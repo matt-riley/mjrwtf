@@ -192,7 +192,7 @@ func (s *Server) setupMetricsRoutes() {
 	// The endpoint exposes operational metrics (request rates, error rates, etc.)
 	// which may be sensitive. Apply authentication if exposed to the public internet.
 	if s.config.MetricsAuthEnabled {
-		s.router.With(middleware.Auth(s.config.AuthToken)).Handle("/metrics", s.metrics.Handler())
+		s.router.With(middleware.Auth(s.config.ActiveAuthTokens())).Handle("/metrics", s.metrics.Handler())
 		return
 	}
 
@@ -237,7 +237,7 @@ func (s *Server) buildHandlers() (*routeHandlers, error) {
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
 	analyticsHandler := handlers.NewAnalyticsHandler(getAnalyticsUseCase)
 	redirectHandler := handlers.NewRedirectHandler(s.redirectUseCase)
-	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, s.config.AuthToken, s.sessionStore, s.config.SecureCookies)
+	pageHandler := handlers.NewPageHandler(createUseCase, listUseCase, s.config.ActiveAuthTokens(), s.sessionStore, s.config.SecureCookies)
 
 	return &routeHandlers{
 		urlHandler:       urlHandler,
@@ -270,7 +270,7 @@ func (s *Server) setupAPIRoutes(urlHandler *handlers.URLHandler, analyticsHandle
 		r.Route("/urls", func(r chi.Router) {
 			// Apply auth middleware to all URL endpoints
 			// Support both Bearer token auth (for API) and session auth (for dashboard)
-			r.Use(middleware.SessionOrBearerAuth(s.config.AuthToken))
+			r.Use(middleware.SessionOrBearerAuth(s.config.ActiveAuthTokens()))
 
 			r.Post("/", urlHandler.Create)
 			r.Get("/", urlHandler.List)

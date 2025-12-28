@@ -23,7 +23,10 @@ type Config struct {
 	AllowedOrigins string
 
 	// Authentication
-	AuthToken string
+	// AuthToken is kept for backward compatibility (legacy AUTH_TOKEN).
+	// Prefer AuthTokens/ActiveAuthTokens for validation.
+	AuthToken  string
+	AuthTokens []string
 
 	// Session configuration
 	SecureCookies bool // Set to true in production with HTTPS
@@ -104,12 +107,18 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	authTokens, err := getEnvAuthTokens()
+	if err != nil {
+		return nil, err
+	}
+
 	config := &Config{
 		DatabaseURL:                getEnv("DATABASE_URL", ""),
 		ServerPort:                 serverPort,
 		BaseURL:                    getEnv("BASE_URL", "http://localhost:8080"),
 		AllowedOrigins:             getEnv("ALLOWED_ORIGINS", "*"),
-		AuthToken:                  getEnv("AUTH_TOKEN", ""),
+		AuthToken:                  authTokens[0],
+		AuthTokens:                 authTokens,
 		SecureCookies:              secureCookies,
 		RedirectRateLimitPerMinute: redirectRateLimitPerMinute,
 		APIRateLimitPerMinute:      apiRateLimitPerMinute,
@@ -146,7 +155,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("%w: DATABASE_URL scheme=%q (SQLite file paths only)", ErrUnsupportedDatabaseURLScheme, scheme)
 	}
 
-	if c.AuthToken == "" {
+	if len(c.ActiveAuthTokens()) == 0 {
 		return ErrMissingAuthToken
 	}
 
@@ -176,6 +185,44 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+// ActiveAuthTokens returns the set of currently-active authentication tokens.
+//
+// Backward compatibility:
+//   - If AuthTokens is populated, it is used.
+//   - Otherwise, if AuthToken is set, it is returned as a single-element slice.
+func (c *Config) ActiveAuthTokens() []string {
+	if len(c.AuthTokens) > 0 {
+		return c.AuthTokens
+	}
+	if c.AuthToken != "" {
+		return []string{c.AuthToken}
+	}
+	return nil
+}
+
+func getEnvAuthTokens() ([]string, error) {
+	if raw, ok := os.LookupEnv("AUTH_TOKENS"); ok {
+		parts := strings.Split(raw, ",")
+		tokens := make([]string, 0, len(parts))
+		for _, p := range parts {
+			t := strings.TrimSpace(p)
+			if t != "" {
+				tokens = append(tokens, t)
+			}
+		}
+		if len(tokens) == 0 {
+			return nil, ErrMissingAuthToken
+		}
+		return tokens, nil
+	}
+
+	// Legacy single-token config.
+	if token := getEnv("AUTH_TOKEN", ""); token != "" {
+		return []string{token}, nil
+	}
+	return nil, ErrMissingAuthToken
 }
 
 // getEnv gets an environment variable with a fallback default value

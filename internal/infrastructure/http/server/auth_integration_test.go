@@ -22,7 +22,7 @@ func TestServer_AuthMiddlewareIntegration(t *testing.T) {
 
 	// Add a test protected route to demonstrate auth middleware usage
 	srv.router.Route("/api/protected", func(r chi.Router) {
-		r.Use(middleware.Auth(cfg.AuthToken))
+		r.Use(middleware.Auth(cfg.ActiveAuthTokens()))
 		r.Get("/resource", func(w http.ResponseWriter, r *http.Request) {
 			// Demonstrate extracting user ID from context
 			userID, ok := middleware.GetUserID(r.Context())
