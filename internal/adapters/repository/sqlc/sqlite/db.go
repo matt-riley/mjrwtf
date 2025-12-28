@@ -24,6 +24,9 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.countURLsStmt, err = db.PrepareContext(ctx, countURLs); err != nil {
+		return nil, fmt.Errorf("error preparing query CountURLs: %w", err)
+	}
 	if q.countURLsByCreatedByStmt, err = db.PrepareContext(ctx, countURLsByCreatedBy); err != nil {
 		return nil, fmt.Errorf("error preparing query CountURLsByCreatedBy: %w", err)
 	}
@@ -57,6 +60,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getTotalClickCountInTimeRangeStmt, err = db.PrepareContext(ctx, getTotalClickCountInTimeRange); err != nil {
 		return nil, fmt.Errorf("error preparing query GetTotalClickCountInTimeRange: %w", err)
 	}
+	if q.listAllURLsStmt, err = db.PrepareContext(ctx, listAllURLs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListAllURLs: %w", err)
+	}
 	if q.listURLsStmt, err = db.PrepareContext(ctx, listURLs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListURLs: %w", err)
 	}
@@ -71,6 +77,11 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.countURLsStmt != nil {
+		if cerr := q.countURLsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countURLsStmt: %w", cerr)
+		}
+	}
 	if q.countURLsByCreatedByStmt != nil {
 		if cerr := q.countURLsByCreatedByStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countURLsByCreatedByStmt: %w", cerr)
@@ -124,6 +135,11 @@ func (q *Queries) Close() error {
 	if q.getTotalClickCountInTimeRangeStmt != nil {
 		if cerr := q.getTotalClickCountInTimeRangeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getTotalClickCountInTimeRangeStmt: %w", cerr)
+		}
+	}
+	if q.listAllURLsStmt != nil {
+		if cerr := q.listAllURLsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listAllURLsStmt: %w", cerr)
 		}
 	}
 	if q.listURLsStmt != nil {
@@ -180,6 +196,7 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 type Queries struct {
 	db                                  DBTX
 	tx                                  *sql.Tx
+	countURLsStmt                       *sql.Stmt
 	countURLsByCreatedByStmt            *sql.Stmt
 	createURLStmt                       *sql.Stmt
 	deleteURLByShortCodeStmt            *sql.Stmt
@@ -191,6 +208,7 @@ type Queries struct {
 	getClicksByReferrerInTimeRangeStmt  *sql.Stmt
 	getTotalClickCountStmt              *sql.Stmt
 	getTotalClickCountInTimeRangeStmt   *sql.Stmt
+	listAllURLsStmt                     *sql.Stmt
 	listURLsStmt                        *sql.Stmt
 	listURLsByCreatedByAndTimeRangeStmt *sql.Stmt
 	recordClickStmt                     *sql.Stmt
@@ -200,6 +218,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
 		db:                                  tx,
 		tx:                                  tx,
+		countURLsStmt:                       q.countURLsStmt,
 		countURLsByCreatedByStmt:            q.countURLsByCreatedByStmt,
 		createURLStmt:                       q.createURLStmt,
 		deleteURLByShortCodeStmt:            q.deleteURLByShortCodeStmt,
@@ -211,6 +230,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getClicksByReferrerInTimeRangeStmt:  q.getClicksByReferrerInTimeRangeStmt,
 		getTotalClickCountStmt:              q.getTotalClickCountStmt,
 		getTotalClickCountInTimeRangeStmt:   q.getTotalClickCountInTimeRangeStmt,
+		listAllURLsStmt:                     q.listAllURLsStmt,
 		listURLsStmt:                        q.listURLsStmt,
 		listURLsByCreatedByAndTimeRangeStmt: q.listURLsByCreatedByAndTimeRangeStmt,
 		recordClickStmt:                     q.recordClickStmt,

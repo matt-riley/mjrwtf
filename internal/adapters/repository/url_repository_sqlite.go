@@ -73,12 +73,23 @@ func (r *SQLiteURLRepository) List(ctx context.Context, createdBy string, limit,
 		limit = -1 // SQLite uses -1 for no limit
 	}
 
-	results, err := r.queries.ListURLs(ctx, sqliterepo.ListURLsParams{
-		Column1:   createdBy,
-		CreatedBy: createdBy,
-		Limit:     int64(limit),
-		Offset:    int64(offset),
-	})
+	var (
+		results []sqliterepo.Url
+		err     error
+	)
+
+	if createdBy == "" {
+		results, err = r.queries.ListAllURLs(ctx, sqliterepo.ListAllURLsParams{
+			Limit:  int64(limit),
+			Offset: int64(offset),
+		})
+	} else {
+		results, err = r.queries.ListURLs(ctx, sqliterepo.ListURLsParams{
+			CreatedBy: createdBy,
+			Limit:     int64(limit),
+			Offset:    int64(offset),
+		})
+	}
 
 	if err != nil {
 		return nil, mapURLSQLError(err)
@@ -126,7 +137,16 @@ func (r *SQLiteURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, c
 
 // Count returns the total count of URLs for a specific user
 func (r *SQLiteURLRepository) Count(ctx context.Context, createdBy string) (int, error) {
-	count, err := r.queries.CountURLsByCreatedBy(ctx, createdBy)
+	var (
+		count int64
+		err   error
+	)
+
+	if createdBy == "" {
+		count, err = r.queries.CountURLs(ctx)
+	} else {
+		count, err = r.queries.CountURLsByCreatedBy(ctx, createdBy)
+	}
 
 	if err != nil {
 		return 0, mapURLSQLError(err)

@@ -84,11 +84,8 @@ func (r *SQLiteClickRepository) GetStatsByURL(ctx context.Context, urlID int64) 
 
 	byDate := make(map[string]int64)
 	for _, row := range dateRows {
-		if row.Date != nil {
-			// SQLite returns interface{} for DATE() which needs to be converted to string
-			if dateStr, ok := row.Date.(string); ok {
-				byDate[dateStr] = row.Count
-			}
+		if row.Date != "" {
+			byDate[row.Date] = row.Count
 		}
 	}
 
