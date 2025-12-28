@@ -10,15 +10,26 @@ import (
 	"time"
 )
 
+const countURLs = `-- name: CountURLs :one
+SELECT COUNT(*) as count
+FROM urls
+`
+
+func (q *Queries) CountURLs(ctx context.Context) (int64, error) {
+	row := q.queryRow(ctx, q.countURLsStmt, countURLs)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countURLsByCreatedBy = `-- name: CountURLsByCreatedBy :one
 SELECT COUNT(*) as count
 FROM urls
-WHERE (?1 = '' OR created_by = ?1)
+WHERE created_by = ?
 `
 
-// Parameters: created_by_filter (pass empty string to count all URLs)
-func (q *Queries) CountURLsByCreatedBy(ctx context.Context, createdByFilter interface{}) (int64, error) {
-	row := q.queryRow(ctx, q.countURLsByCreatedByStmt, countURLsByCreatedBy, createdByFilter)
+func (q *Queries) CountURLsByCreatedBy(ctx context.Context, createdBy string) (int64, error) {
+	row := q.queryRow(ctx, q.countURLsByCreatedByStmt, countURLsByCreatedBy, createdBy)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -173,7 +184,7 @@ func (q *Queries) GetClicksByCountryInTimeRange(ctx context.Context, arg GetClic
 }
 
 const getClicksByDate = `-- name: GetClicksByDate :many
-SELECT DATE(clicked_at) as date, COUNT(*) as count
+SELECT CAST(DATE(clicked_at) AS TEXT) as date, COUNT(*) as count
 FROM clicks
 WHERE url_id = ?
 GROUP BY date
@@ -181,8 +192,8 @@ ORDER BY date DESC
 `
 
 type GetClicksByDateRow struct {
-	Date  interface{} `json:"date"`
-	Count int64       `json:"count"`
+	Date  string `json:"date"`
+	Count int64  `json:"count"`
 }
 
 func (q *Queries) GetClicksByDate(ctx context.Context, urlID int64) ([]GetClicksByDateRow, error) {
@@ -328,28 +339,63 @@ func (q *Queries) GetTotalClickCountInTimeRange(ctx context.Context, arg GetTota
 	return count, err
 }
 
+const listAllURLs = `-- name: ListAllURLs :many
+SELECT id, short_code, original_url, created_at, created_by
+FROM urls
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?
+`
+
+type ListAllURLsParams struct {
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
+}
+
+func (q *Queries) ListAllURLs(ctx context.Context, arg ListAllURLsParams) ([]Url, error) {
+	rows, err := q.query(ctx, q.listAllURLsStmt, listAllURLs, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Url{}
+	for rows.Next() {
+		var i Url
+		if err := rows.Scan(
+			&i.ID,
+			&i.ShortCode,
+			&i.OriginalUrl,
+			&i.CreatedAt,
+			&i.CreatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listURLs = `-- name: ListURLs :many
 SELECT id, short_code, original_url, created_at, created_by
 FROM urls
-WHERE (? = '' OR created_by = ?)
+WHERE created_by = ?
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
 `
 
 type ListURLsParams struct {
-	Column1   interface{} `json:"column_1"`
-	CreatedBy string      `json:"created_by"`
-	Limit     int64       `json:"limit"`
-	Offset    int64       `json:"offset"`
+	CreatedBy string `json:"created_by"`
+	Limit     int64  `json:"limit"`
+	Offset    int64  `json:"offset"`
 }
 
 func (q *Queries) ListURLs(ctx context.Context, arg ListURLsParams) ([]Url, error) {
-	rows, err := q.query(ctx, q.listURLsStmt, listURLs,
-		arg.Column1,
-		arg.CreatedBy,
-		arg.Limit,
-		arg.Offset,
-	)
+	rows, err := q.query(ctx, q.listURLsStmt, listURLs, arg.CreatedBy, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

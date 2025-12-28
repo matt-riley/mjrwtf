@@ -19,7 +19,13 @@ WHERE short_code = ?;
 -- name: ListURLs :many
 SELECT id, short_code, original_url, created_at, created_by
 FROM urls
-WHERE (? = '' OR created_by = ?)
+WHERE created_by = ?
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
+
+-- name: ListAllURLs :many
+SELECT id, short_code, original_url, created_at, created_by
+FROM urls
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
 
@@ -31,11 +37,14 @@ WHERE created_by = ?
   AND created_at <= ?
 ORDER BY created_at DESC;
 
+-- name: CountURLs :one
+SELECT COUNT(*) as count
+FROM urls;
+
 -- name: CountURLsByCreatedBy :one
--- Parameters: created_by_filter (pass empty string to count all URLs)
 SELECT COUNT(*) as count
 FROM urls
-WHERE (sqlc.arg(created_by_filter) = '' OR created_by = sqlc.arg(created_by_filter));
+WHERE created_by = ?;
 
 -- ============================================================================
 -- Click Queries
@@ -71,7 +80,7 @@ ORDER BY count DESC
 LIMIT 10;
 
 -- name: GetClicksByDate :many
-SELECT DATE(clicked_at) as date, COUNT(*) as count
+SELECT CAST(DATE(clicked_at) AS TEXT) as date, COUNT(*) as count
 FROM clicks
 WHERE url_id = ?
 GROUP BY date

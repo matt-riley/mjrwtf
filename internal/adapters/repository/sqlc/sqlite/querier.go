@@ -9,8 +9,8 @@ import (
 )
 
 type Querier interface {
-	// Parameters: created_by_filter (pass empty string to count all URLs)
-	CountURLsByCreatedBy(ctx context.Context, createdByFilter interface{}) (int64, error)
+	CountURLs(ctx context.Context) (int64, error)
+	CountURLsByCreatedBy(ctx context.Context, createdBy string) (int64, error)
 	// ============================================================================
 	// URL Queries
 	// ============================================================================
@@ -24,6 +24,7 @@ type Querier interface {
 	GetClicksByReferrerInTimeRange(ctx context.Context, arg GetClicksByReferrerInTimeRangeParams) ([]GetClicksByReferrerInTimeRangeRow, error)
 	GetTotalClickCount(ctx context.Context, urlID int64) (int64, error)
 	GetTotalClickCountInTimeRange(ctx context.Context, arg GetTotalClickCountInTimeRangeParams) (int64, error)
+	ListAllURLs(ctx context.Context, arg ListAllURLsParams) ([]Url, error)
 	ListURLs(ctx context.Context, arg ListURLsParams) ([]Url, error)
 	ListURLsByCreatedByAndTimeRange(ctx context.Context, arg ListURLsByCreatedByAndTimeRangeParams) ([]Url, error)
 	// ============================================================================
