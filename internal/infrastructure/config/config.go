@@ -59,23 +59,56 @@ func LoadConfig() (*Config, error) {
 	// Try to load .env file (ignore error if file doesn't exist)
 	_ = godotenv.Load()
 
+	serverPort, err := getEnvAsInt("SERVER_PORT", 8080)
+	if err != nil {
+		return nil, err
+	}
+	secureCookies, err := getEnvAsBool("SECURE_COOKIES", false)
+	if err != nil {
+		return nil, err
+	}
+	redirectRateLimitPerMinute, err := getEnvAsInt("REDIRECT_RATE_LIMIT_PER_MINUTE", 120)
+	if err != nil {
+		return nil, err
+	}
+	apiRateLimitPerMinute, err := getEnvAsInt("API_RATE_LIMIT_PER_MINUTE", 60)
+	if err != nil {
+		return nil, err
+	}
+	geoIPEnabled, err := getEnvAsBool("GEOIP_ENABLED", false)
+	if err != nil {
+		return nil, err
+	}
+	metricsAuthEnabled, err := getEnvAsBool("METRICS_AUTH_ENABLED", false)
+	if err != nil {
+		return nil, err
+	}
+	enableHSTS, err := getEnvAsBool("ENABLE_HSTS", false)
+	if err != nil {
+		return nil, err
+	}
+	dbTimeout, err := getEnvAsDuration("DB_TIMEOUT", 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
 	config := &Config{
 		DatabaseURL:                getEnv("DATABASE_URL", ""),
-		ServerPort:                 getEnvAsInt("SERVER_PORT", 8080),
+		ServerPort:                 serverPort,
 		BaseURL:                    getEnv("BASE_URL", "http://localhost:8080"),
 		AllowedOrigins:             getEnv("ALLOWED_ORIGINS", "*"),
 		AuthToken:                  getEnv("AUTH_TOKEN", ""),
-		SecureCookies:              getEnvAsBool("SECURE_COOKIES", false),
-		RedirectRateLimitPerMinute: getEnvAsInt("REDIRECT_RATE_LIMIT_PER_MINUTE", 120),
-		APIRateLimitPerMinute:      getEnvAsInt("API_RATE_LIMIT_PER_MINUTE", 60),
+		SecureCookies:              secureCookies,
+		RedirectRateLimitPerMinute: redirectRateLimitPerMinute,
+		APIRateLimitPerMinute:      apiRateLimitPerMinute,
 		DiscordWebhookURL:          getEnv("DISCORD_WEBHOOK_URL", ""),
-		GeoIPEnabled:               getEnvAsBool("GEOIP_ENABLED", false),
+		GeoIPEnabled:               geoIPEnabled,
 		GeoIPDatabase:              getEnv("GEOIP_DATABASE", ""),
 		LogLevel:                   getEnv("LOG_LEVEL", "info"),
 		LogFormat:                  getEnv("LOG_FORMAT", "json"),
-		MetricsAuthEnabled:         getEnvAsBool("METRICS_AUTH_ENABLED", false),
-		EnableHSTS:                 getEnvAsBool("ENABLE_HSTS", false),
-		DBTimeout:                  getEnvAsDuration("DB_TIMEOUT", 5*time.Second),
+		MetricsAuthEnabled:         metricsAuthEnabled,
+		EnableHSTS:                 enableHSTS,
+		DBTimeout:                  dbTimeout,
 	}
 
 	// Validate required configuration
@@ -131,48 +164,60 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// getEnvAsInt gets an environment variable as an integer with a fallback default value
-func getEnvAsInt(key string, defaultValue int) int {
-	valueStr := os.Getenv(key)
+// getEnvAsInt gets an environment variable as an integer.
+// Defaults apply only when the env var is unset.
+func getEnvAsInt(key string, defaultValue int) (int, error) {
+	valueStr, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue, nil
+	}
 	if valueStr == "" {
-		return defaultValue
+		return 0, fmt.Errorf("%s must not be empty", key)
 	}
 
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
-		return defaultValue
+		return 0, fmt.Errorf("%s must be an integer, got %q", key, valueStr)
 	}
 
-	return value
+	return value, nil
 }
 
-// getEnvAsBool gets an environment variable as a boolean with a fallback default value
-func getEnvAsBool(key string, defaultValue bool) bool {
-	valueStr := os.Getenv(key)
+// getEnvAsBool gets an environment variable as a boolean.
+// Defaults apply only when the env var is unset.
+func getEnvAsBool(key string, defaultValue bool) (bool, error) {
+	valueStr, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue, nil
+	}
 	if valueStr == "" {
-		return defaultValue
+		return false, fmt.Errorf("%s must not be empty", key)
 	}
 
 	value, err := strconv.ParseBool(valueStr)
 	if err != nil {
-		return defaultValue
+		return false, fmt.Errorf("%s must be a boolean, got %q", key, valueStr)
 	}
 
-	return value
+	return value, nil
 }
 
-// getEnvAsDuration gets an environment variable as a duration with a fallback default value
-// Duration should be specified as a string like "5s", "100ms", "1m30s"
-func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
-	valueStr := os.Getenv(key)
+// getEnvAsDuration gets an environment variable as a duration.
+// Defaults apply only when the env var is unset.
+// Duration should be specified as a string like "5s", "100ms", "1m30s".
+func getEnvAsDuration(key string, defaultValue time.Duration) (time.Duration, error) {
+	valueStr, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue, nil
+	}
 	if valueStr == "" {
-		return defaultValue
+		return 0, fmt.Errorf("%s must not be empty", key)
 	}
 
 	value, err := time.ParseDuration(valueStr)
 	if err != nil {
-		return defaultValue
+		return 0, fmt.Errorf("%s must be a duration, got %q", key, valueStr)
 	}
 
-	return value
+	return value, nil
 }

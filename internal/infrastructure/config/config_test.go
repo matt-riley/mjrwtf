@@ -93,6 +93,23 @@ func TestLoadConfig_CustomServerPort(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_InvalidServerPortString(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("SERVER_PORT", "abc")
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for invalid SERVER_PORT, got nil")
+	}
+
+	expectedError := "SERVER_PORT must be an integer, got \"abc\""
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
+	}
+}
+
 func TestLoadConfig_InvalidServerPort(t *testing.T) {
 	// Set required environment variables with invalid port
 	os.Setenv("DATABASE_URL", "./database.db")
@@ -252,39 +269,44 @@ func TestLoadConfig_RateLimitsInvalidStringsFallbackToDefaults(t *testing.T) {
 	os.Setenv("API_RATE_LIMIT_PER_MINUTE", "def")
 	defer cleanEnv()
 
-	config, err := LoadConfig()
-	if err != nil {
-		t.Fatalf("Expected no error, got: %v", err)
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for invalid rate limit values, got nil")
 	}
 
-	if config.RedirectRateLimitPerMinute != 120 {
-		t.Errorf("Expected RedirectRateLimitPerMinute to fall back to 120, got: %d", config.RedirectRateLimitPerMinute)
-	}
-
-	if config.APIRateLimitPerMinute != 60 {
-		t.Errorf("Expected APIRateLimitPerMinute to fall back to 60, got: %d", config.APIRateLimitPerMinute)
+	expectedError := "REDIRECT_RATE_LIMIT_PER_MINUTE must be an integer, got \"abc\""
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
 	}
 }
 
 func TestGetEnvAsInt_InvalidValue(t *testing.T) {
-	// Test that invalid integer falls back to default
 	os.Setenv("TEST_INT", "not-a-number")
 	defer os.Unsetenv("TEST_INT")
 
-	result := getEnvAsInt("TEST_INT", 42)
-	if result != 42 {
-		t.Errorf("Expected default value 42 for invalid int, got: %d", result)
+	_, err := getEnvAsInt("TEST_INT", 42)
+	if err == nil {
+		t.Fatal("Expected error for invalid int, got nil")
+	}
+
+	expectedError := "TEST_INT must be an integer, got \"not-a-number\""
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
 	}
 }
 
 func TestGetEnvAsBool_InvalidValue(t *testing.T) {
-	// Test that invalid boolean falls back to default
 	os.Setenv("TEST_BOOL", "not-a-bool")
 	defer os.Unsetenv("TEST_BOOL")
 
-	result := getEnvAsBool("TEST_BOOL", true)
-	if !result {
-		t.Error("Expected default value true for invalid bool, got false")
+	_, err := getEnvAsBool("TEST_BOOL", true)
+	if err == nil {
+		t.Fatal("Expected error for invalid bool, got nil")
+	}
+
+	expectedError := "TEST_BOOL must be a boolean, got \"not-a-bool\""
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
 	}
 }
 
@@ -307,7 +329,10 @@ func TestGetEnvAsBool_ValidValues(t *testing.T) {
 
 	for _, tc := range testCases {
 		os.Setenv("TEST_BOOL", tc.value)
-		result := getEnvAsBool("TEST_BOOL", false)
+		result, err := getEnvAsBool("TEST_BOOL", false)
+		if err != nil {
+			t.Fatalf("Unexpected error for value '%s': %v", tc.value, err)
+		}
 		if result != tc.expected {
 			t.Errorf("For value '%s', expected %v, got %v", tc.value, tc.expected, result)
 		}
@@ -451,14 +476,13 @@ func TestLoadConfig_InvalidDBTimeout(t *testing.T) {
 	os.Setenv("DB_TIMEOUT", "invalid")
 	defer cleanEnv()
 
-	config, err := LoadConfig()
-	if err != nil {
-		t.Fatalf("Expected no error, got: %v", err)
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for invalid DB_TIMEOUT, got nil")
 	}
 
-	// Should fall back to default
-	expectedTimeout := 5 * time.Second
-	if config.DBTimeout != expectedTimeout {
-		t.Errorf("Expected DBTimeout with invalid value to default to %v, got: %v", expectedTimeout, config.DBTimeout)
+	expectedError := "DB_TIMEOUT must be a duration, got \"invalid\""
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got: %s", expectedError, err.Error())
 	}
 }
