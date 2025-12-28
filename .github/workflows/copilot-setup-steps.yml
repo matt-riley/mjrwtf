@@ -53,7 +53,7 @@ jobs:
 
       - name: Install templ
         run: |
-          go install github.com/a-h/templ/cmd/templ@latest
+          go install github.com/a-h/templ/cmd/templ@v0.3.960
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Download Go dependencies

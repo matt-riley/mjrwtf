@@ -26,7 +26,7 @@ jobs:
             exit 1
           fi
 
-          if grep -RInE '^\s*uses:\s+[^#[:space:]]+@v[0-9]+\b' .github/workflows; then
+          if grep -RInE '^\s*uses:\s+[^#[:space:]]+@v[0-9]+(\.[0-9]+)*\b' .github/workflows; then
             echo "Error: workflows must pin actions by commit SHA (not @vX tags)"
             exit 1
           fi
@@ -75,7 +75,7 @@ jobs:
       - name: Install templ
         run: |
           if [ ! -x "$(go env GOPATH)/bin/templ" ]; then
-            go install github.com/a-h/templ/cmd/templ@latest
+            go install github.com/a-h/templ/cmd/templ@v0.3.960
           fi
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
