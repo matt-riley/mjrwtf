@@ -1,7 +1,3 @@
-// Package database provides database connection utilities and configuration helpers.
-//
-// Currently this package focuses on SQLite DSN normalization and recommended
-// connection pool settings.
 package database
 
 import (
@@ -10,7 +6,10 @@ import (
 )
 
 const (
-	SQLiteMaxOpenConns  = 1
+	// SQLiteMaxOpenConns is the recommended maximum number of open connections for SQLite.
+	SQLiteMaxOpenConns = 1
+
+	// SQLiteBusyTimeoutMs is the busy timeout, in milliseconds, applied via the SQLite DSN.
 	SQLiteBusyTimeoutMs = 5000
 )
 

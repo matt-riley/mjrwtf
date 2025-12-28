@@ -1,5 +1,3 @@
-// Package metrics provides Prometheus metrics for the application.
-// It includes HTTP request metrics, URL tracking metrics, and Go runtime metrics.
 package metrics
 
 import (

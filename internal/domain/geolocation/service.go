@@ -1,6 +1,3 @@
-// Package geolocation provides domain interfaces for IP geolocation services.
-// This package defines the port (interface) for geolocation lookup following
-// hexagonal architecture principles.
 package geolocation
 
 import "context"
