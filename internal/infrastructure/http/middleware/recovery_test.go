@@ -3,10 +3,14 @@ package middleware
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/notification"
@@ -14,7 +18,27 @@ import (
 	"github.com/rs/zerolog"
 )
 
+func resetStackTracesEnabledCache() {
+	stackTracesOnce = sync.Once{}
+}
+
+func unsetEnv(t *testing.T, key string) {
+	t.Helper()
+
+	prev, ok := os.LookupEnv(key)
+	_ = os.Unsetenv(key)
+	t.Cleanup(func() {
+		if ok {
+			_ = os.Setenv(key, prev)
+			return
+		}
+		_ = os.Unsetenv(key)
+	})
+}
+
 func TestRecovery_RecoverFromPanic(t *testing.T) {
+	resetStackTracesEnabledCache()
+
 	handler := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		panic("test panic")
 	}))
@@ -54,6 +78,8 @@ func TestRecovery_NoPanic(t *testing.T) {
 }
 
 func TestRecoveryWithLogger_UsesFallbackLogger(t *testing.T) {
+	resetStackTracesEnabledCache()
+
 	var logBuf bytes.Buffer
 	fallbackLogger := zerolog.New(&logBuf)
 
@@ -82,6 +108,8 @@ func TestRecoveryWithLogger_UsesFallbackLogger(t *testing.T) {
 }
 
 func TestRecoveryWithLogger_UsesContextLogger(t *testing.T) {
+	resetStackTracesEnabledCache()
+
 	var fallbackBuf bytes.Buffer
 	fallbackLogger := zerolog.New(&fallbackBuf)
 
@@ -122,7 +150,8 @@ func TestRecoveryWithLogger_UsesContextLogger(t *testing.T) {
 }
 
 func TestRecoveryWithLogger_LogsPanicDetails(t *testing.T) {
-	t.Setenv("LOG_STACK_TRACES", "true")
+	resetStackTracesEnabledCache()
+	unsetEnv(t, "LOG_STACK_TRACES")
 
 	var logBuf bytes.Buffer
 	logger := zerolog.New(&logBuf)
@@ -183,6 +212,8 @@ func TestRecoveryWithLogger_NoPanic(t *testing.T) {
 }
 
 func TestRecoveryWithNotifier_SendsDiscordNotification(t *testing.T) {
+	resetStackTracesEnabledCache()
+
 	var logBuf bytes.Buffer
 	logger := zerolog.New(&logBuf)
 
@@ -236,6 +267,8 @@ func TestRecoveryWithNotifier_SendsDiscordNotification(t *testing.T) {
 }
 
 func TestRecoveryWithNotifier_WithUserID(t *testing.T) {
+	resetStackTracesEnabledCache()
+
 	var logBuf bytes.Buffer
 	logger := zerolog.New(&logBuf)
 
@@ -276,6 +309,8 @@ func TestRecoveryWithNotifier_WithUserID(t *testing.T) {
 }
 
 func TestRecoveryWithNotifier_NoNotifierConfigured(t *testing.T) {
+	resetStackTracesEnabledCache()
+
 	var logBuf bytes.Buffer
 	logger := zerolog.New(&logBuf)
 
@@ -302,6 +337,8 @@ func TestRecoveryWithNotifier_NoNotifierConfigured(t *testing.T) {
 }
 
 func TestRecoveryWithNotifier_DisabledNotifier(t *testing.T) {
+	resetStackTracesEnabledCache()
+
 	var logBuf bytes.Buffer
 	logger := zerolog.New(&logBuf)
 
@@ -350,6 +387,7 @@ func TestRecoveryWithNotifier_DisabledNotifier(t *testing.T) {
 }
 
 func TestRecoveryWithLogger_StackTraceDisabled(t *testing.T) {
+	resetStackTracesEnabledCache()
 	t.Setenv("LOG_STACK_TRACES", "false")
 
 	var logBuf bytes.Buffer
@@ -371,6 +409,7 @@ func TestRecoveryWithLogger_StackTraceDisabled(t *testing.T) {
 }
 
 func TestRecoveryWithNotifier_StackTraceDisabled(t *testing.T) {
+	resetStackTracesEnabledCache()
 	t.Setenv("LOG_STACK_TRACES", "false")
 
 	var logBuf bytes.Buffer
@@ -417,6 +456,25 @@ func TestRecovery_RepanicsOnErrAbortHandler(t *testing.T) {
 		rec := recover()
 		if rec != http.ErrAbortHandler {
 			t.Errorf("expected panic %v, got %v", http.ErrAbortHandler, rec)
+		}
+	}()
+
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/test", nil))
+}
+
+func TestRecovery_RepanicsOnWrappedErrAbortHandler(t *testing.T) {
+	h := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic(fmt.Errorf("wrapped: %w", http.ErrAbortHandler))
+	}))
+
+	defer func() {
+		rec := recover()
+		err, ok := rec.(error)
+		if !ok {
+			t.Fatalf("expected panic error, got %T", rec)
+		}
+		if !errors.Is(err, http.ErrAbortHandler) {
+			t.Errorf("expected wrapped panic to satisfy errors.Is(http.ErrAbortHandler); got %v", err)
 		}
 	}()
 

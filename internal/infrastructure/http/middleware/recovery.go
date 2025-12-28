@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/notification"
@@ -16,13 +17,31 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var (
+	stackTracesOnce   sync.Once
+	stackTracesCached bool
+)
+
 func stackTracesEnabled() bool {
+	stackTracesOnce.Do(func() {
+		stackTracesCached = readStackTracesEnabled()
+	})
+	return stackTracesCached
+}
+
+func readStackTracesEnabled() bool {
 	v, ok := os.LookupEnv("LOG_STACK_TRACES")
 	if !ok {
 		return true // backward compatible default
 	}
 	b, err := strconv.ParseBool(v)
 	if err != nil {
+		zl := zerolog.New(os.Stderr)
+		zl.Warn().
+			Err(err).
+			Str("env", "LOG_STACK_TRACES").
+			Str("value", v).
+			Msg("invalid boolean value for LOG_STACK_TRACES; defaulting to true")
 		return true
 	}
 	return b

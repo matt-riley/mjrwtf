@@ -15,8 +15,8 @@
 //     cookies, query strings, and full URLs
 //   - optionally notifies Discord (same minimal context)
 //
-// Special case: panics equal to http.ErrAbortHandler are re-panicked to preserve
-// net/http semantics (abort without noisy logging).
+// Special case: panics equal to or wrapping http.ErrAbortHandler are re-panicked
+// to preserve net/http semantics (abort without noisy logging).
 //
 // Stack traces can be disabled via LOG_STACK_TRACES=false (default: true). When
 // disabled, neither logs nor Discord notifications include stack traces.
