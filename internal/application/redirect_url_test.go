@@ -9,6 +9,8 @@ import (
 
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/metrics"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 // Mock URL Repository
@@ -577,5 +579,164 @@ func TestRedirectURLUseCase_ShutdownRejectsNewTasks(t *testing.T) {
 	// No clicks should be recorded since shutdown was completed
 	if clickRepo.getRecordedClicksCount() != 0 {
 		t.Errorf("Expected 0 clicks to be recorded after shutdown, got %d", clickRepo.getRecordedClicksCount())
+	}
+}
+
+type blockingClickRepository struct {
+	mu      sync.Mutex
+	calls   int
+	started chan struct{}
+	unblock chan struct{}
+}
+
+func newBlockingClickRepository() *blockingClickRepository {
+	return &blockingClickRepository{
+		started: make(chan struct{}, 1),
+		unblock: make(chan struct{}),
+	}
+}
+
+func (m *blockingClickRepository) Record(ctx context.Context, c *click.Click) error {
+	m.mu.Lock()
+	m.calls++
+	callNum := m.calls
+	m.mu.Unlock()
+
+	if callNum == 1 {
+		select {
+		case m.started <- struct{}{}:
+		default:
+		}
+		<-m.unblock
+	}
+
+	return nil
+}
+
+func (m *blockingClickRepository) GetStatsByURL(ctx context.Context, urlID int64) (*click.Stats, error) {
+	return &click.Stats{}, nil
+}
+
+func (m *blockingClickRepository) GetStatsByURLAndTimeRange(ctx context.Context, urlID int64, startTime, endTime time.Time) (*click.TimeRangeStats, error) {
+	return &click.TimeRangeStats{}, nil
+}
+
+func (m *blockingClickRepository) GetTotalClickCount(ctx context.Context, urlID int64) (int64, error) {
+	return 0, nil
+}
+
+func (m *blockingClickRepository) GetClicksByCountry(ctx context.Context, urlID int64) (map[string]int64, error) {
+	return map[string]int64{}, nil
+}
+
+func TestRedirectURLUseCase_Metrics_DroppedOnFull_AndQueueDepthGauge(t *testing.T) {
+	urlRepo := newMockURLRepository()
+	clickRepo := newBlockingClickRepository()
+	m := metrics.New()
+
+	urlRepo.urls["full"] = &url.URL{
+		ID:          1,
+		ShortCode:   "full",
+		OriginalURL: "https://example.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user1",
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	useCase := NewRedirectURLUseCaseWithOptions(urlRepo, clickRepo, RedirectURLOptions{MaxWorkers: 1, QueueSize: 1, Metrics: m}).WithClickCallback(func() {
+		wg.Done()
+	})
+	defer useCase.Shutdown()
+
+	// First click blocks in Record after being dequeued, ensuring the worker can't drain the queue.
+	_, err := useCase.Execute(context.Background(), RedirectRequest{ShortCode: "full"})
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+	<-clickRepo.started
+
+	// One task should enqueue, second should drop due to full buffer.
+	_, _ = useCase.Execute(context.Background(), RedirectRequest{ShortCode: "full"})
+	_, _ = useCase.Execute(context.Background(), RedirectRequest{ShortCode: "full"})
+
+	dropped := testutil.ToFloat64(m.RedirectClickDroppedTotal)
+	if dropped != 1 {
+		t.Fatalf("expected 1 dropped task, got %f", dropped)
+	}
+
+	depth := testutil.ToFloat64(m.RedirectClickQueueDepth)
+	if depth != 1 {
+		t.Fatalf("expected queue depth gauge to be 1, got %f", depth)
+	}
+
+	close(clickRepo.unblock)
+	wg.Wait()
+	useCase.Shutdown()
+
+	depth = testutil.ToFloat64(m.RedirectClickQueueDepth)
+	if depth != 0 {
+		t.Fatalf("expected queue depth gauge to be 0 after shutdown, got %f", depth)
+	}
+}
+
+func TestRedirectURLUseCase_Metrics_ShutdownDropIncrementsCounter(t *testing.T) {
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+	m := metrics.New()
+
+	urlRepo.urls["shutdown_drop"] = &url.URL{
+		ID:          1,
+		ShortCode:   "shutdown_drop",
+		OriginalURL: "https://example.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user1",
+	}
+
+	useCase := NewRedirectURLUseCaseWithOptions(urlRepo, clickRepo, RedirectURLOptions{MaxWorkers: 1, QueueSize: 1, Metrics: m})
+	useCase.Shutdown()
+
+	_, err := useCase.Execute(context.Background(), RedirectRequest{ShortCode: "shutdown_drop"})
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	dropped := testutil.ToFloat64(m.RedirectClickDroppedTotal)
+	if dropped != 1 {
+		t.Fatalf("expected 1 dropped task due to shutdown, got %f", dropped)
+	}
+}
+
+func TestRedirectURLUseCase_Metrics_RecordFailureIncrementsCounter(t *testing.T) {
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+	clickRepo.recordError = errors.New("db error")
+	m := metrics.New()
+
+	urlRepo.urls["fail"] = &url.URL{
+		ID:          1,
+		ShortCode:   "fail",
+		OriginalURL: "https://example.com",
+		CreatedAt:   time.Now(),
+		CreatedBy:   "user1",
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	useCase := NewRedirectURLUseCaseWithOptions(urlRepo, clickRepo, RedirectURLOptions{MaxWorkers: 1, QueueSize: 1, Metrics: m}).WithClickCallback(func() {
+		wg.Done()
+	})
+	defer useCase.Shutdown()
+
+	_, err := useCase.Execute(context.Background(), RedirectRequest{ShortCode: "fail"})
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	wg.Wait()
+
+	failures := testutil.ToFloat64(m.RedirectClickRecordFailuresTotal)
+	if failures != 1 {
+		t.Fatalf("expected 1 record failure, got %f", failures)
 	}
 }

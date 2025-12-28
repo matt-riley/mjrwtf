@@ -224,7 +224,13 @@ func (s *Server) buildHandlers() (*routeHandlers, error) {
 	listUseCase := application.NewListURLsUseCase(urlRepo, clickRepo)
 	deleteUseCase := application.NewDeleteURLUseCase(urlRepo)
 	getAnalyticsUseCase := application.NewGetAnalyticsUseCase(urlRepo, clickRepo)
-	s.redirectUseCase = application.NewRedirectURLUseCase(urlRepo, clickRepo)
+	logger := s.logger
+	s.redirectUseCase = application.NewRedirectURLUseCaseWithOptions(urlRepo, clickRepo, application.RedirectURLOptions{
+		MaxWorkers: s.config.RedirectClickWorkers,
+		QueueSize:  s.config.RedirectClickQueueSize,
+		Logger:     &logger,
+		Metrics:    s.metrics,
+	})
 
 	// Initialize handlers
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)

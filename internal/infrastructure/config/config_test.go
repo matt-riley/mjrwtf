@@ -210,6 +210,14 @@ func TestLoadConfig_DefaultValues(t *testing.T) {
 		t.Errorf("Expected default APIRateLimitPerMinute to be 60, got: %d", config.APIRateLimitPerMinute)
 	}
 
+	if config.RedirectClickWorkers != 100 {
+		t.Errorf("Expected default RedirectClickWorkers to be 100, got: %d", config.RedirectClickWorkers)
+	}
+
+	if config.RedirectClickQueueSize != 200 {
+		t.Errorf("Expected default RedirectClickQueueSize to be 200, got: %d", config.RedirectClickQueueSize)
+	}
+
 	if config.DiscordWebhookURL != "" {
 		t.Errorf("Expected default DiscordWebhookURL to be empty, got: %s", config.DiscordWebhookURL)
 	}
@@ -413,6 +421,8 @@ func cleanEnv() {
 	os.Unsetenv("METRICS_AUTH_ENABLED")
 	os.Unsetenv("REDIRECT_RATE_LIMIT_PER_MINUTE")
 	os.Unsetenv("API_RATE_LIMIT_PER_MINUTE")
+	os.Unsetenv("REDIRECT_CLICK_WORKERS")
+	os.Unsetenv("REDIRECT_CLICK_QUEUE_SIZE")
 	os.Unsetenv("DB_TIMEOUT")
 }
 

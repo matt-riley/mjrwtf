@@ -26,6 +26,11 @@ type Metrics struct {
 	// Business metrics
 	URLClicksTotal  *prometheus.CounterVec
 	URLsActiveTotal prometheus.Gauge
+
+	// Redirect click recording (async worker pool) metrics
+	RedirectClickQueueDepth          prometheus.Gauge
+	RedirectClickDroppedTotal        prometheus.Counter
+	RedirectClickRecordFailuresTotal prometheus.Counter
 }
 
 // New creates and registers all Prometheus metrics with a new registry
@@ -72,18 +77,48 @@ func New() *Metrics {
 		},
 	)
 
+	redirectClickQueueDepth := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "redirect_click_queue_depth",
+			Help:      "Current depth of the async redirect click recording queue",
+		},
+	)
+
+	redirectClickDroppedTotal := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "redirect_click_dropped_total",
+			Help:      "Total number of redirect click recording tasks dropped (queue full or shutdown)",
+		},
+	)
+
+	redirectClickRecordFailuresTotal := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "redirect_click_record_failures_total",
+			Help:      "Total number of failures while recording redirect click analytics",
+		},
+	)
+
 	// Register all custom metrics
 	registry.MustRegister(httpRequestsTotal)
 	registry.MustRegister(httpRequestDuration)
 	registry.MustRegister(urlClicksTotal)
 	registry.MustRegister(urlsActiveTotal)
+	registry.MustRegister(redirectClickQueueDepth)
+	registry.MustRegister(redirectClickDroppedTotal)
+	registry.MustRegister(redirectClickRecordFailuresTotal)
 
 	return &Metrics{
-		Registry:            registry,
-		HTTPRequestsTotal:   httpRequestsTotal,
-		HTTPRequestDuration: httpRequestDuration,
-		URLClicksTotal:      urlClicksTotal,
-		URLsActiveTotal:     urlsActiveTotal,
+		Registry:                         registry,
+		HTTPRequestsTotal:                httpRequestsTotal,
+		HTTPRequestDuration:              httpRequestDuration,
+		URLClicksTotal:                   urlClicksTotal,
+		URLsActiveTotal:                  urlsActiveTotal,
+		RedirectClickQueueDepth:          redirectClickQueueDepth,
+		RedirectClickDroppedTotal:        redirectClickDroppedTotal,
+		RedirectClickRecordFailuresTotal: redirectClickRecordFailuresTotal,
 	}
 }
 
@@ -99,9 +134,11 @@ func (m *Metrics) RecordHTTPRequest(method, path, status string, duration float6
 }
 
 // RecordURLClick records a URL click metric.
-// Call this in the redirect handler after a successful redirect.
-func (m *Metrics) RecordURLClick(shortCode string) {
-	m.URLClicksTotal.WithLabelValues(shortCode).Inc()
+//
+// Privacy note: Prometheus label values are typically treated as low-sensitivity but are often broadly accessible.
+// To avoid leaking per-short-code activity and to prevent high-cardinality labels, this metric is aggregated.
+func (m *Metrics) RecordURLClick(_ string) {
+	m.URLClicksTotal.WithLabelValues("all").Inc()
 }
 
 // SetActiveURLs sets the current number of active URLs.

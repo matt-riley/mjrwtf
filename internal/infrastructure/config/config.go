@@ -32,6 +32,10 @@ type Config struct {
 	RedirectRateLimitPerMinute int
 	APIRateLimitPerMinute      int
 
+	// Redirect click recording configuration
+	RedirectClickWorkers   int // Worker goroutines for async click recording (default: 100)
+	RedirectClickQueueSize int // Queue size for async click recording (default: RedirectClickWorkers*2)
+
 	// Discord webhook configuration
 	DiscordWebhookURL string
 
@@ -75,6 +79,14 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	redirectClickWorkers, err := getEnvAsInt("REDIRECT_CLICK_WORKERS", 100)
+	if err != nil {
+		return nil, err
+	}
+	redirectClickQueueSize, err := getEnvAsInt("REDIRECT_CLICK_QUEUE_SIZE", redirectClickWorkers*2)
+	if err != nil {
+		return nil, err
+	}
 	geoIPEnabled, err := getEnvAsBool("GEOIP_ENABLED", false)
 	if err != nil {
 		return nil, err
@@ -101,6 +113,8 @@ func LoadConfig() (*Config, error) {
 		SecureCookies:              secureCookies,
 		RedirectRateLimitPerMinute: redirectRateLimitPerMinute,
 		APIRateLimitPerMinute:      apiRateLimitPerMinute,
+		RedirectClickWorkers:       redirectClickWorkers,
+		RedirectClickQueueSize:     redirectClickQueueSize,
 		DiscordWebhookURL:          getEnv("DISCORD_WEBHOOK_URL", ""),
 		GeoIPEnabled:               geoIPEnabled,
 		GeoIPDatabase:              getEnv("GEOIP_DATABASE", ""),
@@ -146,6 +160,14 @@ func (c *Config) Validate() error {
 
 	if c.APIRateLimitPerMinute < 1 {
 		return fmt.Errorf("API_RATE_LIMIT_PER_MINUTE must be greater than 0")
+	}
+
+	if c.RedirectClickWorkers < 1 {
+		return fmt.Errorf("REDIRECT_CLICK_WORKERS must be greater than 0")
+	}
+
+	if c.RedirectClickQueueSize < 1 {
+		return fmt.Errorf("REDIRECT_CLICK_QUEUE_SIZE must be greater than 0")
 	}
 
 	// If GeoIP is enabled, database path is required
