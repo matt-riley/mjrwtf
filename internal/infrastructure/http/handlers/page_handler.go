@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
 	"errors"
 	"net/http"
 	"strings"
@@ -128,21 +126,8 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 
 	// Validate auth token using constant-time comparison to prevent timing attacks.
 	// Avoid early-exit across tokens to reduce timing signal during rotations.
-	if len(h.authTokens) == 0 {
-		h := sha256.Sum256([]byte(authToken))
-		_ = subtle.ConstantTimeCompare(h[:], h[:])
-		w.WriteHeader(http.StatusUnauthorized)
-		if err := pages.CreateWithError("Invalid authentication token").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
-		}
-		return
-	}
-
-	match := 0
-	for _, t := range h.authTokens {
-		match |= subtle.ConstantTimeCompare([]byte(authToken), []byte(t))
-	}
-	if match != 1 {
+	match, _ := middleware.ValidateTokenConstantTime(authToken, h.authTokens)
+	if !match {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.CreateWithError("Invalid authentication token").Render(r.Context(), w); err != nil {
 			w.Write([]byte("Error rendering page"))
@@ -332,21 +317,8 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Validate auth token using constant-time comparison to prevent timing attacks.
 	// Avoid early-exit across tokens to reduce timing signal during rotations.
-	if len(h.authTokens) == 0 {
-		h := sha256.Sum256([]byte(authToken))
-		_ = subtle.ConstantTimeCompare(h[:], h[:])
-		w.WriteHeader(http.StatusUnauthorized)
-		if err := pages.Login("Invalid authentication token").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
-		}
-		return
-	}
-
-	match := 0
-	for _, t := range h.authTokens {
-		match |= subtle.ConstantTimeCompare([]byte(authToken), []byte(t))
-	}
-	if match != 1 {
+	match, _ := middleware.ValidateTokenConstantTime(authToken, h.authTokens)
+	if !match {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.Login("Invalid authentication token").Render(r.Context(), w); err != nil {
 			w.Write([]byte("Error rendering page"))
