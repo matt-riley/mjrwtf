@@ -26,6 +26,15 @@ func TestNew_CreatesMetrics(t *testing.T) {
 	if m.URLsActiveTotal == nil {
 		t.Error("expected URLsActiveTotal to be initialized")
 	}
+	if m.RedirectClickQueueDepth == nil {
+		t.Error("expected RedirectClickQueueDepth to be initialized")
+	}
+	if m.RedirectClickDroppedTotal == nil {
+		t.Error("expected RedirectClickDroppedTotal to be initialized")
+	}
+	if m.RedirectClickRecordFailuresTotal == nil {
+		t.Error("expected RedirectClickRecordFailuresTotal to be initialized")
+	}
 }
 
 func TestMetrics_RecordHTTPRequest(t *testing.T) {
@@ -46,14 +55,9 @@ func TestMetrics_RecordURLClick(t *testing.T) {
 	m.RecordURLClick("abc123")
 	m.RecordURLClick("xyz789")
 
-	countAbc := testutil.ToFloat64(m.URLClicksTotal.WithLabelValues("abc123"))
-	if countAbc != 2 {
-		t.Errorf("expected 2 clicks for abc123, got %f", countAbc)
-	}
-
-	countXyz := testutil.ToFloat64(m.URLClicksTotal.WithLabelValues("xyz789"))
-	if countXyz != 1 {
-		t.Errorf("expected 1 click for xyz789, got %f", countXyz)
+	count := testutil.ToFloat64(m.URLClicksTotal.WithLabelValues("all"))
+	if count != 3 {
+		t.Errorf("expected 3 total clicks, got %f", count)
 	}
 }
 

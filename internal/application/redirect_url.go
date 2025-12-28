@@ -4,11 +4,12 @@ package application
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/metrics"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -42,40 +43,71 @@ type clickRecordTask struct {
 
 // RedirectURLUseCase handles redirecting short URLs and tracking analytics
 type RedirectURLUseCase struct {
-	urlRepo         url.Repository
-	clickRepo       click.Repository
-	clickTaskChan   chan clickRecordTask
-	done            chan struct{}
-	workersWg       sync.WaitGroup
-	callbackMu      sync.RWMutex
-	maxWorkers      int
+	urlRepo       url.Repository
+	clickRepo     click.Repository
+	clickTaskChan chan clickRecordTask
+	done          chan struct{}
+
+	workersWg    sync.WaitGroup
+	callbackMu   sync.RWMutex
+	submitMu     sync.RWMutex
+	maxWorkers   int
+	queueSize    int
+	logger       zerolog.Logger
+	metrics      *metrics.Metrics
+	shutdownOnce sync.Once
+
 	onClickRecorded func()
-	shutdownOnce    sync.Once
 }
 
-// NewRedirectURLUseCase creates a new RedirectURLUseCase with bounded concurrency for click recording
-// maxWorkers controls the number of concurrent goroutines for analytics recording (default: DefaultMaxWorkers)
+// RedirectURLOptions configures RedirectURLUseCase.
+type RedirectURLOptions struct {
+	MaxWorkers int
+	QueueSize  int
+	Logger     *zerolog.Logger
+	Metrics    *metrics.Metrics
+}
+
+// NewRedirectURLUseCase creates a new RedirectURLUseCase with bounded concurrency for click recording.
 func NewRedirectURLUseCase(urlRepo url.Repository, clickRepo click.Repository) *RedirectURLUseCase {
 	return NewRedirectURLUseCaseWithWorkers(urlRepo, clickRepo, DefaultMaxWorkers)
 }
 
-// NewRedirectURLUseCaseWithWorkers creates a new RedirectURLUseCase with custom worker count
+// NewRedirectURLUseCaseWithWorkers creates a new RedirectURLUseCase with custom worker count.
 func NewRedirectURLUseCaseWithWorkers(urlRepo url.Repository, clickRepo click.Repository, maxWorkers int) *RedirectURLUseCase {
+	return NewRedirectURLUseCaseWithOptions(urlRepo, clickRepo, RedirectURLOptions{MaxWorkers: maxWorkers})
+}
+
+// NewRedirectURLUseCaseWithOptions creates a new RedirectURLUseCase with custom configuration.
+func NewRedirectURLUseCaseWithOptions(urlRepo url.Repository, clickRepo click.Repository, opts RedirectURLOptions) *RedirectURLUseCase {
+	maxWorkers := opts.MaxWorkers
 	if maxWorkers <= 0 {
 		maxWorkers = DefaultMaxWorkers
 	}
 
-	uc := &RedirectURLUseCase{
-		urlRepo:   urlRepo,
-		clickRepo: clickRepo,
-		// Buffer size is bufferSizeMultiplier times the worker count: each worker can have one pending task,
-		// plus an equal amount of headroom to reduce blocking during bursts of submissions.
-		clickTaskChan: make(chan clickRecordTask, maxWorkers*bufferSizeMultiplier),
-		done:          make(chan struct{}),
-		maxWorkers:    maxWorkers,
+	queueSize := opts.QueueSize
+	if queueSize <= 0 {
+		queueSize = maxWorkers * bufferSizeMultiplier
 	}
 
-	// Start worker pool
+	logger := zerolog.Nop()
+	if opts.Logger != nil {
+		logger = *opts.Logger
+	}
+
+	uc := &RedirectURLUseCase{
+		urlRepo:       urlRepo,
+		clickRepo:     clickRepo,
+		clickTaskChan: make(chan clickRecordTask, queueSize),
+		done:          make(chan struct{}),
+		maxWorkers:    maxWorkers,
+		queueSize:     queueSize,
+		logger:        logger,
+		metrics:       opts.Metrics,
+	}
+
+	uc.updateQueueDepth()
+
 	uc.workersWg.Add(maxWorkers)
 	for i := 0; i < maxWorkers; i++ {
 		go uc.clickRecordWorker()
@@ -100,12 +132,13 @@ func (uc *RedirectURLUseCase) WithClickCallback(callback func()) *RedirectURLUse
 // - The method blocks until all workers have finished processing
 func (uc *RedirectURLUseCase) Shutdown() {
 	uc.shutdownOnce.Do(func() {
-		// Signal shutdown has started - prevents new submissions in Execute()
+		uc.submitMu.Lock()
 		close(uc.done)
-		// Close the task channel - workers will drain remaining tasks and then exit
 		close(uc.clickTaskChan)
-		// Wait for all workers to finish processing
+		uc.submitMu.Unlock()
+
 		uc.workersWg.Wait()
+		uc.updateQueueDepth()
 	})
 }
 
@@ -114,22 +147,18 @@ func (uc *RedirectURLUseCase) Shutdown() {
 func (uc *RedirectURLUseCase) clickRecordWorker() {
 	defer uc.workersWg.Done()
 
-	// Process tasks until the channel is closed and drained
 	for task := range uc.clickTaskChan {
-		// Call callback once per task, regardless of success/failure
 		uc.callbackMu.RLock()
 		cb := uc.onClickRecorded
 		uc.callbackMu.RUnlock()
 
-		// Use background context to prevent cancellation from affecting analytics.
-		// This is intentional: we want click recording to complete even if the
-		// original request context is cancelled, as analytics should not impact
-		// the redirect response.
 		bgCtx := context.Background()
+
+		uc.updateQueueDepth()
 
 		newClick, err := click.NewClick(task.urlID, task.referrer, task.country, task.userAgent)
 		if err != nil {
-			log.Printf("Failed to create click entity: %v", err)
+			uc.recordFailure(err, "failed to create click entity")
 			if cb != nil {
 				cb()
 			}
@@ -137,7 +166,7 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 		}
 
 		if err := uc.clickRepo.Record(bgCtx, newClick); err != nil {
-			log.Printf("Failed to record click: %v", err)
+			uc.recordFailure(err, "failed to record click")
 		}
 
 		if cb != nil {
@@ -148,42 +177,63 @@ func (uc *RedirectURLUseCase) clickRecordWorker() {
 
 // Execute performs the redirect lookup and records analytics asynchronously
 func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) (*RedirectResponse, error) {
-	// Look up URL by short code
 	foundURL, err := uc.urlRepo.FindByShortCode(ctx, req.ShortCode)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if shutdown has started - if so, don't accept new tasks
-	select {
-	case <-uc.done:
-		// Shutdown in progress - don't queue new analytics tasks
-		log.Printf("Shutdown in progress, dropping analytics")
-		return &RedirectResponse{
-			OriginalURL: foundURL.OriginalURL,
-		}, nil
-	default:
-		// Shutdown not started, proceed with task submission
-	}
-
-	// Send click recording task to worker pool (non-blocking with buffered channel)
-	select {
-	case uc.clickTaskChan <- clickRecordTask{
+	uc.enqueueClick(clickRecordTask{
 		urlID:     foundURL.ID,
 		shortCode: req.ShortCode,
 		referrer:  req.Referrer,
 		country:   req.Country,
 		userAgent: req.UserAgent,
-	}:
-		// Task sent successfully
+	})
+
+	return &RedirectResponse{OriginalURL: foundURL.OriginalURL}, nil
+}
+
+func (uc *RedirectURLUseCase) enqueueClick(task clickRecordTask) {
+	uc.submitMu.RLock()
+	defer uc.submitMu.RUnlock()
+
+	select {
+	case <-uc.done:
+		uc.dropTask("shutdown in progress")
+		return
 	default:
-		// Channel full, analytics data will be lost. Consider adding metrics/monitoring
-		// for dropped analytics to detect capacity issues during traffic spikes.
-		// Note: callback is NOT invoked here because no task was actually enqueued.
-		log.Printf("Click recording queue full, dropping analytics")
 	}
 
-	return &RedirectResponse{
-		OriginalURL: foundURL.OriginalURL,
-	}, nil
+	select {
+	case uc.clickTaskChan <- task:
+		uc.updateQueueDepth()
+	default:
+		uc.dropTask("queue full")
+	}
+}
+
+func (uc *RedirectURLUseCase) updateQueueDepth() {
+	if uc.metrics == nil || uc.metrics.RedirectClickQueueDepth == nil {
+		return
+	}
+	uc.metrics.RedirectClickQueueDepth.Set(float64(len(uc.clickTaskChan)))
+}
+
+func (uc *RedirectURLUseCase) dropTask(reason string) {
+	if uc.metrics != nil && uc.metrics.RedirectClickDroppedTotal != nil {
+		uc.metrics.RedirectClickDroppedTotal.Inc()
+	}
+	uc.updateQueueDepth()
+	uc.logger.Warn().
+		Str("reason", reason).
+		Int("queue_size", uc.queueSize).
+		Int("queue_depth", len(uc.clickTaskChan)).
+		Msg("dropping redirect click analytics")
+}
+
+func (uc *RedirectURLUseCase) recordFailure(err error, msg string) {
+	if uc.metrics != nil && uc.metrics.RedirectClickRecordFailuresTotal != nil {
+		uc.metrics.RedirectClickRecordFailuresTotal.Inc()
+	}
+	uc.logger.Error().Err(err).Msg(msg)
 }
