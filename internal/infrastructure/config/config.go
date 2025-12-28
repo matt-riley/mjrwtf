@@ -143,7 +143,7 @@ func (c *Config) Validate() error {
 	// to avoid sqlite creating a local file literally named after the URL.
 	if strings.Contains(c.DatabaseURL, "://") {
 		scheme, _, _ := strings.Cut(strings.ToLower(c.DatabaseURL), "://")
-		return fmt.Errorf("%w: %q (SQLite file paths only)", ErrUnsupportedDatabaseURLScheme, scheme)
+		return fmt.Errorf("%w: DATABASE_URL scheme=%q (SQLite file paths only)", ErrUnsupportedDatabaseURLScheme, scheme)
 	}
 
 	if c.AuthToken == "" {
