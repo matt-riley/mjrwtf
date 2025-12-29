@@ -3,6 +3,9 @@ name: Docs - Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - 'docs-site/**'
+      - '.github/workflows/docs-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -11,7 +14,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: docs-pages-deployment
   cancel-in-progress: false
 
 jobs:
