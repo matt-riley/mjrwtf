@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.2.0...mjrwtf-v0.3.0) (2025-12-29)
+
+
+### Features
+
+* **auth:** support AUTH_TOKENS rotation ([b1c416a](https://github.com/matt-riley/mjrwtf/commit/b1c416a335991c0925314c13cc6762cb794fec82))
+
+
+### Bug Fixes
+
+* constant-time guard for empty token lists ([62c2e40](https://github.com/matt-riley/mjrwtf/commit/62c2e40bf62e20018041e5953a0d9af87ca51fe9))
+* fail closed on empty auth token list ([535f9a7](https://github.com/matt-riley/mjrwtf/commit/535f9a7a1be13521803f741f0567d7e87370f2ec))
+
 ## [0.2.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.1.0...mjrwtf-v0.2.0) (2025-12-28)
 
 
