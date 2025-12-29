@@ -4,7 +4,8 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://docs.mjr.wtf',
+	site: 'https://matt-riley.github.io',
+	base: '/mjrwtf',
 	integrations: [
 		starlight({
 			title: 'mjr.wtf',
