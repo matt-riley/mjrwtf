@@ -13,5 +13,6 @@ npm run dev
 ## Deployment
 
 - GitHub Pages deployment is automated via `.github/workflows/docs-pages.yml`.
-- The site is built to work under the project pages base path: `/<repo>/` (currently `/mjrwtf/`).
+- This site is deployed to the custom domain **https://docs.mjr.wtf**.
+- `public/CNAME` is included so GitHub Pages applies the custom domain.
 - Docs are **"latest" only** and are deployed from `main` (no versioned docs yet).
