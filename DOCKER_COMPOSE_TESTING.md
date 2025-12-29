@@ -37,16 +37,16 @@ docker compose config --services
 
 ### 4. Data Persistence
 
-- [ ] Create a short URL:
+- [ ] Create a short URL (note the returned `short_code`):
   ```bash
   curl -X POST http://localhost:8080/api/urls \
-    -H "Authorization: Bearer INSECURE_CHANGE_ME" \
+    -H "Authorization: Bearer $AUTH_TOKEN" \
     -H "Content-Type: application/json" \
-    -d '{"url": "https://example.com", "short_code": "test123"}'
+    -d '{"original_url": "https://example.com"}'
   ```
 - [ ] Stop service: `make docker-compose-down`
 - [ ] Start service again: `make docker-compose-up`
-- [ ] Verify redirect still works: `curl -L http://localhost:8080/test123`
+- [ ] Verify redirect still works: `curl -L http://localhost:8080/<short_code_from_response>`
 - [ ] Verify the DB file exists: `ls -l ./data/database.db`
 
 ### 5. Cleanup

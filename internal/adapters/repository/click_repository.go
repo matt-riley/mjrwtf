@@ -6,7 +6,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 )
 
-// ClickRepository is an interface that can be implemented by both SQLite and PostgreSQL repositories
+// ClickRepository is an interface implemented by this repo's SQLite repository adapters.
 type ClickRepository interface {
 	click.Repository
 }

@@ -98,7 +98,8 @@ CREATE INDEX IF NOT EXISTS idx_clicks_url_id_clicked_at ON clicks(url_id, clicke
 CREATE INDEX IF NOT EXISTS idx_clicks_clicked_at ON clicks(clicked_at);
 
 -- Index for country-based analytics
-CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
+-- Note: Optional; add if country-based analytics is a common query pattern.
+-- CREATE INDEX IF NOT EXISTS idx_clicks_country ON clicks(country);
 
 -- Index for referrer domain analytics
 CREATE INDEX IF NOT EXISTS idx_clicks_referrer_domain ON clicks(referrer_domain);

@@ -6,7 +6,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 )
 
-// URLRepository is an interface that can be implemented by both SQLite and PostgreSQL repositories
+// URLRepository is an interface implemented by this repo's SQLite repository adapters.
 type URLRepository interface {
 	url.Repository
 }

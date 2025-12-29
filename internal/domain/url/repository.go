@@ -7,7 +7,7 @@ import (
 
 // Repository defines the interface for URL persistence operations
 // Following hexagonal architecture, this interface is defined in the domain layer
-// and implemented by adapters (e.g., PostgreSQL, SQLite)
+// and implemented by adapters (e.g., SQLite).
 type Repository interface {
 	// Create creates a new shortened URL
 	// Returns ErrDuplicateShortCode if the short code already exists

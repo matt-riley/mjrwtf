@@ -311,40 +311,22 @@ if rec.Code != tt.expectedStatus {
 
 ## CI/CD Integration
 
-### GitHub Actions
+CI runs on GitHub Actions (see `.github/workflows/ci.yml`) and executes `go test ./...` (plus separate formatting/vet/lint and generated-code checks).
 
-The tests are designed to run in CI/CD environments:
+Integration tests live under `internal/infrastructure/http/server/` and can be run locally with:
 
-```yaml
-- name: Run integration tests
-  run: make test-integration
+```bash
+make test-integration
 ```
-
-**Key features:**
-- No external dependencies (uses in-memory SQLite)
-- Fast execution (~1 second)
-- Deterministic results
-- No flaky tests
 
 ### Docker Compose Testing
 
 Docker Compose is intended for manual local testing with a persistent SQLite database (bind-mounted to `./data`). See [DOCKER_COMPOSE_TESTING.md](../DOCKER_COMPOSE_TESTING.md).
 
-## Test Coverage
+## Coverage
 
-Current integration test coverage:
+To get a coverage report for the HTTP integration suite:
 
-| Component | Coverage |
-|-----------|----------|
-| HTTP API Endpoints | 100% |
-| Authentication | 100% |
-| URL Creation | 100% |
-| Redirects | 100% |
-| Analytics | 100% |
-| Error Handling | 100% |
-| Concurrent Operations | 100% |
-
-Run coverage report:
 ```bash
 go test -cover ./internal/infrastructure/http/server/
 ```
@@ -363,7 +345,7 @@ go tool cover -html=coverage.out
 
 ### Async tests are flaky
 **Cause:** Not waiting long enough for async operations.
-**Fix:** Increase wait times in `time.Sleep()` calls.
+**Fix:** Prefer polling with a deadline (the suite already uses this pattern); increase the polling deadline if needed.
 
 ### Port already in use
 **Cause:** Tests using real HTTP server instead of httptest.

@@ -37,7 +37,7 @@ Most endpoints require Bearer token authentication:
 Authorization: Bearer YOUR_TOKEN_HERE
 ```
 
-Configure your token via the `AUTH_TOKEN` environment variable. See the [Authentication](#authentication) section in the main README for details.
+Configure your token via `AUTH_TOKENS` (preferred, comma-separated) or `AUTH_TOKEN` (legacy). See the Authentication section in the main README for details.
 
 ### Content Type
 
@@ -124,7 +124,7 @@ curl https://mjr.wtf/api/urls?limit=10&offset=0 \
 
 **DELETE** `/api/urls/{shortCode}`
 
-Deletes a shortened URL. Only the creator can delete their own URLs.
+Deletes a shortened URL. Requires authentication (multi-user/ownership is not implemented yet).
 
 **Authentication:** Required
 
@@ -419,7 +419,7 @@ All error responses follow a consistent format:
 
 ## Rate Limiting
 
-Rate limiting is implemented on the redirect endpoint to prevent abuse. Specific limits are not documented but excessive automated requests may be throttled.
+Rate limiting is implemented on the redirect endpoint and authenticated API routes. Configure via `REDIRECT_RATE_LIMIT_PER_MINUTE` (default: 120) and `API_RATE_LIMIT_PER_MINUTE` (default: 60).
 
 ## Keeping the Spec in Sync
 

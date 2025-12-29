@@ -219,7 +219,7 @@ Include the token in the `Authorization` header with the `Bearer` scheme:
 curl -X POST https://mjr.wtf/api/urls \
   -H "Authorization: Bearer your-secret-token-here" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com", "short_code": "abc123"}'
+  -d '{"original_url": "https://example.com"}'
 ```
 
 #### Authentication Responses
@@ -229,15 +229,10 @@ curl -X POST https://mjr.wtf/api/urls \
 
 Example error responses:
 
-```text
-// Missing Authorization header
-Unauthorized: missing authorization header
-
-// Invalid format (not "Bearer <token>")
-Unauthorized: invalid authorization format
-
-// Token doesn't match configured AUTH_TOKENS/AUTH_TOKEN
-Unauthorized: invalid token
+```json
+{"error":"Unauthorized: missing authorization header"}
+{"error":"Unauthorized: invalid authorization format"}
+{"error":"Unauthorized: invalid token"}
 ```
 
 ### 2. Session-Based Authentication (Dashboard)
@@ -292,15 +287,17 @@ SECURE_COOKIES=true
 ### Protected Endpoints
 
 The following endpoints require authentication:
-- `POST /api/urls` - Create a new short URL (Bearer token)
-- `DELETE /api/urls/:code` - Delete a short URL (Bearer token or session)
+- `POST /api/urls` - Create a new short URL (Bearer token or session)
+- `DELETE /api/urls/{shortCode}` - Delete a short URL (Bearer token or session)
 - `GET /dashboard` - View URL dashboard (session required)
+
+**Note:** Multi-user ownership is not implemented yet; any authenticated token/session can manage URLs.
 
 Public endpoints (no authentication required):
 - `GET /` - Home page
 - `GET /create` - URL creation form
 - `GET /login` - Login page
-- `GET /:code` - Redirect to original URL
+- `GET /{shortCode}` - Redirect to original URL
 - `GET /health` - Health check (liveness)
 - `GET /ready` - Readiness check (DB connectivity)
 - `GET /metrics` - Prometheus metrics (can be optionally protected, see below)

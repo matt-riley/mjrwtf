@@ -2,10 +2,11 @@
 
 This directory contains the SQLite database schema for the mjr.wtf URL shortener application.
 
+Note: The active Goose migrations (and sqlc config) are currently **SQLite-only**; PostgreSQL schema/migrations are not maintained in this repo yet.
+
 ## Schema Files
 
-- **`schema.sqlite.sql`** - SQLite-ready schema (matches `internal/migrations/sqlite/`)
-- **`schema.sql`** - Base schema template (kept for reference)
+- **`schema.sqlite.sql`** - SQLite-ready schema (represents the current DB schema; should match `internal/migrations/sqlite/` when fully migrated)
 
 ## Tables
 
@@ -40,6 +41,7 @@ Stores analytics data for each click on a shortened URL.
 | `referrer` | TEXT | HTTP Referer header (nullable) |
 | `country` | VARCHAR(2) | ISO 3166-1 alpha-2 country code (nullable) |
 | `user_agent` | TEXT | User-Agent header (nullable) |
+| `referrer_domain` | VARCHAR(255) | Parsed domain from `referrer` for domain analytics (nullable) |
 
 **Constraints:**
 - FOREIGN KEY `url_id` REFERENCES `urls(id)` ON DELETE CASCADE
@@ -48,6 +50,8 @@ Stores analytics data for each click on a shortened URL.
 **Indexes:**
 - `idx_clicks_url_id_clicked_at` on `(url_id, clicked_at)` - Composite index for time-based analytics (also serves queries filtering only on `url_id`)
 - `idx_clicks_clicked_at` on `clicked_at` - For time-based filtering and sorting
+- `idx_clicks_referrer_domain` on `referrer_domain` - For referrer domain analytics
+- (Optional) `idx_clicks_country` on `country` - Add if country-based analytics is common
 
 ## Usage
 
@@ -57,8 +61,6 @@ Stores analytics data for each click on a shortened URL.
 # Create database with schema
 sqlite3 database.db < docs/schema.sqlite.sql
 
-# Or use the base schema template
-sqlite3 database.db < docs/schema.sql
 ```
 
 **Important:** Foreign key constraints must be enabled for each connection:
@@ -75,8 +77,8 @@ SELECT original_url FROM urls WHERE short_code = 'abc123';
 
 ### Record a Click
 ```sql
-INSERT INTO clicks (url_id, referrer, country, user_agent)
-VALUES (1, 'https://google.com', 'US', 'Mozilla/5.0...');
+INSERT INTO clicks (url_id, referrer, referrer_domain, country, user_agent)
+VALUES (1, 'https://google.com/search', 'google.com', 'US', 'Mozilla/5.0...');
 ```
 
 ### Get Click Count
@@ -117,17 +119,24 @@ All critical indexes are included in the schema:
 
 ## Integration with sqlc
 
-These schemas are designed to work with [sqlc](https://github.com/sqlc-dev/sqlc) for type-safe SQL code generation.
+This repo uses [sqlc](https://github.com/sqlc-dev/sqlc); the schema input for sqlc is the SQLite Goose migration files explicitly listed in the repo root `sqlc.yaml` (not the `docs/schema*.sql` snapshots).
 
-Example `sqlc.yaml` snippet:
+Recommended excerpt (kept intentionally short):
 ```yaml
 version: "2"
 sql:
-  - engine: "sqlite"
-    queries: "queries/"
-    schema: "docs/schema.sqlite.sql"
+  - name: "sqlite"
+    engine: "sqlite"
+    schema:
+      - "internal/migrations/sqlite/00001_initial_schema.sql"
+      - "internal/migrations/sqlite/00002_add_referrer_domain.sql"
+    queries: "internal/adapters/repository/sqlc/sqlite/queries.sql"
     gen:
       go:
-        package: "db"
-        out: "internal/infrastructure/db"
+        package: "sqliterepo"
+        out: "internal/adapters/repository/sqlc/sqlite"
 ```
+
+Guidance:
+- If you add a migration that changes tables used by queries, also add it to the `schema:` list in `sqlc.yaml` (keep migration order).
+- Regenerate with `make generate` (or `sqlc generate`).

@@ -36,7 +36,7 @@ Paste error messages here
 ## Environment
 
 - **Go Version:** [ Run: `go version` ]
-- **Database:** [ SQLite | PostgreSQL ]
+- **Database:** SQLite
 - **Database Version:** [ Run: `sqlite3 --version` or `psql --version` ]
 - **OS:** [ e.g., macOS 13.5, Ubuntu 22.04 ]
 - **Project Commit:** [ Run: `git rev-parse HEAD` ]

@@ -246,7 +246,7 @@ func TestAPIEndpoints_ListURLs(t *testing.T) {
 	}
 }
 
-// TestAPIEndpoints_DeleteURL tests the DELETE /api/urls/:shortCode endpoint
+// TestAPIEndpoints_DeleteURL tests the DELETE /api/urls/{shortCode} endpoint
 func TestAPIEndpoints_DeleteURL(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()

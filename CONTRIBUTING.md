@@ -93,7 +93,7 @@ refactor: simplify repository error handling
 - All bug fixes must have regression tests
 - Aim for >80% test coverage
 - Test both happy path and error cases
-- Repository tests must cover both SQLite and PostgreSQL (if applicable)
+- Repository tests must cover SQLite behavior
 
 ### Linting
 
@@ -137,7 +137,7 @@ When creating issues for Copilot to work on:
 ✅ **Excellent for:**
 - Implementing new domain entities with validation
 - Adding new repository methods with tests
-- Creating database migrations (both SQLite and PostgreSQL)
+- Creating database migrations (SQLite)
 - Writing sqlc queries
 - Adding test cases to existing test suites
 - Fixing bugs with clear reproduction steps

@@ -29,7 +29,7 @@ All images support both `linux/amd64` and `linux/arm64` architectures.
 ## Overview
 
 The project includes a multi-stage Dockerfile that:
-- Uses `golang:1.24-alpine` for building (with CGO support for SQLite)
+- Uses `golang:1.25-alpine` for building (with CGO support for SQLite)
 - Uses `alpine:latest` for the runtime image
 - Creates a minimal, secure container (~20-30MB without GeoIP database)
 - Runs as a non-root user for security
@@ -129,7 +129,7 @@ The project includes a `docker-compose.yml` file that runs the server with a per
 ```bash
 # 1. Copy environment variables
 cp .env.example .env
-# Edit .env to set AUTH_TOKEN (required)
+# Edit .env to set AUTH_TOKENS (recommended) or AUTH_TOKEN
 
 # 2. Prepare a persistent data directory and run migrations (required on first run)
 mkdir -p data
@@ -179,8 +179,9 @@ lsof -i :8080
 
 See `.env.example` for all available environment variables:
 
-- `DATABASE_URL` - Database connection string (required)
-- `AUTH_TOKEN` - API authentication token (required)
+- `DATABASE_URL` - SQLite database file path (required)
+- `AUTH_TOKENS` - API authentication tokens (recommended; comma-separated; takes precedence)
+- `AUTH_TOKEN` - API authentication token (legacy; used only if AUTH_TOKENS is unset)
 - `SERVER_PORT` - HTTP server port (default: 8080)
 - `LOG_LEVEL` - Log level: debug, info, warn, error (default: info)
 - `LOG_FORMAT` - Log format: json, pretty (default: json)
@@ -237,7 +238,7 @@ The Docker image follows security best practices:
 docker logs mjrwtf
 
 # Common issues:
-# - Missing AUTH_TOKEN environment variable
+# - Missing AUTH_TOKENS/AUTH_TOKEN environment variable
 # - Invalid DATABASE_URL
 # - Database connection failed
 ```
@@ -299,7 +300,7 @@ docker run -d \
 For production:
 
 1. Use specific image tags (not `latest`)
-2. Set strong `AUTH_TOKEN`
+2. Set strong `AUTH_TOKENS` (recommended) or `AUTH_TOKEN`
 3. Configure proper CORS (`ALLOWED_ORIGINS`)
 4. Use `LOG_FORMAT=json` for structured logging
 5. Mount a volume for persistent SQLite data

@@ -26,7 +26,7 @@ type TimeRangeStats struct {
 
 // Repository defines the interface for Click persistence operations
 // Following hexagonal architecture, this interface is defined in the domain layer
-// and implemented by adapters (e.g., PostgreSQL, SQLite)
+// and implemented by adapters (e.g., SQLite).
 type Repository interface {
 	// Record records a new click event
 	Record(ctx context.Context, click *Click) error

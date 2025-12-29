@@ -1,6 +1,6 @@
 ---
 name: docker-compose-dev
-description: Run mjr.wtf locally using Docker Compose (PostgreSQL + app), including migrations from the host, logs, and teardown. Use when reproducing prod-like behavior or developing against Postgres.
+description: Run mjr.wtf locally using Docker Compose (SQLite), including migrations, logs, and teardown.
 license: MIT
 compatibility: Requires docker, docker compose, bash, git, and make.
 metadata:
@@ -10,60 +10,41 @@ metadata:
 allowed-tools: Bash(git:*) Bash(make:*) Bash(docker:*) Bash(curl:*) Read
 ---
 
-## Tooling assumptions
+## Quick start (SQLite via compose)
 
-- Use a terminal runner with bash and git available.
-- Prefer `make` targets when available; fall back to direct CLI commands when needed.
-
-## Quick start (PostgreSQL via compose)
-
-1) Create env file (optional but recommended):
+1) Create env file:
 
 ```bash
 cp .env.example .env
+# set AUTH_TOKENS (recommended) or AUTH_TOKEN
 ```
 
-2) Start services:
+2) Run migrations on the host (required on first run):
+
+```bash
+mkdir -p data
+export DATABASE_URL=./data/database.db
+make build-migrate
+make migrate-up
+```
+
+3) Start services:
 
 ```bash
 make docker-compose-up
-```
-
-3) Run migrations from the host (required):
-
-```bash
-make build-migrate
-export DATABASE_URL='postgresql://mjrwtf:INSECURE_CHANGE_ME@localhost:5432/mjrwtf'
-./bin/migrate up
 ```
 
 4) Verify health:
 
 ```bash
 curl http://localhost:8080/health
+curl http://localhost:8080/ready
 ```
 
 ## Useful ops
 
-- Logs:
-
 ```bash
 make docker-compose-logs
-```
-
-- Status:
-
-```bash
 make docker-compose-ps
-```
-
-- Stop + remove containers:
-
-```bash
 make docker-compose-down
 ```
-
-## Common pitfalls
-
-- Migrations are not run automatically; do them before hitting API endpoints.
-- If you changed Postgres credentials in `.env`, update `DATABASE_URL` accordingly.

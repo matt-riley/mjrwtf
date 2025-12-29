@@ -27,7 +27,7 @@ func NewAnalyticsHandler(getAnalyticsUseCase GetAnalyticsUseCase) *AnalyticsHand
 	}
 }
 
-// GetAnalytics handles GET /api/urls/:shortCode/analytics - Get analytics for a URL
+// GetAnalytics handles GET /api/urls/{shortCode}/analytics - Get analytics for a URL
 func (h *AnalyticsHandler) GetAnalytics(w http.ResponseWriter, r *http.Request) {
 	// Extract user ID from context (set by auth middleware)
 	userID, ok := middleware.GetUserID(r.Context())

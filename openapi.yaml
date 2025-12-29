@@ -11,7 +11,7 @@ info:
     ```
     
     ## Rate Limiting
-    The service implements rate limiting on the redirect endpoint to prevent abuse.
+    The service implements rate limiting on the redirect endpoint and authenticated API routes to prevent abuse.
   version: 1.0.0
   contact:
     name: mjr.wtf API Support
@@ -73,6 +73,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
     
@@ -135,6 +137,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -142,7 +146,7 @@ paths:
     delete:
       summary: Delete URL
       description: |
-        Deletes a shortened URL. Only the user who created the URL can delete it.
+        Deletes a shortened URL. Requires authentication.
       operationId: deleteURL
       tags:
         - urls
@@ -164,10 +168,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -177,7 +181,7 @@ paths:
       description: |
         Retrieves analytics data for a shortened URL including click counts,
         geographic distribution, referrer information, and date-based statistics.
-        Only the URL creator can view analytics.
+        Requires authentication.
       operationId: getAnalytics
       tags:
         - analytics
@@ -260,10 +264,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -303,6 +307,19 @@ paths:
               schema:
                 type: string
                 example: "404 Not Found"
+        '429':
+          description: Too many requests - rate limit exceeded
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+                minimum: 1
+          content:
+            text/html:
+              schema:
+                type: string
+                example: "Too Many Requests"
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -617,11 +634,33 @@ components:
             missing_token:
               summary: Missing authentication token
               value:
-                error: "missing authorization header"
+                error: "Unauthorized: missing authorization header"
+            invalid_format:
+              summary: Invalid authorization format
+              value:
+                error: "Unauthorized: invalid authorization format"
             invalid_token:
               summary: Invalid authentication token
               value:
-                error: "invalid authorization token"
+                error: "Unauthorized: invalid token"
+
+    TooManyRequests:
+      description: Too many requests - rate limit exceeded
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rate_limited:
+              summary: Rate limit exceeded
+              value:
+                error: "Too Many Requests: rate limit exceeded"
 
     Forbidden:
       description: Forbidden - insufficient permissions

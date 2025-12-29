@@ -131,7 +131,7 @@ func (h *URLHandler) List(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, resp, http.StatusOK)
 }
 
-// Delete handles DELETE /api/urls/:shortCode - Delete URL
+// Delete handles DELETE /api/urls/{shortCode} - Delete URL
 func (h *URLHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	// Extract user ID from context (set by auth middleware)
 	userID, ok := middleware.GetUserID(r.Context())

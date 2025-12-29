@@ -201,8 +201,8 @@ The server supports graceful shutdown with:
 
 - [x] Authentication middleware
 - [x] HTML page rendering with Templ
-- [ ] Rate limiting middleware
+- [x] Rate limiting middleware
 - [ ] Request ID tracking
-- [ ] Metrics/monitoring middleware
+- [x] Metrics/monitoring middleware
 - [ ] Compression middleware
 - [ ] ETag support

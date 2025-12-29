@@ -9,8 +9,9 @@ services:
       # Database connection (SQLite)
       - DATABASE_URL=/app/data/database.db
 
-      # Authentication (CHANGE THIS!)
-      - AUTH_TOKEN=${AUTH_TOKEN:-INSECURE_CHANGE_ME}
+      # Authentication (set at least one of AUTH_TOKENS or AUTH_TOKEN)
+      - AUTH_TOKENS=${AUTH_TOKENS:-}
+      - AUTH_TOKEN=${AUTH_TOKEN:-}
 
       # Server configuration
       - SERVER_PORT=8080
