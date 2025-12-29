@@ -2,10 +2,10 @@ package geolocation
 
 import (
 	"context"
-	"net"
+	"net/netip"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/geolocation"
-	"github.com/oschwald/geoip2-golang"
+	"github.com/oschwald/geoip2-golang/v2"
 )
 
 // geoIP2Service implements the geolocation.LookupService interface using MaxMind GeoIP2.
@@ -32,8 +32,8 @@ func NewGeoIP2Service(databasePath string) (geolocation.LookupService, error) {
 // geoip2-golang library does not support context-aware operations. The lookup
 // is performed against a local in-memory database and is expected to be fast.
 func (s *geoIP2Service) LookupCountry(_ context.Context, ipAddress string) string {
-	ip := net.ParseIP(ipAddress)
-	if ip == nil {
+	ip, err := netip.ParseAddr(ipAddress)
+	if err != nil {
 		// Invalid IP address format, return empty string
 		return ""
 	}
@@ -44,7 +44,7 @@ func (s *geoIP2Service) LookupCountry(_ context.Context, ipAddress string) strin
 		return ""
 	}
 
-	return record.Country.IsoCode
+	return record.Country.ISOCode
 }
 
 // Close releases the GeoIP2 database resources.
