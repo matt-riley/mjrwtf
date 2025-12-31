@@ -3,12 +3,14 @@ package application
 import (
 	"context"
 	"errors"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/domain/urlstatus"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/metrics"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
@@ -69,6 +71,26 @@ func (m *mockURLRepository) ListByCreatedByAndTimeRange(ctx context.Context, cre
 
 func (m *mockURLRepository) Count(ctx context.Context, createdBy string) (int, error) {
 	return 0, nil
+}
+
+type mockURLStatusRepository struct {
+	status   *urlstatus.URLStatus
+	getError error
+}
+
+func (m *mockURLStatusRepository) GetByURLID(ctx context.Context, urlID int64) (*urlstatus.URLStatus, error) {
+	if m.getError != nil {
+		return nil, m.getError
+	}
+	return m.status, nil
+}
+
+func (m *mockURLStatusRepository) Upsert(ctx context.Context, status *urlstatus.URLStatus) error {
+	return nil
+}
+
+func (m *mockURLStatusRepository) ListDueForStatusCheck(ctx context.Context, aliveCutoff, goneCutoff time.Time, limit int) ([]*urlstatus.DueURL, error) {
+	return nil, nil
 }
 
 // Mock Click Repository
@@ -170,6 +192,96 @@ func TestRedirectURLUseCase_Execute_Success(t *testing.T) {
 
 	// Clean up
 	useCase.Shutdown()
+}
+
+func TestRedirectURLUseCase_Execute_StatusRepoNil_DoesNotMarkGone(t *testing.T) {
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	testURL := &url.URL{ID: 100, ShortCode: "stnil", OriginalURL: "https://example.com", CreatedAt: time.Now(), CreatedBy: "user"}
+	urlRepo.urls[testURL.ShortCode] = testURL
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	useCase := NewRedirectURLUseCaseWithOptions(urlRepo, clickRepo, RedirectURLOptions{MaxWorkers: 1, QueueSize: 1}).WithClickCallback(func() {
+		wg.Done()
+	})
+	defer useCase.Shutdown()
+
+	resp, err := useCase.Execute(context.Background(), RedirectRequest{ShortCode: testURL.ShortCode})
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+	if resp.IsGone {
+		t.Fatalf("Expected IsGone=false")
+	}
+
+	wg.Wait()
+}
+
+func TestRedirectURLUseCase_Execute_StatusRepoError_ReturnsError(t *testing.T) {
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+	statusRepo := &mockURLStatusRepository{getError: errors.New("boom")}
+
+	testURL := &url.URL{ID: 101, ShortCode: "sterr", OriginalURL: "https://example.com", CreatedAt: time.Now(), CreatedBy: "user"}
+	urlRepo.urls[testURL.ShortCode] = testURL
+
+	useCase := NewRedirectURLUseCaseWithOptions(urlRepo, clickRepo, RedirectURLOptions{MaxWorkers: 1, QueueSize: 1, StatusRepo: statusRepo})
+	defer useCase.Shutdown()
+
+	resp, err := useCase.Execute(context.Background(), RedirectRequest{ShortCode: testURL.ShortCode})
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+	if resp != nil {
+		t.Fatalf("Expected nil response, got %v", resp)
+	}
+	if clickRepo.getRecordedClicksCount() != 0 {
+		t.Fatalf("Expected 0 clicks recorded")
+	}
+}
+
+func TestRedirectURLUseCase_Execute_StatusRepoGone_SetsGoneFields(t *testing.T) {
+	urlRepo := newMockURLRepository()
+	clickRepo := newMockClickRepository()
+
+	fixedNow := time.Date(2025, 5, 6, 7, 8, 9, 0, time.UTC)
+	archive := "https://web.archive.org/web/20200101000000/https://example.com"
+	code := int64(http.StatusNotFound)
+	statusRepo := &mockURLStatusRepository{status: &urlstatus.URLStatus{URLID: 102, GoneAt: &fixedNow, LastStatusCode: &code, ArchiveURL: &archive}}
+
+	testURL := &url.URL{ID: 102, ShortCode: "gone", OriginalURL: "https://example.com", CreatedAt: time.Now(), CreatedBy: "user"}
+	urlRepo.urls[testURL.ShortCode] = testURL
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	useCase := NewRedirectURLUseCaseWithOptions(urlRepo, clickRepo, RedirectURLOptions{MaxWorkers: 1, QueueSize: 1, StatusRepo: statusRepo}).WithClickCallback(func() {
+		wg.Done()
+	})
+	defer useCase.Shutdown()
+
+	resp, err := useCase.Execute(context.Background(), RedirectRequest{ShortCode: testURL.ShortCode})
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if resp == nil {
+		t.Fatal("Expected response, got nil")
+	}
+	if !resp.IsGone {
+		t.Fatalf("Expected IsGone=true")
+	}
+	if resp.GoneStatusCode != http.StatusNotFound {
+		t.Fatalf("GoneStatusCode=%d, want %d", resp.GoneStatusCode, http.StatusNotFound)
+	}
+	if resp.ArchiveURL == nil || *resp.ArchiveURL != archive {
+		t.Fatalf("ArchiveURL=%v, want %q", resp.ArchiveURL, archive)
+	}
+
+	wg.Wait()
 }
 
 func TestRedirectURLUseCase_Execute_URLNotFound(t *testing.T) {

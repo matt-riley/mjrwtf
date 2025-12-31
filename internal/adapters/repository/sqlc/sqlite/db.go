@@ -60,6 +60,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getTotalClickCountInTimeRangeStmt, err = db.PrepareContext(ctx, getTotalClickCountInTimeRange); err != nil {
 		return nil, fmt.Errorf("error preparing query GetTotalClickCountInTimeRange: %w", err)
 	}
+	if q.getURLStatusByURLIDStmt, err = db.PrepareContext(ctx, getURLStatusByURLID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetURLStatusByURLID: %w", err)
+	}
 	if q.listAllURLsStmt, err = db.PrepareContext(ctx, listAllURLs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListAllURLs: %w", err)
 	}
@@ -69,8 +72,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listURLsByCreatedByAndTimeRangeStmt, err = db.PrepareContext(ctx, listURLsByCreatedByAndTimeRange); err != nil {
 		return nil, fmt.Errorf("error preparing query ListURLsByCreatedByAndTimeRange: %w", err)
 	}
+	if q.listURLsDueForStatusCheckStmt, err = db.PrepareContext(ctx, listURLsDueForStatusCheck); err != nil {
+		return nil, fmt.Errorf("error preparing query ListURLsDueForStatusCheck: %w", err)
+	}
 	if q.recordClickStmt, err = db.PrepareContext(ctx, recordClick); err != nil {
 		return nil, fmt.Errorf("error preparing query RecordClick: %w", err)
+	}
+	if q.upsertURLStatusStmt, err = db.PrepareContext(ctx, upsertURLStatus); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertURLStatus: %w", err)
 	}
 	return &q, nil
 }
@@ -137,6 +146,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getTotalClickCountInTimeRangeStmt: %w", cerr)
 		}
 	}
+	if q.getURLStatusByURLIDStmt != nil {
+		if cerr := q.getURLStatusByURLIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getURLStatusByURLIDStmt: %w", cerr)
+		}
+	}
 	if q.listAllURLsStmt != nil {
 		if cerr := q.listAllURLsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listAllURLsStmt: %w", cerr)
@@ -152,9 +166,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listURLsByCreatedByAndTimeRangeStmt: %w", cerr)
 		}
 	}
+	if q.listURLsDueForStatusCheckStmt != nil {
+		if cerr := q.listURLsDueForStatusCheckStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listURLsDueForStatusCheckStmt: %w", cerr)
+		}
+	}
 	if q.recordClickStmt != nil {
 		if cerr := q.recordClickStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing recordClickStmt: %w", cerr)
+		}
+	}
+	if q.upsertURLStatusStmt != nil {
+		if cerr := q.upsertURLStatusStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertURLStatusStmt: %w", cerr)
 		}
 	}
 	return err
@@ -208,10 +232,13 @@ type Queries struct {
 	getClicksByReferrerInTimeRangeStmt  *sql.Stmt
 	getTotalClickCountStmt              *sql.Stmt
 	getTotalClickCountInTimeRangeStmt   *sql.Stmt
+	getURLStatusByURLIDStmt             *sql.Stmt
 	listAllURLsStmt                     *sql.Stmt
 	listURLsStmt                        *sql.Stmt
 	listURLsByCreatedByAndTimeRangeStmt *sql.Stmt
+	listURLsDueForStatusCheckStmt       *sql.Stmt
 	recordClickStmt                     *sql.Stmt
+	upsertURLStatusStmt                 *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
@@ -230,9 +257,12 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getClicksByReferrerInTimeRangeStmt:  q.getClicksByReferrerInTimeRangeStmt,
 		getTotalClickCountStmt:              q.getTotalClickCountStmt,
 		getTotalClickCountInTimeRangeStmt:   q.getTotalClickCountInTimeRangeStmt,
+		getURLStatusByURLIDStmt:             q.getURLStatusByURLIDStmt,
 		listAllURLsStmt:                     q.listAllURLsStmt,
 		listURLsStmt:                        q.listURLsStmt,
 		listURLsByCreatedByAndTimeRangeStmt: q.listURLsByCreatedByAndTimeRangeStmt,
+		listURLsDueForStatusCheckStmt:       q.listURLsDueForStatusCheckStmt,
 		recordClickStmt:                     q.recordClickStmt,
+		upsertURLStatusStmt:                 q.upsertURLStatusStmt,
 	}
 }

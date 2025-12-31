@@ -15,6 +15,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/domain/urlstatus"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/config"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/handlers"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
@@ -38,15 +39,19 @@ const (
 
 // Server represents the HTTP server
 type Server struct {
-	httpServer      *http.Server
-	router          *chi.Mux
-	config          *config.Config
-	db              *sql.DB
-	logger          zerolog.Logger
-	metrics         *metrics.Metrics
-	sessionStore    *session.Store
-	rateLimiters    []*middleware.RateLimiterMiddleware
-	redirectUseCase *application.RedirectURLUseCase
+	httpServer       *http.Server
+	router           *chi.Mux
+	config           *config.Config
+	db               *sql.DB
+	logger           zerolog.Logger
+	metrics          *metrics.Metrics
+	sessionStore     *session.Store
+	rateLimiters     []*middleware.RateLimiterMiddleware
+	redirectUseCase  *application.RedirectURLUseCase
+	urlStatusChecker *application.URLStatusChecker
+
+	bgCtx    context.Context
+	bgCancel context.CancelFunc
 }
 
 // New creates a new HTTP server with configured middleware and dependencies
@@ -100,6 +105,8 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 		MaxAge:           300,
 	}))
 
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+
 	server := &Server{
 		router:       r,
 		config:       cfg,
@@ -107,6 +114,8 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 		logger:       logger,
 		metrics:      m,
 		sessionStore: sessionStore,
+		bgCtx:        bgCtx,
+		bgCancel:     bgCancel,
 		httpServer: &http.Server{
 			Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
 			Handler:      r,
@@ -203,6 +212,7 @@ func (s *Server) buildHandlers() (*routeHandlers, error) {
 	// Initialize repositories (SQLite only)
 	var urlRepo url.Repository = repository.NewSQLiteURLRepository(s.db)
 	var clickRepo click.Repository = repository.NewSQLiteClickRepository(s.db)
+	var urlStatusRepo urlstatus.Repository = repository.NewSQLiteURLStatusRepository(s.db)
 
 	// Defensive defaults: server.New can be called with a manually-constructed config
 	// (e.g. in tests), which bypasses config.LoadConfig() validation/defaults.
@@ -231,7 +241,19 @@ func (s *Server) buildHandlers() (*routeHandlers, error) {
 		QueueSize:  s.config.RedirectClickQueueSize,
 		Logger:     &s.logger,
 		Metrics:    s.metrics,
+		StatusRepo: urlStatusRepo,
 	})
+
+	s.urlStatusChecker = application.NewURLStatusChecker(urlStatusRepo, application.URLStatusCheckerConfig{
+		Enabled:                s.config.URLStatusCheckerEnabled,
+		PollInterval:           s.config.URLStatusCheckerPollInterval,
+		AliveRecheckInterval:   s.config.URLStatusCheckerAliveRecheckInterval,
+		GoneRecheckInterval:    s.config.URLStatusCheckerGoneRecheckInterval,
+		BatchSize:              s.config.URLStatusCheckerBatchSize,
+		Concurrency:            s.config.URLStatusCheckerConcurrency,
+		ArchiveLookupEnabled:   s.config.URLStatusCheckerArchiveLookupEnabled,
+		ArchiveRecheckInterval: s.config.URLStatusCheckerArchiveRecheckInterval,
+	}, s.logger)
 
 	// Initialize handlers
 	urlHandler := handlers.NewURLHandler(createUseCase, listUseCase, deleteUseCase)
@@ -317,6 +339,10 @@ func (s *Server) readyCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 // Start starts the HTTP server
 func (s *Server) Start() error {
+	if s.urlStatusChecker != nil {
+		s.urlStatusChecker.Start(s.bgCtx)
+	}
+
 	s.logger.Info().Str("addr", s.httpServer.Addr).Msg("starting HTTP server")
 	return s.httpServer.ListenAndServe()
 }
@@ -324,6 +350,13 @@ func (s *Server) Start() error {
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info().Msg("shutting down HTTP server")
+
+	if s.bgCancel != nil {
+		s.bgCancel()
+	}
+	if s.urlStatusChecker != nil {
+		s.urlStatusChecker.Shutdown()
+	}
 
 	// Shutdown session store cleanup goroutine
 	if s.sessionStore != nil {

@@ -1,0 +1,43 @@
+package pages
+
+import "github.com/matt-riley/mjrwtf/internal/adapters/http/templates/layouts"
+
+templ Gone(destinationURL string, statusCode int, archiveURL *string) {
+	@layouts.Base("Link unavailable", goneContent(destinationURL, statusCode, archiveURL))
+}
+
+templ goneContent(destinationURL string, statusCode int, archiveURL *string) {
+	<div class="flex flex-col items-center justify-center min-h-[60vh]">
+		<div class="text-center max-w-2xl">
+			<h1 class="text-6xl font-bold text-gray-800">Link unavailable</h1>
+			<p class="text-gray-600 mt-4">
+				The destination for this short link was last checked and returned HTTP { statusCode }.
+			</p>
+			<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6 text-left">
+				<p class="text-sm text-gray-700 break-words">
+					<span class="font-semibold">Destination:</span> { destinationURL }
+				</p>
+			</div>
+
+			if archiveURL != nil && *archiveURL != "" {
+				<div class="mt-8">
+					<a
+						href={ *archiveURL }
+						class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+						rel="noopener noreferrer"
+						target="_blank"
+					>
+						View archived version
+					</a>
+					<p class="text-xs text-gray-500 mt-2">
+						Archive provided by the Internet Archive (Wayback Machine), if available.
+					</p>
+				</div>
+			}
+
+			<div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+				<a href="/" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">Go Home</a>
+			</div>
+		</div>
+	</div>
+}

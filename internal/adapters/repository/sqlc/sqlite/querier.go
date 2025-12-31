@@ -24,13 +24,19 @@ type Querier interface {
 	GetClicksByReferrerInTimeRange(ctx context.Context, arg GetClicksByReferrerInTimeRangeParams) ([]GetClicksByReferrerInTimeRangeRow, error)
 	GetTotalClickCount(ctx context.Context, urlID int64) (int64, error)
 	GetTotalClickCountInTimeRange(ctx context.Context, arg GetTotalClickCountInTimeRangeParams) (int64, error)
+	// ============================================================================
+	// URL Status Queries
+	// ============================================================================
+	GetURLStatusByURLID(ctx context.Context, urlID int64) (UrlStatus, error)
 	ListAllURLs(ctx context.Context, arg ListAllURLsParams) ([]Url, error)
 	ListURLs(ctx context.Context, arg ListURLsParams) ([]Url, error)
 	ListURLsByCreatedByAndTimeRange(ctx context.Context, arg ListURLsByCreatedByAndTimeRangeParams) ([]Url, error)
+	ListURLsDueForStatusCheck(ctx context.Context, arg ListURLsDueForStatusCheckParams) ([]ListURLsDueForStatusCheckRow, error)
 	// ============================================================================
 	// Click Queries
 	// ============================================================================
 	RecordClick(ctx context.Context, arg RecordClickParams) (RecordClickRow, error)
+	UpsertURLStatus(ctx context.Context, arg UpsertURLStatusParams) error
 }
 
 var _ Querier = (*Queries)(nil)

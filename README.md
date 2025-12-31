@@ -385,6 +385,25 @@ The `DB_TIMEOUT` setting applies a bounded deadline to all database operations, 
 | `GEOIP_ENABLED` | Enable GeoIP location tracking | `false` | |
 | `GEOIP_DATABASE` | Path to GeoIP database file | - | Required if `GEOIP_ENABLED=true` |
 
+### URL status checker (optional)
+
+mjr.wtf can periodically check whether destination URLs are returning HTTP 404/410 and record the last seen status. Redirects **never** perform a live/on-request destination check; they only consult the stored status.
+
+If a short URL is marked as gone, `GET /{shortCode}` returns an HTML interstitial with the stored status code (404 or 410) and, when available, a Wayback Machine link.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `URL_STATUS_CHECKER_ENABLED` | Enable the periodic destination status checker | `false` | |
+| `URL_STATUS_CHECKER_POLL_INTERVAL` | How often the background job runs | `5m` | |
+| `URL_STATUS_CHECKER_ALIVE_RECHECK_INTERVAL` | Minimum age before re-checking URLs not marked gone | `6h` | |
+| `URL_STATUS_CHECKER_GONE_RECHECK_INTERVAL` | Minimum age before re-checking URLs marked gone | `24h` | |
+| `URL_STATUS_CHECKER_BATCH_SIZE` | Max URLs processed per poll | `100` | |
+| `URL_STATUS_CHECKER_CONCURRENCY` | Parallel outbound checks per poll | `5` | |
+| `URL_STATUS_CHECKER_ARCHIVE_LOOKUP_ENABLED` | When a URL is gone, look up an archive.org Wayback snapshot | `true` | |
+| `URL_STATUS_CHECKER_ARCHIVE_RECHECK_INTERVAL` | Minimum age before re-checking Wayback availability for gone URLs | `168h` | |
+
+**Privacy note:** When enabled, the checker makes outbound HTTP requests to destination URLs and (if archive lookup is enabled) to `https://archive.org/wayback/available`.
+
 ### Logging Configuration
 
 | Variable | Description | Default | Required |

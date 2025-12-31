@@ -301,12 +301,19 @@ paths:
                 format: uri
                 example: "https://example.com"
         '404':
-          description: Short code not found
+          description: Short code not found (interstitial HTML page)
           content:
             text/html:
               schema:
                 type: string
                 example: "404 Not Found"
+        '410':
+          description: Destination is marked gone (interstitial HTML page)
+          content:
+            text/html:
+              schema:
+                type: string
+                example: "410 Gone"
         '429':
           description: Too many requests - rate limit exceeded
           headers:

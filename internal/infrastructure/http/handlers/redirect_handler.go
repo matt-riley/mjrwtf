@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -53,6 +54,18 @@ func (h *RedirectHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		handleRedirectError(w, r, err)
+		return
+	}
+
+	if resp.IsGone {
+		var buf bytes.Buffer
+		if renderErr := pages.Gone(resp.OriginalURL, resp.GoneStatusCode, resp.ArchiveURL).Render(r.Context(), &buf); renderErr != nil {
+			http.Error(w, "Link unavailable", resp.GoneStatusCode)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(resp.GoneStatusCode)
+		_, _ = w.Write(buf.Bytes())
 		return
 	}
 
