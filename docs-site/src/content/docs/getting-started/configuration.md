@@ -23,6 +23,8 @@ export AUTH_TOKEN=token-current
 ## Common variables
 
 - `DATABASE_URL` (required)
+  - SQLite-only: set this to a **file path** (e.g. `./database.db`).
+  - URL-form values (anything containing `://`) are rejected to avoid SQLite creating a local file literally named after the URL.
 - `SERVER_PORT` (default: 8080)
 - `BASE_URL` (default: http://localhost:8080)
 - `ALLOWED_ORIGINS` (default: *)
@@ -46,6 +48,12 @@ Environment variables (Go duration format like `5m`, `6h`, `168h`):
 - `URL_STATUS_CHECKER_ARCHIVE_RECHECK_INTERVAL` (default: `168h`)
 
 **Privacy note:** When enabled, the checker makes outbound HTTP requests to destination URLs and (if archive lookup is enabled) to `https://archive.org/wayback/available`.
+
+Example:
+
+```bash
+export DATABASE_URL=./database.db
+```
 
 For the full list, see the repository README:
 
