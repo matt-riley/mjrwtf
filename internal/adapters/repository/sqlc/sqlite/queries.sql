@@ -47,6 +47,49 @@ FROM urls
 WHERE created_by = ?;
 
 -- ============================================================================
+-- URL Status Queries
+-- ============================================================================
+
+-- name: GetURLStatusByURLID :one
+SELECT url_id, last_checked_at, last_status_code, gone_at, archive_url, archive_checked_at
+FROM url_status
+WHERE url_id = ?;
+
+-- name: UpsertURLStatus :exec
+INSERT INTO url_status (
+    url_id,
+    last_checked_at,
+    last_status_code,
+    gone_at,
+    archive_url,
+    archive_checked_at
+) VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(url_id) DO UPDATE SET
+    last_checked_at = excluded.last_checked_at,
+    last_status_code = excluded.last_status_code,
+    gone_at = excluded.gone_at,
+    archive_url = excluded.archive_url,
+    archive_checked_at = excluded.archive_checked_at;
+
+-- name: ListURLsDueForStatusCheck :many
+SELECT
+    u.id AS url_id,
+    u.short_code,
+    u.original_url,
+    us.last_checked_at,
+    us.last_status_code,
+    us.gone_at,
+    us.archive_url,
+    us.archive_checked_at
+FROM urls u
+LEFT JOIN url_status us ON us.url_id = u.id
+WHERE us.last_checked_at IS NULL
+   OR (us.gone_at IS NULL AND us.last_checked_at <= ?)
+   OR (us.gone_at IS NOT NULL AND us.last_checked_at <= ?)
+ORDER BY COALESCE(us.last_checked_at, u.created_at) ASC
+LIMIT ?;
+
+-- ============================================================================
 -- Click Queries
 -- ============================================================================
 

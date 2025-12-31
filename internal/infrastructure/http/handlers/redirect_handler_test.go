@@ -12,6 +12,8 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 )
 
+func ptrString(s string) *string { return &s }
+
 // Mock redirect use case for testing
 type mockRedirectUseCase struct {
 	executeFunc func(ctx context.Context, req application.RedirectRequest) (*application.RedirectResponse, error)
@@ -104,6 +106,17 @@ func TestRedirectHandler_Redirect(t *testing.T) {
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
+			name:      "gone url renders interstitial",
+			shortCode: "gone123",
+			mockResponse: &application.RedirectResponse{
+				OriginalURL:      "https://example.com/gone",
+				IsGone:          true,
+				GoneStatusCode:  http.StatusGone,
+				ArchiveURL:      ptrString("https://web.archive.org/web/20200101000000/https://example.com/gone"),
+			},
+			expectedStatus: http.StatusGone,
+		},
+		{
 			name:      "redirect preserves original URL intact",
 			shortCode: "abc123",
 			mockResponse: &application.RedirectResponse{
@@ -163,6 +176,15 @@ func TestRedirectHandler_Redirect(t *testing.T) {
 				location := rec.Header().Get("Location")
 				if location != tt.expectedLocation {
 					t.Errorf("expected location '%s', got '%s'", tt.expectedLocation, location)
+				}
+			}
+
+			if tt.mockResponse != nil && tt.mockResponse.IsGone {
+				if ct := rec.Header().Get("Content-Type"); ct == "" {
+					t.Error("expected Content-Type to be set")
+				}
+				if body := rec.Body.String(); body == "" {
+					t.Error("expected interstitial HTML body")
 				}
 			}
 

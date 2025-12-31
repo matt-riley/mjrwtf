@@ -2,10 +2,12 @@ package application
 
 import (
 	"context"
+	"net/http"
 	"sync"
 
 	"github.com/matt-riley/mjrwtf/internal/domain/click"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/domain/urlstatus"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/metrics"
 	"github.com/rs/zerolog"
 )
@@ -28,6 +30,10 @@ type RedirectRequest struct {
 // RedirectResponse contains the result of a redirect lookup
 type RedirectResponse struct {
 	OriginalURL string
+
+	IsGone         bool
+	GoneStatusCode int
+	ArchiveURL     *string
 }
 
 // clickRecordTask represents a task to record a click
@@ -42,6 +48,7 @@ type clickRecordTask struct {
 // RedirectURLUseCase handles redirecting short URLs and tracking analytics
 type RedirectURLUseCase struct {
 	urlRepo       url.Repository
+	statusRepo    urlstatus.Repository
 	clickRepo     click.Repository
 	clickTaskChan chan clickRecordTask
 	done          chan struct{}
@@ -64,6 +71,7 @@ type RedirectURLOptions struct {
 	QueueSize  int
 	Logger     *zerolog.Logger
 	Metrics    *metrics.Metrics
+	StatusRepo urlstatus.Repository
 }
 
 // NewRedirectURLUseCase creates a new RedirectURLUseCase with bounded concurrency for click recording.
@@ -95,6 +103,7 @@ func NewRedirectURLUseCaseWithOptions(urlRepo url.Repository, clickRepo click.Re
 
 	uc := &RedirectURLUseCase{
 		urlRepo:       urlRepo,
+		statusRepo:    opts.StatusRepo,
 		clickRepo:     clickRepo,
 		clickTaskChan: make(chan clickRecordTask, queueSize),
 		done:          make(chan struct{}),
@@ -180,6 +189,24 @@ func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) 
 		return nil, err
 	}
 
+	var resp RedirectResponse
+	resp.OriginalURL = foundURL.OriginalURL
+
+	if uc.statusRepo != nil {
+		st, err := uc.statusRepo.GetByURLID(ctx, foundURL.ID)
+		if err != nil {
+			return nil, err
+		}
+		if st != nil && st.IsGone() {
+			resp.IsGone = true
+			resp.ArchiveURL = st.ArchiveURL
+			resp.GoneStatusCode = http.StatusGone
+			if st.LastStatusCode != nil && urlstatus.IsGoneStatusCode(int(*st.LastStatusCode)) {
+				resp.GoneStatusCode = int(*st.LastStatusCode)
+			}
+		}
+	}
+
 	uc.enqueueClick(clickRecordTask{
 		urlID:     foundURL.ID,
 		shortCode: req.ShortCode,
@@ -188,7 +215,7 @@ func (uc *RedirectURLUseCase) Execute(ctx context.Context, req RedirectRequest) 
 		userAgent: req.UserAgent,
 	})
 
-	return &RedirectResponse{OriginalURL: foundURL.OriginalURL}, nil
+	return &resp, nil
 }
 
 func (uc *RedirectURLUseCase) enqueueClick(task clickRecordTask) {

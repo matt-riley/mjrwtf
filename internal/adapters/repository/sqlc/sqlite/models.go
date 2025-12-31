@@ -25,3 +25,12 @@ type Url struct {
 	CreatedAt   time.Time `json:"created_at"`
 	CreatedBy   string    `json:"created_by"`
 }
+
+type UrlStatus struct {
+	UrlID            int64      `json:"url_id"`
+	LastCheckedAt    *time.Time `json:"last_checked_at"`
+	LastStatusCode   *int64     `json:"last_status_code"`
+	GoneAt           *time.Time `json:"gone_at"`
+	ArchiveUrl       *string    `json:"archive_url"`
+	ArchiveCheckedAt *time.Time `json:"archive_checked_at"`
+}

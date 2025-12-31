@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,9 @@ import (
 
 	"github.com/matt-riley/mjrwtf/internal/adapters/repository"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
+	"github.com/matt-riley/mjrwtf/internal/domain/urlstatus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestServer_RedirectEndpoint tests the public redirect endpoint
@@ -20,6 +24,7 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 		existingURL      *url.URL
 		referrer         string
 		userAgent        string
+		goneStatusCode   int
 		expectedStatus   int
 		expectedLocation string
 		checkLocation    bool
@@ -55,6 +60,32 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 			checkLocation:    true,
 		},
 		{
+			name:      "gone URL returns 404",
+			shortCode: "gone404",
+			existingURL: &url.URL{
+				ShortCode:   "gone404",
+				OriginalURL: "https://example.com/gone404",
+				CreatedBy:   "test-user",
+				CreatedAt:   time.Now(),
+			},
+			goneStatusCode: http.StatusNotFound,
+			expectedStatus: http.StatusNotFound,
+			checkLocation:  false,
+		},
+		{
+			name:      "gone URL returns 410",
+			shortCode: "gone410",
+			existingURL: &url.URL{
+				ShortCode:   "gone410",
+				OriginalURL: "https://example.com/gone410",
+				CreatedBy:   "test-user",
+				CreatedAt:   time.Now(),
+			},
+			goneStatusCode: http.StatusGone,
+			expectedStatus: http.StatusGone,
+			checkLocation:  false,
+		},
+		{
 			name:           "short code not found",
 			shortCode:      "notfound",
 			existingURL:    nil,
@@ -71,17 +102,25 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 			defer db.Close()
 
 			srv, err := New(cfg, db, testLogger())
-			if err != nil {
-				t.Fatalf("failed to create server: %v", err)
-			}
+			require.NoError(t, err)
 			defer srv.Shutdown(context.Background())
+
+			ctx := context.Background()
 
 			// Create test URL if provided
 			if tt.existingURL != nil {
 				urlRepo := repository.NewSQLiteURLRepository(db)
-				ctx := context.Background()
-				if err := urlRepo.Create(ctx, tt.existingURL); err != nil {
-					t.Fatalf("failed to create test URL: %v", err)
+				require.NoError(t, urlRepo.Create(ctx, tt.existingURL))
+
+				if tt.goneStatusCode != 0 {
+					statusRepo := repository.NewSQLiteURLStatusRepository(db)
+					now := time.Now()
+					code := int64(tt.goneStatusCode)
+					require.NoError(t, statusRepo.Upsert(ctx, &urlstatus.URLStatus{
+						URLID:          tt.existingURL.ID,
+						GoneAt:         &now,
+						LastStatusCode: &code,
+					}))
 				}
 			}
 
@@ -97,15 +136,19 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 
 			srv.router.ServeHTTP(rec, req)
 
-			if rec.Code != tt.expectedStatus {
-				t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+
+			location := rec.Header().Get("Location")
+			if tt.checkLocation {
+				assert.Equal(t, tt.expectedLocation, location)
+			} else {
+				assert.Empty(t, location)
 			}
 
-			if tt.checkLocation {
-				location := rec.Header().Get("Location")
-				if location != tt.expectedLocation {
-					t.Errorf("expected location '%s', got '%s'", tt.expectedLocation, location)
-				}
+			if tt.goneStatusCode != 0 {
+				assert.Contains(t, rec.Header().Get("Content-Type"), "text/html")
+				assert.Contains(t, rec.Body.String(), "Link unavailable")
+				assert.Contains(t, rec.Body.String(), fmt.Sprintf("HTTP %d", tt.goneStatusCode))
 			}
 		})
 	}

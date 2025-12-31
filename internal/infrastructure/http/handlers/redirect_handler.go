@@ -56,6 +56,15 @@ func (h *RedirectHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if resp.IsGone {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(resp.GoneStatusCode)
+		if renderErr := pages.Gone(resp.OriginalURL, resp.GoneStatusCode, resp.ArchiveURL).Render(r.Context(), w); renderErr != nil {
+			w.Write([]byte("Link unavailable"))
+		}
+		return
+	}
+
 	// Redirect to original URL with 302 status code
 	http.Redirect(w, r, resp.OriginalURL, http.StatusFound)
 }

@@ -58,6 +58,16 @@ type Config struct {
 
 	// Database operation timeout configuration
 	DBTimeout time.Duration // Timeout for database operations (default: 5s)
+
+	// URL status checker configuration
+	URLStatusCheckerEnabled                bool
+	URLStatusCheckerPollInterval           time.Duration
+	URLStatusCheckerAliveRecheckInterval   time.Duration
+	URLStatusCheckerGoneRecheckInterval    time.Duration
+	URLStatusCheckerBatchSize              int
+	URLStatusCheckerConcurrency            int
+	URLStatusCheckerArchiveLookupEnabled   bool
+	URLStatusCheckerArchiveRecheckInterval time.Duration
 }
 
 // LoadConfig loads configuration from environment variables and .env file
@@ -107,6 +117,39 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	urlStatusCheckerEnabled, err := getEnvAsBool("URL_STATUS_CHECKER_ENABLED", false)
+	if err != nil {
+		return nil, err
+	}
+	urlStatusCheckerPollInterval, err := getEnvAsDuration("URL_STATUS_CHECKER_POLL_INTERVAL", 5*time.Minute)
+	if err != nil {
+		return nil, err
+	}
+	urlStatusCheckerAliveRecheckInterval, err := getEnvAsDuration("URL_STATUS_CHECKER_ALIVE_RECHECK_INTERVAL", 6*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+	urlStatusCheckerGoneRecheckInterval, err := getEnvAsDuration("URL_STATUS_CHECKER_GONE_RECHECK_INTERVAL", 24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+	urlStatusCheckerBatchSize, err := getEnvAsInt("URL_STATUS_CHECKER_BATCH_SIZE", 100)
+	if err != nil {
+		return nil, err
+	}
+	urlStatusCheckerConcurrency, err := getEnvAsInt("URL_STATUS_CHECKER_CONCURRENCY", 5)
+	if err != nil {
+		return nil, err
+	}
+	urlStatusCheckerArchiveLookupEnabled, err := getEnvAsBool("URL_STATUS_CHECKER_ARCHIVE_LOOKUP_ENABLED", true)
+	if err != nil {
+		return nil, err
+	}
+	urlStatusCheckerArchiveRecheckInterval, err := getEnvAsDuration("URL_STATUS_CHECKER_ARCHIVE_RECHECK_INTERVAL", 7*24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+
 	authTokens, err := getEnvAuthTokens()
 	if err != nil {
 		return nil, err
@@ -132,6 +175,15 @@ func LoadConfig() (*Config, error) {
 		MetricsAuthEnabled:         metricsAuthEnabled,
 		EnableHSTS:                 enableHSTS,
 		DBTimeout:                  dbTimeout,
+
+		URLStatusCheckerEnabled:                urlStatusCheckerEnabled,
+		URLStatusCheckerPollInterval:           urlStatusCheckerPollInterval,
+		URLStatusCheckerAliveRecheckInterval:   urlStatusCheckerAliveRecheckInterval,
+		URLStatusCheckerGoneRecheckInterval:    urlStatusCheckerGoneRecheckInterval,
+		URLStatusCheckerBatchSize:              urlStatusCheckerBatchSize,
+		URLStatusCheckerConcurrency:            urlStatusCheckerConcurrency,
+		URLStatusCheckerArchiveLookupEnabled:   urlStatusCheckerArchiveLookupEnabled,
+		URLStatusCheckerArchiveRecheckInterval: urlStatusCheckerArchiveRecheckInterval,
 	}
 
 	// Validate required configuration
@@ -177,6 +229,15 @@ func (c *Config) Validate() error {
 
 	if c.RedirectClickQueueSize < 1 {
 		return ErrInvalidRedirectClickQueueSize
+	}
+
+	if c.URLStatusCheckerEnabled {
+		if c.URLStatusCheckerPollInterval <= 0 || c.URLStatusCheckerAliveRecheckInterval <= 0 || c.URLStatusCheckerGoneRecheckInterval <= 0 {
+			return fmt.Errorf("URL status checker intervals must be > 0")
+		}
+		if c.URLStatusCheckerBatchSize < 1 || c.URLStatusCheckerConcurrency < 1 {
+			return fmt.Errorf("URL status checker batch size and concurrency must be > 0")
+		}
 	}
 
 	// If GeoIP is enabled, database path is required

@@ -5,6 +5,7 @@ sql:
     schema: 
       - "internal/migrations/sqlite/00001_initial_schema.sql"
       - "internal/migrations/sqlite/00002_add_referrer_domain.sql"
+      - "internal/migrations/sqlite/00003_add_url_status.sql"
     queries: "internal/adapters/repository/sqlc/sqlite/queries.sql"
     gen:
       go:

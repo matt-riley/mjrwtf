@@ -339,6 +339,30 @@ func (q *Queries) GetTotalClickCountInTimeRange(ctx context.Context, arg GetTota
 	return count, err
 }
 
+const getURLStatusByURLID = `-- name: GetURLStatusByURLID :one
+
+SELECT url_id, last_checked_at, last_status_code, gone_at, archive_url, archive_checked_at
+FROM url_status
+WHERE url_id = ?
+`
+
+// ============================================================================
+// URL Status Queries
+// ============================================================================
+func (q *Queries) GetURLStatusByURLID(ctx context.Context, urlID int64) (UrlStatus, error) {
+	row := q.queryRow(ctx, q.getURLStatusByURLIDStmt, getURLStatusByURLID, urlID)
+	var i UrlStatus
+	err := row.Scan(
+		&i.UrlID,
+		&i.LastCheckedAt,
+		&i.LastStatusCode,
+		&i.GoneAt,
+		&i.ArchiveUrl,
+		&i.ArchiveCheckedAt,
+	)
+	return i, err
+}
+
 const listAllURLs = `-- name: ListAllURLs :many
 SELECT id, short_code, original_url, created_at, created_by
 FROM urls
@@ -467,6 +491,74 @@ func (q *Queries) ListURLsByCreatedByAndTimeRange(ctx context.Context, arg ListU
 	return items, nil
 }
 
+const listURLsDueForStatusCheck = `-- name: ListURLsDueForStatusCheck :many
+SELECT
+    u.id AS url_id,
+    u.short_code,
+    u.original_url,
+    us.last_checked_at,
+    us.last_status_code,
+    us.gone_at,
+    us.archive_url,
+    us.archive_checked_at
+FROM urls u
+LEFT JOIN url_status us ON us.url_id = u.id
+WHERE us.last_checked_at IS NULL
+   OR (us.gone_at IS NULL AND us.last_checked_at <= ?)
+   OR (us.gone_at IS NOT NULL AND us.last_checked_at <= ?)
+ORDER BY COALESCE(us.last_checked_at, u.created_at) ASC
+LIMIT ?
+`
+
+type ListURLsDueForStatusCheckParams struct {
+	LastCheckedAt   *time.Time `json:"last_checked_at"`
+	LastCheckedAt_2 *time.Time `json:"last_checked_at_2"`
+	Limit           int64      `json:"limit"`
+}
+
+type ListURLsDueForStatusCheckRow struct {
+	UrlID            int64      `json:"url_id"`
+	ShortCode        string     `json:"short_code"`
+	OriginalUrl      string     `json:"original_url"`
+	LastCheckedAt    *time.Time `json:"last_checked_at"`
+	LastStatusCode   *int64     `json:"last_status_code"`
+	GoneAt           *time.Time `json:"gone_at"`
+	ArchiveUrl       *string    `json:"archive_url"`
+	ArchiveCheckedAt *time.Time `json:"archive_checked_at"`
+}
+
+func (q *Queries) ListURLsDueForStatusCheck(ctx context.Context, arg ListURLsDueForStatusCheckParams) ([]ListURLsDueForStatusCheckRow, error) {
+	rows, err := q.query(ctx, q.listURLsDueForStatusCheckStmt, listURLsDueForStatusCheck, arg.LastCheckedAt, arg.LastCheckedAt_2, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListURLsDueForStatusCheckRow{}
+	for rows.Next() {
+		var i ListURLsDueForStatusCheckRow
+		if err := rows.Scan(
+			&i.UrlID,
+			&i.ShortCode,
+			&i.OriginalUrl,
+			&i.LastCheckedAt,
+			&i.LastStatusCode,
+			&i.GoneAt,
+			&i.ArchiveUrl,
+			&i.ArchiveCheckedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const recordClick = `-- name: RecordClick :one
 
 INSERT INTO clicks (url_id, clicked_at, referrer, referrer_domain, country, user_agent)
@@ -516,4 +608,42 @@ func (q *Queries) RecordClick(ctx context.Context, arg RecordClickParams) (Recor
 		&i.UserAgent,
 	)
 	return i, err
+}
+
+const upsertURLStatus = `-- name: UpsertURLStatus :exec
+INSERT INTO url_status (
+    url_id,
+    last_checked_at,
+    last_status_code,
+    gone_at,
+    archive_url,
+    archive_checked_at
+) VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(url_id) DO UPDATE SET
+    last_checked_at = excluded.last_checked_at,
+    last_status_code = excluded.last_status_code,
+    gone_at = excluded.gone_at,
+    archive_url = excluded.archive_url,
+    archive_checked_at = excluded.archive_checked_at
+`
+
+type UpsertURLStatusParams struct {
+	UrlID            int64      `json:"url_id"`
+	LastCheckedAt    *time.Time `json:"last_checked_at"`
+	LastStatusCode   *int64     `json:"last_status_code"`
+	GoneAt           *time.Time `json:"gone_at"`
+	ArchiveUrl       *string    `json:"archive_url"`
+	ArchiveCheckedAt *time.Time `json:"archive_checked_at"`
+}
+
+func (q *Queries) UpsertURLStatus(ctx context.Context, arg UpsertURLStatusParams) error {
+	_, err := q.exec(ctx, q.upsertURLStatusStmt, upsertURLStatus,
+		arg.UrlID,
+		arg.LastCheckedAt,
+		arg.LastStatusCode,
+		arg.GoneAt,
+		arg.ArchiveUrl,
+		arg.ArchiveCheckedAt,
+	)
+	return err
 }
