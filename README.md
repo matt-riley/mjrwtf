@@ -2,60 +2,17 @@
 
 A simple URL shortener, written in Go.
 
-## Releases
+## Contents
 
-Releases are automated via GitHub Actions using **Release Please** (versioning + changelog) and **GoReleaser** (binary artifacts).
-
-- Commits merged into `main` drive a **Release PR** (semver bump + `CHANGELOG.md`).
-- Merging the Release PR publishes a tagged GitHub Release (`vX.Y.Z`).
-- Publishing the release triggers:
-  - `.github/workflows/goreleaser.yml` (using `.goreleaser.yaml`) to attach `server` + `migrate` binaries and `checksums.txt`.
-  - `.github/workflows/docker-publish.yml` to build and publish the GHCR Docker images.
-
-
-## API Documentation
-
-The API is fully documented using OpenAPI 3.0. You can find the specification in [`openapi.yaml`](openapi.yaml) at the repository root.
-
-### Viewing the API Documentation
-
-**Interactive API Explorer:**
-- [SwaggerUI](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml) - Interactive API documentation
-- [ReDoc](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml) - Clean, responsive API reference
-
-**Local viewing:**
-```bash
-# Validate the OpenAPI spec
-make validate-openapi
-
-# Or validate manually with swagger-cli
-npm install -g @apidevtools/swagger-cli
-swagger-cli validate openapi.yaml
-```
-
-### API Endpoints
-
-- `POST /api/urls` - Create shortened URL (requires auth)
-- `GET /api/urls` - List URLs with pagination (requires auth)
-- `DELETE /api/urls/{shortCode}` - Delete URL (requires auth)
-- `GET /api/urls/{shortCode}/analytics` - Get analytics with optional time range (requires auth)
-- `GET /{shortCode}` - Redirect to original URL (public)
-- `GET /health` - Health check / liveness (public)
-- `GET /ready` - Readiness check (public)
-- `GET /metrics` - Prometheus metrics (optional auth)
-
-See the [OpenAPI specification](openapi.yaml) for detailed request/response schemas, authentication, and error handling.
-
-### Rate Limiting
-
-Per-client rate limits protect the redirect endpoint and authenticated API routes. Configure limits via environment variables:
-
-- `REDIRECT_RATE_LIMIT_PER_MINUTE` (default: 120) - Requests per minute per IP for `GET /{shortCode}`
-- `API_RATE_LIMIT_PER_MINUTE` (default: 60) - Requests per minute per IP for `/api` routes
-
-Requests exceeding the limit return HTTP 429 with a `Retry-After` header indicating when to retry.
-
-**Note:** The rate limiter keys by client IP (using `X-Forwarded-For` / `X-Real-IP` when present). In production, ensure your reverse proxy strips/overwrites any client-provided forwarding headers; otherwise malicious clients can spoof these headers to bypass limits.
+- [Quick Start](#quick-start)
+- [API Documentation](#api-documentation)
+- [Authentication](#authentication)
+- [Configuration](#configuration)
+- [Database Migrations](#database-migrations)
+- [Testing](#testing)
+- [Local Development](#local-development)
+- [Releases](#releases)
+- [License](#license)
 
 ## Quick Start
 
@@ -135,41 +92,49 @@ make docker-run
 
 See [docs/docker.md](docs/docker.md) for comprehensive Docker documentation, including advanced configurations and production deployment guidelines.
 
-### Local Development
+## API Documentation
 
-#### Prerequisites
+The API is fully documented using OpenAPI 3.0. You can find the specification in [`openapi.yaml`](openapi.yaml) at the repository root.
 
-Before you begin, install the required code generation tools:
+### Viewing the API Documentation
 
+**Interactive API Explorer:**
+- [SwaggerUI](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml) - Interactive API documentation
+- [ReDoc](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml) - Clean, responsive API reference
+
+**Local viewing:**
 ```bash
-# Install sqlc (for database code generation, requires v1.30.0+)
-go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+# Validate the OpenAPI spec
+make validate-openapi
 
-# Install templ (for template code generation)
-go install github.com/a-h/templ/cmd/templ@latest
+# Or validate manually with swagger-cli
+npm install -g @apidevtools/swagger-cli
+swagger-cli validate openapi.yaml
 ```
 
-#### Quick Start
+### API Endpoints
 
-```bash
-# Install dependencies
-go mod download
+- `POST /api/urls` - Create shortened URL (requires auth)
+- `GET /api/urls` - List URLs with pagination (requires auth)
+- `DELETE /api/urls/{shortCode}` - Delete URL (requires auth)
+- `GET /api/urls/{shortCode}/analytics` - Get analytics with optional time range (requires auth)
+- `GET /{shortCode}` - Redirect to original URL (public)
+- `GET /health` - Health check / liveness (public)
+- `GET /ready` - Readiness check (public)
+- `GET /metrics` - Prometheus metrics (optional auth)
 
-# Generate code (sqlc + templ)
-make generate
+See the [OpenAPI specification](openapi.yaml) for detailed request/response schemas, authentication, and error handling.
 
-# Run database migrations
-export DATABASE_URL=./database.db
-make migrate-up
+### Rate Limiting
 
-# Build and run the server
-make build-server
-./bin/server
-```
+Per-client rate limits protect the redirect endpoint and authenticated API routes. Configure limits via environment variables:
 
-**Note:** The `make generate` step is automatically run when you use `make build`, `make test`, or `make check`, so you typically don't need to run it manually. However, if you modify SQL queries or templates, you can run it explicitly.
+- `REDIRECT_RATE_LIMIT_PER_MINUTE` (default: 120) - Requests per minute per IP for `GET /{shortCode}`
+- `API_RATE_LIMIT_PER_MINUTE` (default: 60) - Requests per minute per IP for `/api` routes
 
-**Alternative:** You can also use `go generate ./...` which will run the same code generation steps.
+Requests exceeding the limit return HTTP 429 with a `Retry-After` header indicating when to retry.
+
+**Note:** The rate limiter keys by client IP (using `X-Forwarded-For` / `X-Real-IP` when present). In production, ensure your reverse proxy strips/overwrites any client-provided forwarding headers; otherwise malicious clients can spoof these headers to bypass limits.
 
 ## Authentication
 
@@ -566,6 +531,52 @@ go test -cover ./...
 ```
 
 All tests run in CI/CD with no external dependencies required.
+
+## Local Development
+
+### Prerequisites
+
+Before you begin, install the required code generation tools:
+
+```bash
+# Install sqlc (for database code generation, requires v1.30.0+)
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+
+# Install templ (for template code generation)
+go install github.com/a-h/templ/cmd/templ@latest
+```
+
+### Quick Start
+
+```bash
+# Install dependencies
+go mod download
+
+# Generate code (sqlc + templ)
+make generate
+
+# Run database migrations
+export DATABASE_URL=./database.db
+make migrate-up
+
+# Build and run the server
+make build-server
+./bin/server
+```
+
+**Note:** The `make generate` step is automatically run when you use `make build`, `make test`, or `make check`, so you typically don't need to run it manually. However, if you modify SQL queries or templates, you can run it explicitly.
+
+**Alternative:** You can also use `go generate ./...` which will run the same code generation steps.
+
+## Releases
+
+Releases are automated via GitHub Actions using **Release Please** (versioning + changelog) and **GoReleaser** (binary artifacts).
+
+- Commits merged into `main` drive a **Release PR** (semver bump + `CHANGELOG.md`).
+- Merging the Release PR publishes a tagged GitHub Release (`vX.Y.Z`).
+- Publishing the release triggers:
+  - `.github/workflows/goreleaser.yml` (using `.goreleaser.yaml`) to attach `server` + `migrate` binaries and `checksums.txt`.
+  - `.github/workflows/docker-publish.yml` to build and publish the GHCR Docker images.
 
 ## License
 
