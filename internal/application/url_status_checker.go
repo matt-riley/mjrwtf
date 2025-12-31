@@ -86,6 +86,10 @@ func NewURLStatusChecker(repo urlstatus.Repository, cfg URLStatusCheckerConfig, 
 		cfg:  cfg,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// Record the actual status code for the URL being checked (including 3xx).
+				return http.ErrUseLastResponse
+			},
 		},
 		logger:    logger,
 		now:       time.Now,
@@ -207,6 +211,7 @@ func (c *URLStatusChecker) checkAndPersist(ctx context.Context, now time.Time, i
 
 	code64 := int64(code)
 	isGone := urlstatus.IsGoneStatusCode(code)
+	isServerError := code >= 500
 
 	st := &urlstatus.URLStatus{
 		URLID:          item.URLID,
@@ -240,6 +245,11 @@ func (c *URLStatusChecker) checkAndPersist(ctx context.Context, now time.Time, i
 			st.ArchiveURL = item.ArchiveURL
 			st.ArchiveCheckedAt = item.ArchiveCheckedAt
 		}
+	} else if isServerError {
+		// Transient failure (e.g. 5xx) — preserve prior gone/archive state.
+		st.GoneAt = item.GoneAt
+		st.ArchiveURL = item.ArchiveURL
+		st.ArchiveCheckedAt = item.ArchiveCheckedAt
 	} else {
 		// Destination is not gone (or recovered) — clear gone/archive fields.
 		st.GoneAt = nil

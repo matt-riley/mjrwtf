@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS url_status (
 
 CREATE INDEX IF NOT EXISTS idx_url_status_gone_at ON url_status(gone_at);
 CREATE INDEX IF NOT EXISTS idx_url_status_last_checked_at ON url_status(last_checked_at);
+
+-- archive_checked_at is only populated for URLs that are confirmed gone and have
+-- archive lookups enabled. We still index it because checker queries filter/order
+-- on archive_checked_at to find never-checked or oldest-checked archive rows.
 CREATE INDEX IF NOT EXISTS idx_url_status_archive_checked_at ON url_status(archive_checked_at);
 -- +goose StatementEnd
 
