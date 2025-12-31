@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.3.0...mjrwtf-v0.4.0) (2025-12-31)
+
+
+### Features
+
+* periodic destination checks + gone interstitial (404/410) ([a8839a8](https://github.com/matt-riley/mjrwtf/commit/a8839a8d991fbfeeefd30cc95b746d360b282f04))
+* periodic URL status checks and gone interstitial ([d6b3de4](https://github.com/matt-riley/mjrwtf/commit/d6b3de4a0fc4c77f9d63485cf97e86d6bd302ce8))
+
+
+### Bug Fixes
+
+* address PR review comments ([ed8d008](https://github.com/matt-riley/mjrwtf/commit/ed8d008a1d6261e68ad5e7aeca040622178963e8))
+* address review feedback ([3ff3203](https://github.com/matt-riley/mjrwtf/commit/3ff32034b2fb3f111069213673a452fc641ffd34))
+
 ## [0.3.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.2.0...mjrwtf-v0.3.0) (2025-12-29)
 
 
