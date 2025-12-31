@@ -109,9 +109,6 @@ func NewURLStatusChecker(repo urlstatus.Repository, cfg URLStatusCheckerConfig, 
 	if c.newTicker == nil {
 		c.newTicker = time.NewTicker
 	}
-	if c.client == nil {
-		c.client = &http.Client{Timeout: 10 * time.Second}
-	}
 
 	return c
 }
@@ -232,15 +229,19 @@ func (c *URLStatusChecker) checkAndPersist(ctx context.Context, now time.Time, i
 				archiveURL, lookupErr := c.lookupWayback(ctx, item.OriginalURL)
 				if lookupErr != nil {
 					c.logger.Debug().Err(lookupErr).Str("short_code", item.ShortCode).Msg("url status checker: archive lookup failed")
-				}
-				if archiveURL == "" {
-					// Explicitly clear any previous archive URL when a lookup succeeds
-					// but finds no archive, so stale values are not preserved.
-					st.ArchiveURL = nil
+					// Preserve previous archive state so that failed lookups are retried sooner.
+					st.ArchiveURL = item.ArchiveURL
+					st.ArchiveCheckedAt = item.ArchiveCheckedAt
 				} else {
-					st.ArchiveURL = &archiveURL
+					if archiveURL == "" {
+						// Explicitly clear any previous archive URL when a lookup succeeds
+						// but finds no archive, so stale values are not preserved.
+						st.ArchiveURL = nil
+					} else {
+						st.ArchiveURL = &archiveURL
+					}
+					st.ArchiveCheckedAt = &now
 				}
-				st.ArchiveCheckedAt = &now
 			} else {
 				st.ArchiveURL = item.ArchiveURL
 				st.ArchiveCheckedAt = item.ArchiveCheckedAt

@@ -233,14 +233,14 @@ func (c *Config) Validate() error {
 
 	if c.URLStatusCheckerEnabled {
 		if c.URLStatusCheckerPollInterval <= 0 || c.URLStatusCheckerAliveRecheckInterval <= 0 || c.URLStatusCheckerGoneRecheckInterval <= 0 {
-			return fmt.Errorf("URL status checker intervals must be > 0")
+			return fmt.Errorf("URL status checker intervals (poll, alive recheck, gone recheck) must be > 0")
 		}
 		if c.URLStatusCheckerBatchSize < 1 || c.URLStatusCheckerConcurrency < 1 {
 			return fmt.Errorf("URL status checker batch size and concurrency must be > 0")
 		}
 	}
 
-	if c.URLStatusCheckerArchiveLookupEnabled && c.URLStatusCheckerArchiveRecheckInterval <= 0 {
+	if c.URLStatusCheckerEnabled && c.URLStatusCheckerArchiveLookupEnabled && c.URLStatusCheckerArchiveRecheckInterval <= 0 {
 		return fmt.Errorf("archive recheck interval must be > 0 when archive lookup is enabled")
 	}
 
