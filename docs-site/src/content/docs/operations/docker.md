@@ -82,7 +82,7 @@ docker run -d \
   --name mjrwtf \
   -p 8080:8080 \
   -e DATABASE_URL=./database.db \
-  -e AUTH_TOKEN=your-secret-token \
+  -e AUTH_TOKENS=your-secret-token \
   mjrwtf:latest
 ```
 
@@ -106,7 +106,7 @@ docker run -d \
   -p 8080:8080 \
   -v ./data:/app/data \
   -e DATABASE_URL=/app/data/database.db \
-  -e AUTH_TOKEN=your-secret-token \
+  -e AUTH_TOKENS=your-secret-token \
   mjrwtf:latest
 ```
 
@@ -118,7 +118,7 @@ docker run -d \
   -p 8080:8080 \
   -v ./GeoLite2-Country.mmdb:/app/geoip.mmdb:ro \
   -e DATABASE_URL=./database.db \
-  -e AUTH_TOKEN=your-secret-token \
+  -e AUTH_TOKENS=your-secret-token \
   -e GEOIP_ENABLED=true \
   -e GEOIP_DATABASE=/app/geoip.mmdb \
   mjrwtf:latest
@@ -295,7 +295,7 @@ docker run -d \
   -p 8080:8080 \
   -v $(pwd):/app \
   -e DATABASE_URL=./database.db \
-  -e AUTH_TOKEN=dev-token \
+  -e AUTH_TOKENS=dev-token \
   mjrwtf:latest
 ```
 
@@ -320,7 +320,7 @@ docker run -d \
   -p 127.0.0.1:8080:8080 \
   -v /srv/mjrwtf:/app/data \
   -e DATABASE_URL=/app/data/database.db \
-  -e AUTH_TOKEN=$(cat /run/secrets/auth_token) \
+  -e AUTH_TOKENS=$(cat /run/secrets/auth_token) \
   -e LOG_LEVEL=info \
   -e LOG_FORMAT=json \
   -e ALLOWED_ORIGINS=https://mjr.wtf \

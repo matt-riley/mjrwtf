@@ -79,10 +79,12 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     
     get:
-      summary: List user's URLs
+      summary: List URLs
       description: |
-        Retrieves a paginated list of URLs created by the authenticated user.
+        Retrieves a paginated list of URLs for the current auth identity.
         Returns URLs with click counts.
+
+        Note: mjr.wtf currently maps all valid tokens to a single shared identity, so this behaves like a single-tenant list.
       operationId: listURLs
       tags:
         - urls
@@ -91,11 +93,11 @@ paths:
       parameters:
         - name: limit
           in: query
-          description: Maximum number of URLs to return (1-100)
+          description: Maximum number of URLs to return (0-100). Values <= 0 use the default (20).
           required: false
           schema:
             type: integer
-            minimum: 1
+            minimum: 0
             maximum: 100
             default: 20
         - name: offset
@@ -122,13 +124,13 @@ paths:
                         short_code: "abc123"
                         original_url: "https://example.com"
                         created_at: "2025-12-25T10:00:00Z"
-                        created_by: "user123"
+                        created_by: "authenticated-user"
                         click_count: 42
                       - id: 2
                         short_code: "xyz789"
                         original_url: "https://another-example.com"
                         created_at: "2025-12-25T11:00:00Z"
-                        created_by: "user123"
+                        created_by: "authenticated-user"
                         click_count: 15
                     total: 2
                     limit: 20
@@ -494,8 +496,8 @@ components:
           example: "2025-12-25T10:00:00Z"
         created_by:
           type: string
-          description: User ID of the creator
-          example: "user123"
+          description: Identifier for the creator/auth identity.
+          example: "authenticated-user"
         click_count:
           type: integer
           format: int64
@@ -518,7 +520,7 @@ components:
             $ref: '#/components/schemas/URLResponse'
         total:
           type: integer
-          description: Total number of URLs in current page
+          description: Total number of URLs for the current auth identity
           minimum: 0
           example: 2
         limit:

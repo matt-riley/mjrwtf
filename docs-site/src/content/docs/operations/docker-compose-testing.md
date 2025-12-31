@@ -43,8 +43,9 @@ docker compose config --services
 
 - [ ] Create a short URL (note the returned `short_code`):
   ```bash
+  TOKEN=your-token-here
   curl -X POST http://localhost:8080/api/urls \
-    -H "Authorization: Bearer $AUTH_TOKEN" \
+    -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
     -d '{"original_url": "https://example.com"}'
   ```

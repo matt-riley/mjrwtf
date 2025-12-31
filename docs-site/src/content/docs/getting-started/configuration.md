@@ -27,7 +27,24 @@ export AUTH_TOKEN=token-current
   - URL-form values (anything containing `://`) are rejected to avoid SQLite creating a local file literally named after the URL.
 - `SERVER_PORT` (default: 8080)
 - `BASE_URL` (default: http://localhost:8080)
-- `ALLOWED_ORIGINS` (default: *)
+- `ALLOWED_ORIGINS` (default: `*`)
+- `DB_TIMEOUT` (default: `5s`)
+
+## Rate limiting
+
+- `REDIRECT_RATE_LIMIT_PER_MINUTE` (default: `120`)
+- `API_RATE_LIMIT_PER_MINUTE` (default: `60`)
+
+## Redirect click recording (async)
+
+- `REDIRECT_CLICK_WORKERS` (default: `100`)
+- `REDIRECT_CLICK_QUEUE_SIZE` (default: `REDIRECT_CLICK_WORKERS*2`)
+
+## Observability + security
+
+- `METRICS_AUTH_ENABLED` (default: `false`)
+- `ENABLE_HSTS` (default: `false`; only enable behind HTTPS)
+- `LOG_STACK_TRACES` (default: `true`; controls panic stack traces in logs)
 
 ## URL status checker (optional)
 

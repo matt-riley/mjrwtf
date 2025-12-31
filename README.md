@@ -36,7 +36,7 @@ swagger-cli validate openapi.yaml
 ### API Endpoints
 
 - `POST /api/urls` - Create shortened URL (requires auth)
-- `GET /api/urls` - List user's URLs with pagination (requires auth)
+- `GET /api/urls` - List URLs with pagination (requires auth)
 - `DELETE /api/urls/{shortCode}` - Delete URL (requires auth)
 - `GET /api/urls/{shortCode}/analytics` - Get analytics with optional time range (requires auth)
 - `GET /{shortCode}` - Redirect to original URL (public)
@@ -353,7 +353,7 @@ mjr.wtf is configured through environment variables. Below is a comprehensive li
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `DATABASE_URL` | SQLite database file path (e.g. `./database.db`) | - | ✓ |
+| `DATABASE_URL` | SQLite database file path (SQLite-only; **file paths only**; values containing `://` are rejected) (e.g. `./database.db`) | - | ✓ |
 | `AUTH_TOKENS` | Secret tokens for API authentication (comma-separated); takes precedence over `AUTH_TOKEN` | - | ✓* |
 | `AUTH_TOKEN` | Secret token for API authentication (legacy single-token; used only if `AUTH_TOKENS` is unset) | - | ✓* |
 | `SERVER_PORT` | HTTP server port | `8080` | |
@@ -369,6 +369,22 @@ mjr.wtf is configured through environment variables. Below is a comprehensive li
 
 The `DB_TIMEOUT` setting applies a bounded deadline to all database operations, preventing queries from hanging indefinitely under network or database issues. This helps ensure that the application remains responsive even when the database is slow or experiencing problems.
 
+### Rate limiting
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `REDIRECT_RATE_LIMIT_PER_MINUTE` | Requests per minute per IP for `GET /{shortCode}` | `120` | |
+| `API_RATE_LIMIT_PER_MINUTE` | Requests per minute per IP for `/api/*` routes | `60` | |
+
+### Redirect click recording (async)
+
+Redirects enqueue click events which are processed asynchronously by worker goroutines.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `REDIRECT_CLICK_WORKERS` | Worker goroutines for async click recording | `100` | |
+| `REDIRECT_CLICK_QUEUE_SIZE` | Queue size for async click recording | `REDIRECT_CLICK_WORKERS*2` | |
+
 ### Security Configuration
 
 | Variable | Description | Default | Required |
@@ -376,6 +392,7 @@ The `DB_TIMEOUT` setting applies a bounded deadline to all database operations, 
 | `ALLOWED_ORIGINS` | CORS allowed origins (comma-separated) | `*` | |
 | `SECURE_COOKIES` | Enable secure cookies (requires HTTPS) | `false` | |
 | `METRICS_AUTH_ENABLED` | Require authentication for `/metrics` endpoint | `false` | |
+| `ENABLE_HSTS` | Enable `Strict-Transport-Security` header (**only** behind HTTPS) | `false` | |
 
 ### Optional Features
 
@@ -410,6 +427,7 @@ If a short URL is marked as gone, `GET /{shortCode}` returns an HTML interstitia
 |----------|-------------|---------|----------|
 | `LOG_LEVEL` | Logging level (`debug`, `info`, `warn`, `error`) | `info` | |
 | `LOG_FORMAT` | Log format (`json`, `pretty`) | `json` | |
+| `LOG_STACK_TRACES` | Include stack traces on panic recovery logs | `true` | |
 
 ### Example Configuration
 
@@ -541,12 +559,11 @@ See [docs/INTEGRATION_TESTING.md](docs/INTEGRATION_TESTING.md) for comprehensive
 
 ### Test Coverage
 
-Current test coverage:
-- HTTP API Endpoints: 100%
-- Authentication: 100%
-- URL Creation & Redirects: 100%
-- Analytics: 100%
-- Error Handling: 100%
+To check coverage locally:
+
+```bash
+go test -cover ./...
+```
 
 All tests run in CI/CD with no external dependencies required.
 

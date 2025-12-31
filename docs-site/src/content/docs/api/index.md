@@ -89,12 +89,14 @@ curl -X POST https://mjr.wtf/api/urls \
 
 **GET** `/api/urls`
 
-Retrieves a paginated list of URLs created by the authenticated user.
+Retrieves a paginated list of URLs for the current auth identity.
+
+**Note:** mjr.wtf currently maps all valid tokens to a single shared identity (`created_by: "authenticated-user"`), so this behaves like a single-tenant list.
 
 **Authentication:** Required
 
 **Query Parameters:**
-- `limit` (optional): Maximum number of URLs to return (1-100, default: 20)
+- `limit` (optional): Maximum number of URLs to return (0-100; values <= 0 use the default: 20)
 - `offset` (optional): Number of URLs to skip for pagination (default: 0)
 
 **Response (200 OK):**
@@ -106,7 +108,7 @@ Retrieves a paginated list of URLs created by the authenticated user.
       "short_code": "abc123",
       "original_url": "https://example.com",
       "created_at": "2025-12-25T10:00:00Z",
-      "created_by": "user123",
+      "created_by": "authenticated-user",
       "click_count": 42
     }
   ],
@@ -154,7 +156,9 @@ curl -X DELETE https://mjr.wtf/api/urls/abc123 \
 
 Retrieves analytics data for a shortened URL including click counts, geographic distribution, and referrer information.
 
-**Authentication:** Required (only the URL creator can view analytics)
+**Authentication:** Required (returns 403 if the auth identity does not match `created_by`)
+
+**Note:** mjr.wtf currently maps all valid tokens to a single shared identity, so this typically behaves as "any valid token can view analytics".
 
 **Path Parameters:**
 - `shortCode`: The short code to get analytics for
