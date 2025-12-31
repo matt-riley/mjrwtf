@@ -109,7 +109,7 @@ func goneContent(destinationURL string, statusCode int, archiveURL *string) temp
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"mt-10 flex flex-col sm:flex-row gap-4 justify-center\"><a href=\"/\" class=\"px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors\">Go Home</a> <a href=\"/create\" class=\"px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors\">Create Short URL</a></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"mt-10 flex flex-col sm:flex-row gap-4 justify-center\"><a href=\"/\" class=\"px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors\">Go Home</a></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
