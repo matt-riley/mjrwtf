@@ -211,7 +211,7 @@ func (c *URLStatusChecker) checkAndPersist(ctx context.Context, now time.Time, i
 
 	code64 := int64(code)
 	isGone := urlstatus.IsGoneStatusCode(code)
-	isServerError := code >= 500
+	isServerError := code >= 500 && code < 600
 
 	st := &urlstatus.URLStatus{
 		URLID:          item.URLID,
@@ -233,7 +233,11 @@ func (c *URLStatusChecker) checkAndPersist(ctx context.Context, now time.Time, i
 				if lookupErr != nil {
 					c.logger.Debug().Err(lookupErr).Str("short_code", item.ShortCode).Msg("url status checker: archive lookup failed")
 				}
-				if archiveURL != "" {
+				if archiveURL == "" {
+					// Explicitly clear any previous archive URL when a lookup succeeds
+					// but finds no archive, so stale values are not preserved.
+					st.ArchiveURL = nil
+				} else {
 					st.ArchiveURL = &archiveURL
 				}
 				st.ArchiveCheckedAt = &now

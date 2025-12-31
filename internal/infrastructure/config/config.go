@@ -240,6 +240,10 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	if c.URLStatusCheckerArchiveLookupEnabled && c.URLStatusCheckerArchiveRecheckInterval <= 0 {
+		return fmt.Errorf("archive recheck interval must be > 0 when archive lookup is enabled")
+	}
+
 	// If GeoIP is enabled, database path is required
 	if c.GeoIPEnabled && c.GeoIPDatabase == "" {
 		return ErrMissingGeoIPDatabase

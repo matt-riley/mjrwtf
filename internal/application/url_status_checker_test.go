@@ -179,3 +179,64 @@ func TestURLStatusChecker_RunOnce_UpsertsOnFetchErrorWithoutNetwork(t *testing.T
 	require.NotNil(t, got.GoneAt)
 	assert.True(t, got.GoneAt.Equal(goneAt))
 }
+
+func TestURLStatusChecker_RunOnce_PerformsArchiveLookupWhenEnabled(t *testing.T) {
+	fixedNow := time.Date(2025, 4, 5, 6, 7, 8, 0, time.UTC)
+	orig := "https://example.com/gone"
+	wantArchive := "https://web.archive.org/web/20200101000000/https://example.com/gone"
+
+	due := &urlstatus.DueURL{
+		URLID:            999,
+		ShortCode:        "zzz",
+		OriginalURL:      orig,
+		ArchiveCheckedAt: nil,
+	}
+
+	repo := &fakeURLStatusRepo{due: []*urlstatus.DueURL{due}}
+
+	client := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if ua := req.Header.Get("User-Agent"); ua == "" {
+			t.Fatal("expected User-Agent header")
+		}
+
+		switch {
+		case req.URL.String() == orig:
+			return &http.Response{
+				StatusCode: http.StatusNotFound,
+				Body:       io.NopCloser(strings.NewReader("not found")),
+				Header:     make(http.Header),
+				Request:    req,
+			}, nil
+		case req.URL.Host == "archive.org" && req.URL.Path == "/wayback/available":
+			if got := req.URL.Query().Get("url"); got != orig {
+				t.Fatalf("wayback query url = %q, want %q", got, orig)
+			}
+			body := `{"archived_snapshots":{"closest":{"available":true,"url":"` + wantArchive + `"}}}`
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(body)),
+				Header:     make(http.Header),
+				Request:    req,
+			}, nil
+		default:
+			t.Fatalf("unexpected request: %s", req.URL.String())
+			return nil, nil
+		}
+	})}
+
+	checker := NewURLStatusChecker(repo, URLStatusCheckerConfig{BatchSize: 10, Concurrency: 1, ArchiveLookupEnabled: true}, zerolog.Nop(),
+		WithURLStatusCheckerHTTPClient(client),
+		WithURLStatusCheckerNow(func() time.Time { return fixedNow }),
+	)
+
+	checker.RunOnce(context.Background())
+
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	require.Len(t, repo.upserts, 1)
+	got := repo.upserts[0]
+	require.NotNil(t, got.ArchiveCheckedAt)
+	assert.True(t, got.ArchiveCheckedAt.Equal(fixedNow))
+	require.NotNil(t, got.ArchiveURL)
+	assert.Equal(t, wantArchive, *got.ArchiveURL)
+}
