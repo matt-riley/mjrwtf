@@ -2,7 +2,7 @@
 
 This directory contains the SQLite database schema for the mjr.wtf URL shortener application.
 
-Note: The active Goose migrations (and sqlc config) are currently **SQLite-only**; PostgreSQL schema/migrations are not maintained in this repo yet.
+Note: The active Goose migrations (and sqlc config) are currently **SQLite-only**.
 
 ## Schema Files
 

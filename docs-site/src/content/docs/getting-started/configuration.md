@@ -23,9 +23,17 @@ export AUTH_TOKEN=token-current
 ## Common variables
 
 - `DATABASE_URL` (required)
+  - SQLite-only: set this to a **file path** (e.g. `./database.db`).
+  - URL-form values (anything containing `://`) are rejected to avoid SQLite creating a local file literally named after the URL.
 - `SERVER_PORT` (default: 8080)
 - `BASE_URL` (default: http://localhost:8080)
 - `ALLOWED_ORIGINS` (default: *)
+
+Example:
+
+```bash
+export DATABASE_URL=./database.db
+```
 
 For the full list, see the repository README:
 
