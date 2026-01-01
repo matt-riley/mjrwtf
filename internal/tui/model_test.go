@@ -427,3 +427,33 @@ func TestModel_Update_DeleteURLMsg_NotFoundRefreshes(t *testing.T) {
 		t.Fatalf("status=%q", mm.status)
 	}
 }
+
+func TestModel_Update_DeleteURLMsg_APIErrorDoesNotRefresh(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.loading = false
+	m.mode = modeDeleteConfirm
+	m.deleteLoading = true
+	m.deleteConfirmShortCode = "abc123"
+	m.deleteConfirmOriginalURL = "https://example.com"
+
+	m2, cmd := m.Update(deleteURLMsg{shortCode: "abc123", err: &client.APIError{StatusCode: 401, Message: "Unauthorized"}})
+	mm := m2.(model)
+	if mm.deleteLoading {
+		t.Fatalf("expected deleteLoading=false")
+	}
+	if mm.mode != modeBrowsing {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if cmd != nil {
+		t.Fatalf("expected no cmd")
+	}
+	if mm.loading {
+		t.Fatalf("expected loading=false")
+	}
+	if !strings.Contains(mm.status, "Delete failed (401)") {
+		t.Fatalf("status=%q", mm.status)
+	}
+	if mm.deleteConfirmShortCode != "" || mm.deleteConfirmOriginalURL != "" {
+		t.Fatalf("expected confirm fields cleared")
+	}
+}
