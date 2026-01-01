@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
@@ -36,8 +35,4 @@ func Run(args []string) error {
 		return fmt.Errorf("run tui: %w", err)
 	}
 	return nil
-}
-
-func stderrf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }

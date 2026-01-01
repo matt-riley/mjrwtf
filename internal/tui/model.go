@@ -22,7 +22,6 @@ type model struct {
 }
 
 type healthMsg struct {
-	ok     bool
 	detail string
 	err    error
 }
@@ -105,7 +104,11 @@ func (m model) View() string {
 
 func (m model) mainLine() string {
 	if m.loading {
-		return fmt.Sprintf("%s Checking %s/health", m.spinner.View(), m.cfg.BaseURL)
+		baseURL := strings.TrimSpace(m.cfg.BaseURL)
+		if baseURL == "" {
+			return fmt.Sprintf("%s Checking health endpoint (base URL not set)", m.spinner.View())
+		}
+		return fmt.Sprintf("%s Checking %s/health", m.spinner.View(), baseURL)
 	}
 	return "Idle"
 }
@@ -122,25 +125,25 @@ func (m model) footer() string {
 func healthCmd(baseURL string) tea.Cmd {
 	return func() tea.Msg {
 		if baseURL == "" {
-			return healthMsg{ok: false, err: fmt.Errorf("base URL not set")}
+			return healthMsg{err: fmt.Errorf("base URL not set")}
 		}
 
 		c := http.Client{Timeout: 3 * time.Second}
 		req, err := http.NewRequest(http.MethodGet, strings.TrimRight(baseURL, "/")+"/health", nil)
 		if err != nil {
-			return healthMsg{ok: false, err: err}
+			return healthMsg{err: err}
 		}
 
 		resp, err := c.Do(req)
 		if err != nil {
-			return healthMsg{ok: false, err: err}
+			return healthMsg{err: err}
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode/100 != 2 {
-			return healthMsg{ok: false, err: fmt.Errorf("unexpected status: %s", resp.Status)}
+			return healthMsg{err: fmt.Errorf("unexpected status: %s", resp.Status)}
 		}
 
-		return healthMsg{ok: true, detail: "Health OK"}
+		return healthMsg{detail: "Health OK"}
 	}
 }

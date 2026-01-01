@@ -34,6 +34,10 @@ func usage(exitCode int) {
 
 Commands:
   tui    Launch the interactive terminal UI
+
+Environment variables:
+  MJR_BASE_URL  Default base URL for the mjr.wtf API (overridden by --base-url)
+  MJR_TOKEN     Default auth token (overridden by --token)
 `)
 	os.Exit(exitCode)
 }
