@@ -153,6 +153,43 @@ func TestModel_Update_CreateURLMsg_ErrorResetsMode(t *testing.T) {
 	}
 }
 
+func TestModel_Update_CreateURLMsg_SuccessCopiesAndRefreshes(t *testing.T) {
+	old := clipboardWriteAll
+	defer func() { clipboardWriteAll = old }()
+
+	var copied string
+	clipboardWriteAll = func(s string) error {
+		copied = s
+		return nil
+	}
+
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
+	m.loading = false
+	m.mode = modeCreating
+	m.createInput.SetValue("https://example.com")
+
+	m2, cmd := m.Update(createURLMsg{resp: &client.CreateURLResponse{ShortCode: "abc123", ShortURL: "https://mjr.wtf/abc123", OriginalURL: "https://example.com"}})
+	mm := m2.(model)
+	if mm.mode != modeBrowsing {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if mm.createInput.Value() != "" {
+		t.Fatalf("expected createInput cleared")
+	}
+	if copied != "https://mjr.wtf/abc123" {
+		t.Fatalf("copied=%q", copied)
+	}
+	if !strings.Contains(mm.status, "Created") {
+		t.Fatalf("status=%q", mm.status)
+	}
+	if !mm.loading {
+		t.Fatalf("expected loading=true")
+	}
+	if cmd == nil {
+		t.Fatalf("expected refresh cmd")
+	}
+}
+
 func TestListURLsCmd(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/urls" {
