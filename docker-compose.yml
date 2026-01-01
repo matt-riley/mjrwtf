@@ -2,9 +2,9 @@ services:
   mjrwtf:
     build: .
     image: mjrwtf:latest
-    container_name: mjrwtf
+    container_name: ${CONTAINER_NAME:-mjrwtf}
     ports:
-      - "8080:8080"
+      - "${HOST_PORT:-8080}:8080"
     environment:
       # Database connection (SQLite)
       - DATABASE_URL=/app/data/database.db
@@ -25,7 +25,7 @@ services:
       - GEOIP_ENABLED=${GEOIP_ENABLED:-false}
       - GEOIP_DATABASE=${GEOIP_DATABASE:-}
     volumes:
-      - ./data:/app/data
+      - ${DATA_DIR:-./data}:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]

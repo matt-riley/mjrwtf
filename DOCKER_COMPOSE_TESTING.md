@@ -18,6 +18,10 @@ docker compose config --services
 ### 1. Migrations (required on first run)
 
 - [ ] Create the persistent data directory: `mkdir -p data`
+
+> Tip: you can override the bind-mounted data directory and host port with:
+> - `DATA_DIR=/absolute/path/to/data`
+> - `HOST_PORT=18080`
 - [ ] Run migrations on the host:
   ```bash
   export DATABASE_URL=./data/database.db
