@@ -17,6 +17,8 @@ const (
 	modeBrowsing viewMode = iota
 	modeFiltering
 	modeCreating
+	modeViewingAnalytics
+	modeAnalyticsTimeRange
 )
 
 type tuiURL struct {

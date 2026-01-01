@@ -49,7 +49,10 @@ Purpose: view click analytics for the selected short URL.
 Behaviors:
 - Opening calls `GET /api/urls/{shortCode}/analytics`.
 - Show totals and breakdowns (as supported by the endpoint response).
+- Support an optional time range (RFC3339 `start_time`/`end_time`).
+  - Validate: start/end provided together; `start_time < end_time`.
 - Provide a clear “back” path to the list.
+- Large breakdown maps should be usable via truncation and/or scrolling.
 
 ### 4) Delete confirmation
 
@@ -80,6 +83,24 @@ Behaviors:
 | `c` | Create URL |
 | `d` | Delete selected URL (opens confirmation) |
 | `a` | Analytics for selected URL |
+
+### Analytics detail
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Scroll down/up |
+| `↑` / `↓` | Scroll down/up |
+| `t` | Set time range (optional) |
+| `b` / `Esc` | Back to list |
+| `r` | Refresh analytics |
+
+### Analytics time range mode
+
+| Key | Action |
+|-----|--------|
+| `Tab` | Switch between start/end fields |
+| `Enter` | Next field / apply |
+| `Esc` | Cancel |
 
 ### Filter mode
 

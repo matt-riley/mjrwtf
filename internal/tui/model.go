@@ -2,7 +2,9 @@ package tui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -26,12 +28,29 @@ type model struct {
 	createInput   textinput.Model
 	createLoading bool
 
-	mode        viewMode
+	mode viewMode
+
 	urls        []tuiURL
 	filtered    []tuiURL
 	cursor      int
 	filterQuery string
 	total       int
+
+	// Analytics view state
+	analyticsLoading   bool
+	analytics          *client.GetAnalyticsResponse
+	analyticsShortCode string
+	analyticsScroll    int
+
+	analyticsStartInput textinput.Model
+	analyticsEndInput   textinput.Model
+	analyticsRangeFocus int // 0=start, 1=end
+
+	analyticsStartTime *time.Time
+	analyticsEndTime   *time.Time
+
+	width  int
+	height int
 
 	pageSize int
 	offset   int
@@ -41,10 +60,20 @@ func newModel(cfg tui_config.Config, warnings []string) model {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 
-	ti := textinput.New()
-	ti.Placeholder = "https://example.com"
-	ti.CharLimit = 2048
-	ti.Width = 80
+	create := textinput.New()
+	create.Placeholder = "https://example.com"
+	create.CharLimit = 2048
+	create.Width = 80
+
+	start := textinput.New()
+	start.Placeholder = "2025-11-20T00:00:00Z"
+	start.CharLimit = 64
+	start.Width = 32
+
+	end := textinput.New()
+	end.Placeholder = "2025-11-22T23:59:59Z"
+	end.CharLimit = 64
+	end.Width = 32
 
 	m := model{
 		cfg:      cfg,
@@ -57,7 +86,10 @@ func newModel(cfg tui_config.Config, warnings []string) model {
 		pageSize: 20,
 		offset:   0,
 
-		createInput: ti,
+		createInput: create,
+
+		analyticsStartInput: start,
+		analyticsEndInput:   end,
 	}
 	if len(warnings) > 0 {
 		m.status = warnings[0]
@@ -71,13 +103,18 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		}
 
-		if m.mode == modeCreating {
+		switch m.mode {
+		case modeCreating:
 			switch msg.String() {
 			case "esc":
 				m.mode = modeBrowsing
@@ -101,61 +138,213 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.createInput, cmd = m.createInput.Update(msg)
 				return m, cmd
 			}
+
+		case modeAnalyticsTimeRange:
+			switch msg.String() {
+			case "esc":
+				m.mode = modeViewingAnalytics
+				m.status = "Time range cancelled"
+				return m, nil
+			case "tab":
+				if m.analyticsRangeFocus == 0 {
+					m.analyticsRangeFocus = 1
+					m.analyticsStartInput.Blur()
+					cmd := m.analyticsEndInput.Focus()
+					return m, cmd
+				}
+				m.analyticsRangeFocus = 0
+				m.analyticsEndInput.Blur()
+				cmd := m.analyticsStartInput.Focus()
+				return m, cmd
+			case "enter":
+				if m.analyticsRangeFocus == 0 {
+					m.analyticsRangeFocus = 1
+					m.analyticsStartInput.Blur()
+					cmd := m.analyticsEndInput.Focus()
+					m.status = "Set time range: end_time"
+					return m, cmd
+				}
+
+				startStr := strings.TrimSpace(m.analyticsStartInput.Value())
+				endStr := strings.TrimSpace(m.analyticsEndInput.Value())
+				if (startStr != "" && endStr == "") || (startStr == "" && endStr != "") {
+					m.status = "start_time and end_time must be provided together"
+					return m, nil
+				}
+
+				m.analyticsStartTime = nil
+				m.analyticsEndTime = nil
+				if startStr != "" {
+					st, err := time.Parse(time.RFC3339, startStr)
+					if err != nil {
+						m.status = "invalid start_time (must be RFC3339)"
+						return m, nil
+					}
+					et, err := time.Parse(time.RFC3339, endStr)
+					if err != nil {
+						m.status = "invalid end_time (must be RFC3339)"
+						return m, nil
+					}
+					if !st.Before(et) {
+						m.status = "end_time must be after start_time"
+						return m, nil
+					}
+					m.analyticsStartTime = &st
+					m.analyticsEndTime = &et
+				}
+
+				if strings.TrimSpace(m.analyticsShortCode) == "" {
+					m.mode = modeBrowsing
+					m.status = "No selected URL"
+					return m, nil
+				}
+
+				m.mode = modeViewingAnalytics
+				m.analyticsLoading = true
+				m.analytics = nil
+				m.analyticsScroll = 0
+				m.status = "Loading analytics..."
+				return m, tea.Batch(m.spinner.Tick, getAnalyticsCmd(m.cfg, m.analyticsShortCode, m.analyticsStartTime, m.analyticsEndTime))
+			default:
+				var cmd tea.Cmd
+				if m.analyticsRangeFocus == 0 {
+					m.analyticsStartInput, cmd = m.analyticsStartInput.Update(msg)
+				} else {
+					m.analyticsEndInput, cmd = m.analyticsEndInput.Update(msg)
+				}
+				return m, cmd
+			}
+
+		case modeViewingAnalytics:
+			switch msg.String() {
+			case "b", "esc":
+				m.mode = modeBrowsing
+				m.status = "Back to list"
+				return m, nil
+			case "t":
+				m.mode = modeAnalyticsTimeRange
+				m.analyticsRangeFocus = 0
+
+				if m.analyticsStartTime != nil {
+					m.analyticsStartInput.SetValue(m.analyticsStartTime.UTC().Format(time.RFC3339))
+				} else {
+					m.analyticsStartInput.SetValue("")
+				}
+				if m.analyticsEndTime != nil {
+					m.analyticsEndInput.SetValue(m.analyticsEndTime.UTC().Format(time.RFC3339))
+				} else {
+					m.analyticsEndInput.SetValue("")
+				}
+
+				m.analyticsEndInput.Blur()
+				cmd := m.analyticsStartInput.Focus()
+				m.status = "Set time range: start_time"
+				return m, cmd
+			case "r":
+				if m.analyticsLoading {
+					return m, nil
+				}
+				m.analyticsLoading = true
+				m.analytics = nil
+				m.analyticsScroll = 0
+				m.status = "Refreshing analytics..."
+				return m, tea.Batch(m.spinner.Tick, getAnalyticsCmd(m.cfg, m.analyticsShortCode, m.analyticsStartTime, m.analyticsEndTime))
+			case "j", "down":
+				lines := m.analyticsLines()
+				visible := m.analyticsVisibleLines()
+				maxScroll := 0
+				if len(lines) > visible {
+					maxScroll = len(lines) - visible
+				}
+				if m.analyticsScroll < maxScroll {
+					m.analyticsScroll++
+				}
+				return m, nil
+			case "k", "up":
+				if m.analyticsScroll > 0 {
+					m.analyticsScroll--
+				}
+				return m, nil
+			}
+
+		default:
+			switch msg.String() {
+			case "r":
+				m.loading = true
+				m.status = "Refreshing..."
+				return m, tea.Batch(m.spinner.Tick, listURLsCmd(m.cfg, m.pageSize, m.offset))
+			case "c":
+				m.mode = modeCreating
+				m.createLoading = false
+				m.createInput.SetValue("")
+				cmd := m.createInput.Focus()
+				m.status = "Create: enter original URL"
+				return m, cmd
+			case "a":
+				if m.loading {
+					return m, nil
+				}
+				if len(m.filtered) == 0 {
+					m.status = "No URLs to show analytics for"
+					return m, nil
+				}
+				if m.cursor < 0 || m.cursor >= len(m.filtered) {
+					m.status = "No selected URL"
+					return m, nil
+				}
+				m.mode = modeViewingAnalytics
+				m.analyticsLoading = true
+				m.analytics = nil
+				m.analyticsScroll = 0
+				m.analyticsShortCode = m.filtered[m.cursor].ShortCode
+				m.analyticsStartTime = nil
+				m.analyticsEndTime = nil
+				m.status = "Loading analytics..."
+				return m, tea.Batch(m.spinner.Tick, getAnalyticsCmd(m.cfg, m.analyticsShortCode, nil, nil))
+			case "j", "down":
+				if m.mode != modeFiltering {
+					m.cursorDown()
+				}
+				return m, nil
+			case "k", "up":
+				if m.mode != modeFiltering {
+					m.cursorUp()
+				}
+				return m, nil
+			case "n":
+				return m.nextPage()
+			case "p":
+				return m.prevPage()
+			case "/":
+				m.startFilter()
+				return m, nil
+			case "esc":
+				if m.mode == modeFiltering {
+					m.cancelFilter()
+					return m, nil
+				}
+			case "enter":
+				if m.mode == modeFiltering {
+					m.applyFilter()
+					m.status = fmt.Sprintf("Filtered to %d/%d", len(m.filtered), len(m.urls))
+					return m, nil
+				}
+			default:
+				if m.mode == modeFiltering {
+					m.filterInput(msg)
+					return m, nil
+				}
+			}
 		}
 
-		switch msg.String() {
-		case "r":
-			m.loading = true
-			m.status = "Refreshing..."
-			return m, tea.Batch(m.spinner.Tick, listURLsCmd(m.cfg, m.pageSize, m.offset))
-		case "c":
-			m.mode = modeCreating
-			m.createLoading = false
-			m.createInput.SetValue("")
-			cmd := m.createInput.Focus()
-			m.status = "Create: enter original URL"
-			return m, cmd
-		case "j", "down":
-			if m.mode != modeFiltering {
-				m.cursorDown()
-			}
-			return m, nil
-		case "k", "up":
-			if m.mode != modeFiltering {
-				m.cursorUp()
-			}
-			return m, nil
-		case "n":
-			return m.nextPage()
-		case "p":
-			return m.prevPage()
-		case "/":
-			m.startFilter()
-			return m, nil
-		case "esc":
-			if m.mode == modeFiltering {
-				m.cancelFilter()
-				return m, nil
-			}
-		case "enter":
-			if m.mode == modeFiltering {
-				m.applyFilter()
-				m.status = fmt.Sprintf("Filtered to %d/%d", len(m.filtered), len(m.urls))
-				return m, nil
-			}
-		default:
-			if m.mode == modeFiltering {
-				m.filterInput(msg)
-				return m, nil
-			}
-		}
 	case spinner.TickMsg:
-		if !(m.loading || m.createLoading) {
+		if !(m.loading || m.createLoading || m.analyticsLoading) {
 			return m, nil
 		}
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
+
 	case listURLsMsg:
 		m.loading = false
 		if msg.err != nil {
@@ -167,6 +356,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.applyFilter() // reapply current filter after refresh/page change
 		m.status = fmt.Sprintf("Loaded %d/%d", len(m.filtered), m.total)
 		return m, nil
+
+	case getAnalyticsMsg:
+		m.analyticsLoading = false
+		if msg.err != nil {
+			if apiErr, ok := msg.err.(*client.APIError); ok {
+				m.status = fmt.Sprintf("Analytics failed (%d): %s", apiErr.StatusCode, apiErr.Message)
+			} else {
+				m.status = fmt.Sprintf("Analytics failed: %v", msg.err)
+			}
+			return m, nil
+		}
+		m.analytics = msg.resp
+		m.status = "Analytics loaded"
+		return m, nil
+
 	case createURLMsg:
 		m.createLoading = false
 		if msg.err != nil {
@@ -222,33 +426,39 @@ func (m model) View() string {
 }
 
 func (m model) mainLine() string {
-	if m.mode == modeCreating {
+	switch m.mode {
+	case modeCreating:
 		return m.createView()
-	}
-	if m.loading {
-		return fmt.Sprintf("%s Loading URLs...", m.spinner.View())
-	}
+	case modeAnalyticsTimeRange:
+		return m.analyticsTimeRangeView()
+	case modeViewingAnalytics:
+		return m.analyticsView()
+	default:
+		if m.loading {
+			return fmt.Sprintf("%s Loading URLs...", m.spinner.View())
+		}
 
-	head := lipgloss.NewStyle().Bold(true).Render("short_code  created_at            click_count  original_url")
-	lines := []string{head}
-	if len(m.filtered) == 0 {
-		lines = append(lines, lipgloss.NewStyle().Faint(true).Render("(no URLs)"))
+		head := lipgloss.NewStyle().Bold(true).Render("short_code  created_at            click_count  original_url")
+		lines := []string{head}
+		if len(m.filtered) == 0 {
+			lines = append(lines, lipgloss.NewStyle().Faint(true).Render("(no URLs)"))
+			return strings.Join(lines, "\n")
+		}
+
+		for i, u := range m.filtered {
+			prefix := "  "
+			if i == m.cursor {
+				prefix = "> "
+			}
+			created := ""
+			if u.CreatedAt != nil {
+				created = u.CreatedAt.Format("2006-01-02 15:04:05")
+			}
+			line := fmt.Sprintf("%s%-10s  %-19s  %10d  %s", prefix, u.ShortCode, created, u.ClickCount, truncate(u.OriginalURL, 80))
+			lines = append(lines, line)
+		}
 		return strings.Join(lines, "\n")
 	}
-
-	for i, u := range m.filtered {
-		prefix := "  "
-		if i == m.cursor {
-			prefix = "> "
-		}
-		created := ""
-		if u.CreatedAt != nil {
-			created = u.CreatedAt.Format("2006-01-02 15:04:05")
-		}
-		line := fmt.Sprintf("%s%-10s  %-19s  %10d  %s", prefix, u.ShortCode, created, u.ClickCount, truncate(u.OriginalURL, 80))
-		lines = append(lines, line)
-	}
-	return strings.Join(lines, "\n")
 }
 
 func (m model) createView() string {
@@ -265,9 +475,14 @@ func (m model) createView() string {
 }
 
 func (m model) footer() string {
-	hintsLine := "[j/k/↑/↓] move  [n/p] page  [/] filter  [c] create  [r] refresh  [q] quit"
-	if m.mode == modeCreating {
+	hintsLine := "[j/k/↑/↓] move  [n/p] page  [/] filter  [c] create  [a] analytics  [r] refresh  [q] quit"
+	switch m.mode {
+	case modeCreating:
 		hintsLine = "[enter] submit  [esc] cancel  [q] quit"
+	case modeViewingAnalytics:
+		hintsLine = "[j/k/↑/↓] scroll  [t] time range  [r] refresh  [b/esc] back  [q] quit"
+	case modeAnalyticsTimeRange:
+		hintsLine = "[tab] switch field  [enter] next/apply  [esc] cancel  [q] quit"
 	}
 
 	hints := lipgloss.NewStyle().Faint(true).Render(hintsLine)
@@ -279,4 +494,156 @@ func (m model) footer() string {
 		status = " "
 	}
 	return fmt.Sprintf("%s\n%s", hints, status)
+}
+
+func (m model) analyticsVisibleLines() int {
+	if m.height <= 0 {
+		return 20
+	}
+	// title + base URL + blank lines + footer consumes ~7 lines
+	v := m.height - 7
+	if v < 8 {
+		v = 8
+	}
+	return v
+}
+
+func (m model) analyticsTimeRangeView() string {
+	lines := []string{
+		lipgloss.NewStyle().Bold(true).Render("Analytics time range (optional)"),
+		"",
+		"Enter RFC3339 timestamps. Leave both blank for all-time.",
+		"",
+		"start_time:",
+		m.analyticsStartInput.View(),
+		"",
+		"end_time:",
+		m.analyticsEndInput.View(),
+	}
+	return strings.Join(lines, "\n")
+}
+
+func (m model) analyticsView() string {
+	if m.analyticsLoading {
+		return fmt.Sprintf("%s Loading analytics...", m.spinner.View())
+	}
+	if m.analytics == nil {
+		return lipgloss.NewStyle().Faint(true).Render("(no analytics loaded)")
+	}
+
+	lines := m.analyticsLines()
+	if len(lines) == 0 {
+		return lipgloss.NewStyle().Faint(true).Render("(no analytics)")
+	}
+
+	visible := m.analyticsVisibleLines()
+	maxScroll := 0
+	if len(lines) > visible {
+		maxScroll = len(lines) - visible
+	}
+	if m.analyticsScroll > maxScroll {
+		m.analyticsScroll = maxScroll
+	}
+
+	start := m.analyticsScroll
+	end := start + visible
+	if end > len(lines) {
+		end = len(lines)
+	}
+	view := lines[start:end]
+	if len(lines) > visible {
+		view = append(view, lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("(lines %d-%d of %d)", start+1, end, len(lines))))
+	}
+	return strings.Join(view, "\n")
+}
+
+func (m model) analyticsLines() []string {
+	if m.analytics == nil {
+		return nil
+	}
+
+	head := lipgloss.NewStyle().Bold(true).Render("Analytics")
+	lines := []string{head, ""}
+
+	lines = append(lines,
+		fmt.Sprintf("Short code: %s", m.analytics.ShortCode),
+		fmt.Sprintf("Original URL: %s", truncate(m.analytics.OriginalURL, 120)),
+		fmt.Sprintf("Total clicks: %d", m.analytics.TotalClicks),
+	)
+
+	rangeLabel := "Time range: all-time"
+	if m.analyticsStartTime != nil && m.analyticsEndTime != nil {
+		rangeLabel = fmt.Sprintf("Time range: %s → %s", m.analyticsStartTime.UTC().Format(time.RFC3339), m.analyticsEndTime.UTC().Format(time.RFC3339))
+	}
+	lines = append(lines, rangeLabel, "")
+
+	lines = append(lines, formatTopMapSection("By country", m.analytics.ByCountry, 50)...)
+	lines = append(lines, "")
+	lines = append(lines, formatTopMapSection("By referrer", m.analytics.ByReferrer, 50)...)
+	if len(m.analytics.ByDate) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, formatDateMapSection("By date", m.analytics.ByDate, 60)...)
+	}
+
+	return lines
+}
+
+type kv struct {
+	k string
+	v int64
+}
+
+func formatTopMapSection(title string, in map[string]int64, maxItems int) []string {
+	out := []string{lipgloss.NewStyle().Bold(true).Render(title)}
+	if len(in) == 0 {
+		return append(out, lipgloss.NewStyle().Faint(true).Render("(none)"))
+	}
+
+	items := make([]kv, 0, len(in))
+	for k, v := range in {
+		items = append(items, kv{k: k, v: v})
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].v == items[j].v {
+			return items[i].k < items[j].k
+		}
+		return items[i].v > items[j].v
+	})
+
+	shown := items
+	if maxItems > 0 && len(items) > maxItems {
+		shown = items[:maxItems]
+	}
+	for _, it := range shown {
+		out = append(out, fmt.Sprintf("%-32s %10d", truncate(it.k, 32), it.v))
+	}
+	if len(shown) < len(items) {
+		out = append(out, lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("…and %d more", len(items)-len(shown))))
+	}
+	return out
+}
+
+func formatDateMapSection(title string, in map[string]int64, maxItems int) []string {
+	out := []string{lipgloss.NewStyle().Bold(true).Render(title)}
+	if len(in) == 0 {
+		return append(out, lipgloss.NewStyle().Faint(true).Render("(none)"))
+	}
+
+	keys := make([]string, 0, len(in))
+	for k := range in {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	shown := keys
+	if maxItems > 0 && len(keys) > maxItems {
+		shown = keys[:maxItems]
+	}
+	for _, k := range shown {
+		out = append(out, fmt.Sprintf("%s  %10d", k, in[k]))
+	}
+	if len(shown) < len(keys) {
+		out = append(out, lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("…and %d more", len(keys)-len(shown))))
+	}
+	return out
 }
