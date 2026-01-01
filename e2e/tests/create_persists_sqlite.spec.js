@@ -125,7 +125,7 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
 
     execFileSyncQuiet('docker', ['compose', 'up', '-d', '--build'], { cwd: repoRoot, env });
 
-    await waitForHealthy(`http://localhost:${ctx.hostPort}`, HEALTH_CHECK_TIMEOUT_MS);
+    await waitForHealthy(`http://127.0.0.1:${ctx.hostPort}`, HEALTH_CHECK_TIMEOUT_MS);
   });
 
   test.afterAll(async () => {
@@ -158,7 +158,7 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
 
   test('submitting /create writes urls row to file-backed DB', async ({ page }) => {
     const originalURL = `https://example.com/e2e/${Date.now()}`;
-    const baseURL = `http://localhost:${ctx.hostPort}`;
+    const baseURL = `http://127.0.0.1:${ctx.hostPort}`;
 
     await page.goto(`${baseURL}/create`);
     await page.fill('#original_url', originalURL);
@@ -206,7 +206,7 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
   });
 
   test('dashboard requires a session and lists created URLs', async ({ page }) => {
-    const baseURL = `http://localhost:${ctx.hostPort}`;
+    const baseURL = `http://127.0.0.1:${ctx.hostPort}`;
 
     // Unauthenticated users should be redirected to /login.
     await page.goto(`${baseURL}/dashboard`);
