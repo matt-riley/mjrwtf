@@ -1,6 +1,6 @@
 .PHONY: \
     help test test-unit test-integration lint fmt vet clean \
-    build build-server build-migrate \
+    build build-server build-migrate build-mjr \
     migrate-up migrate-down migrate-status migrate-create migrate-reset \
     generate templ-generate templ-watch \
     validate-openapi \
@@ -19,6 +19,7 @@ help:
 	@echo "  build             - Build all binaries"
 	@echo "  build-server      - Build the HTTP server binary"
 	@echo "  build-migrate     - Build the migration tool"
+	@echo "  build-mjr         - Build the mjr CLI (includes tui)"
 	@echo "  clean             - Clean build artifacts and coverage files"
 	@echo "  templ-generate    - Generate Go code from Templ templates"
 	@echo "  templ-watch       - Watch and auto-regenerate Templ templates"
@@ -91,7 +92,7 @@ vet:
 	go vet ./...
 
 # Build all binaries
-build: generate build-server build-migrate
+build: generate build-server build-migrate build-mjr
 
 # Build server binary
 build-server: generate
@@ -100,6 +101,10 @@ build-server: generate
 # Build migrate tool
 build-migrate: generate
 	go build -o bin/migrate ./cmd/migrate
+
+# Build mjr CLI binary
+build-mjr: generate
+	go build -o bin/mjr ./cmd/mjr
 
 # Clean build artifacts and coverage files
 clean:
