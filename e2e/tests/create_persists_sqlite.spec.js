@@ -53,13 +53,13 @@ async function waitForHealthy(baseURL, timeoutMs) {
   // Node 18+ has global fetch.
   while (Date.now() < deadline) {
     try {
-      const res = await fetch(`${baseURL}/health`);
+      const res = await fetch(`${baseURL}/ready`);
       if (res.ok) return;
     } catch (err) {
       lastErr = err;
       if (!logged) {
         // Log once to aid debugging, but keep retrying until timeout.
-        console.error('Health check request failed:', err?.name, err?.message);
+        console.error('Readiness check request failed:', err?.name, err?.message);
         logged = true;
       }
     }
@@ -67,7 +67,7 @@ async function waitForHealthy(baseURL, timeoutMs) {
     await sleep(POLL_INTERVAL_MS);
   }
 
-  throw new Error(`Timed out waiting for ${baseURL}/health (lastErr=${lastErr})`);
+  throw new Error(`Timed out waiting for ${baseURL}/ready (lastErr=${lastErr})`);
 }
 
 const SQLITE_NO_ROW = '__NO_ROW__';
@@ -203,5 +203,44 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
     }
 
     throw new Error('Row not found in sqlite DB for created short URL');
+  });
+
+  test('dashboard requires a session and lists created URLs', async ({ page }) => {
+    const baseURL = `http://localhost:${ctx.hostPort}`;
+
+    // Unauthenticated users should be redirected to /login.
+    await page.goto(`${baseURL}/dashboard`);
+    await expect(page).toHaveURL(`${baseURL}/login`);
+    await expect(page.getByRole('heading', { name: 'Dashboard Login' })).toBeVisible();
+
+    // Login via the UI.
+    await page.fill('#auth_token', ctx.authToken);
+    await page.click('button[type="submit"]');
+    await expect(page).toHaveURL(`${baseURL}/dashboard`);
+    await expect(page.getByRole('heading', { name: 'URL Dashboard' })).toBeVisible();
+
+    // Create a URL via the UI.
+    const originalURL = `https://example.com/e2e/dashboard/${Date.now()}`;
+
+    await page.goto(`${baseURL}/create`);
+    await page.fill('#original_url', originalURL);
+    await page.fill('#auth_token', ctx.authToken);
+    await page.click('button[type="submit"]');
+
+    const shortUrlInput = page.locator('#short-url-display');
+    await expect(shortUrlInput).toBeVisible();
+
+    const shortURL = (await shortUrlInput.inputValue()).trim();
+    const urlObj = new URL(shortURL);
+    const trimmedPathname = urlObj.pathname.replace(/\/+$/, '');
+    const pathSegments = trimmedPathname.split('/');
+    const shortCode = pathSegments.pop() || '';
+    assertSafeShortCode(shortCode);
+
+    // Dashboard should show the created URL.
+    await page.goto(`${baseURL}/dashboard`);
+    const tableBody = page.locator('#urls-table-body');
+    await expect(tableBody).toContainText(shortCode);
+    await expect(tableBody).toContainText(originalURL);
   });
 });
