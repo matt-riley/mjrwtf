@@ -5,6 +5,9 @@ on:
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: read
+
 jobs:
   playwright-e2e:
     timeout-minutes: 20
@@ -25,7 +28,7 @@ jobs:
           cache-dependency-path: e2e/package-lock.json
 
       - name: Cache Playwright browsers
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v4
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('e2e/package-lock.json') }}
