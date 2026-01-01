@@ -19,6 +19,7 @@ const (
 	modeCreating
 	modeViewingAnalytics
 	modeAnalyticsTimeRange
+	modeDeleteConfirm
 )
 
 type tuiURL struct {

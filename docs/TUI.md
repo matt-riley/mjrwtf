@@ -60,8 +60,11 @@ Purpose: prevent accidental deletes.
 
 Behaviors:
 - Confirming calls `DELETE /api/urls/{shortCode}`.
-- Success: toast + return to list + refresh.
+- Success: toast + return to list; update list optimistically (remove the item) and/or refresh.
+- NotFound: show a non-fatal status message and refresh the list.
 - Failure: toast + return to list (selection preserved if possible).
+
+Key idea: deletion is always a **two-step** interaction — `d` opens the confirmation view, then a second explicit action confirms.
 
 ## Keybindings
 
@@ -83,6 +86,13 @@ Behaviors:
 | `c` | Create URL |
 | `d` | Delete selected URL (opens confirmation) |
 | `a` | Analytics for selected URL |
+
+### Delete confirmation
+
+| Key | Action |
+|-----|--------|
+| `Enter` / `y` | Confirm delete |
+| `Esc` / `n` | Cancel and return to list |
 
 ### Analytics detail
 
