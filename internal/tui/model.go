@@ -13,6 +13,8 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
 )
 
+var clipboardWriteAll = clipboard.WriteAll
+
 type model struct {
 	cfg      tui_config.Config
 	warnings []string
@@ -186,7 +188,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.mode = modeBrowsing
 		m.createInput.SetValue("")
-		if err := clipboard.WriteAll(msg.resp.ShortURL); err != nil {
+		if err := clipboardWriteAll(msg.resp.ShortURL); err != nil {
 			m.status = fmt.Sprintf("Created: %s (copy failed: %v)", msg.resp.ShortURL, err)
 		} else {
 			m.status = fmt.Sprintf("Created: %s (copied to clipboard)", msg.resp.ShortURL)
