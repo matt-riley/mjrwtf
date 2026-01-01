@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -180,7 +181,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.mode = modeBrowsing
-		m.status = fmt.Sprintf("Created: %s", msg.resp.ShortURL)
+		if err := clipboard.WriteAll(msg.resp.ShortURL); err != nil {
+			m.status = fmt.Sprintf("Created: %s (copy failed: %v)", msg.resp.ShortURL, err)
+		} else {
+			m.status = fmt.Sprintf("Created: %s (copied to clipboard)", msg.resp.ShortURL)
+		}
 		m.loading = true
 		return m, tea.Batch(m.spinner.Tick, listURLsCmd(m.cfg, m.pageSize, m.offset))
 	}
