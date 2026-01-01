@@ -541,11 +541,15 @@ func (m model) analyticsView() string {
 	if len(lines) > visible {
 		maxScroll = len(lines) - visible
 	}
-	if m.analyticsScroll > maxScroll {
-		m.analyticsScroll = maxScroll
+	scroll := m.analyticsScroll
+	if scroll < 0 {
+		scroll = 0
+	}
+	if scroll > maxScroll {
+		scroll = maxScroll
 	}
 
-	start := m.analyticsScroll
+	start := scroll
 	end := start + visible
 	if end > len(lines) {
 		end = len(lines)
