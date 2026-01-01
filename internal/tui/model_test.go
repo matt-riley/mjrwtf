@@ -18,63 +18,62 @@ func TestModel_Update_Quit(t *testing.T) {
 	}
 }
 
-func TestModel_Update_HealthMsgSetsStatus(t *testing.T) {
+func TestModel_Update_ListURLsMsgSetsStatus(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	m.loading = true
 
-	m2, _ := m.Update(healthMsg{detail: "Health OK"})
+	m2, _ := m.Update(listURLsMsg{urls: []tuiURL{}, total: 0})
 	mm := m2.(model)
 	if mm.loading {
 		t.Fatalf("expected loading=false")
 	}
-	if mm.status != "Health OK" {
+	if !strings.Contains(mm.status, "Loaded") {
 		t.Fatalf("status=%q", mm.status)
 	}
 }
 
-func TestModel_View_MasksToken(t *testing.T) {
+func TestModel_View_ShowsBaseURL(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	out := m.View()
-	if !strings.Contains(out, "Token:") {
-		t.Fatalf("expected token line")
-	}
-	if strings.Contains(out, "abcdef") {
-		t.Fatalf("expected token to be masked")
-	}
-	if !strings.Contains(out, "ab**ef") {
-		t.Fatalf("expected masked token, got: %q", out)
+	if !strings.Contains(out, "Base URL: http://example") {
+		t.Fatalf("expected base URL line")
 	}
 }
 
-func TestHealthCmd(t *testing.T) {
-	okSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/health" {
+func TestListURLsCmd(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/urls" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
+		if r.URL.Query().Get("limit") != "20" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if r.URL.Query().Get("offset") != "40" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"urls":[{"id":1,"short_code":"abc123","original_url":"https://example.com","created_at":"2026-01-01T00:00:00Z","created_by":"me","click_count":2}],"total":1,"limit":20,"offset":40}`))
 	}))
-	t.Cleanup(okSrv.Close)
+	t.Cleanup(srv.Close)
 
-	msg := healthCmd(okSrv.URL)().(healthMsg)
+	msg := listURLsCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, 20, 40)().(listURLsMsg)
 	if msg.err != nil {
 		t.Fatalf("expected nil err, got %v", msg.err)
 	}
-	if msg.detail != "Health OK" {
-		t.Fatalf("detail=%q", msg.detail)
+	if msg.total != 1 {
+		t.Fatalf("total=%d", msg.total)
+	}
+	if len(msg.urls) != 1 || msg.urls[0].ShortCode != "abc123" {
+		t.Fatalf("urls=%v", msg.urls)
+	}
+	if msg.urls[0].CreatedAt == nil {
+		t.Fatalf("expected created_at")
 	}
 
-	errSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	t.Cleanup(errSrv.Close)
-
-	msg = healthCmd(errSrv.URL)().(healthMsg)
-	if msg.err == nil {
-		t.Fatalf("expected err")
-	}
-
-	msg = healthCmd("")().(healthMsg)
+	msg = listURLsCmd(tui_config.Config{BaseURL: ""}, 20, 0)().(listURLsMsg)
 	if msg.err == nil {
 		t.Fatalf("expected err for empty baseURL")
 	}
