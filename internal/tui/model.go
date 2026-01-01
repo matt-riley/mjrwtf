@@ -276,6 +276,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc", "n":
 				m.mode = modeBrowsing
 				m.deleteLoading = false
+				m.deleteConfirmShortCode = ""
+				m.deleteConfirmOriginalURL = ""
 				m.status = "Delete cancelled"
 				return m, nil
 			case "enter", "y":
