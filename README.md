@@ -37,17 +37,16 @@ Visit `http://localhost:8080` to access the web dashboard.
 
 ## 📚 Documentation
 
-For detailed documentation, visit the **[mjr.wtf docs site](docs-site/)**:
+For detailed documentation, visit **[docs.mjr.wtf](https://docs.mjr.wtf)**:
 
-- **[Getting Started](docs-site/)** - Installation, deployment, and initial setup
-- **[Configuration](docs-site/)** - Environment variables and configuration options
-- **[Authentication](docs-site/)** - Bearer tokens, sessions, and security settings
-- **[API Reference](openapi.yaml)** - OpenAPI 3.0 specification ([SwaggerUI](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml) | [ReDoc](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml))
-- **[Terminal UI](docs/TUI.md)** - Using the interactive CLI
-- **[Database Migrations](docs-site/)** - Managing schema changes
-- **[Testing](docs/INTEGRATION_TESTING.md)** - Running unit and integration tests
-- **[Docker Guide](docs/docker.md)** - Container deployment and production setup
-- **[Development](docs-site/)** - Local development, code generation, and contributing
+- **[Getting Started](https://docs.mjr.wtf/getting-started/overview/)** - Installation, deployment, and initial setup
+- **[Configuration](https://docs.mjr.wtf/getting-started/configuration/)** - Environment variables and configuration options
+- **[Authentication](https://docs.mjr.wtf/security/)** - Bearer tokens, sessions, and security settings
+- **[API Reference](https://docs.mjr.wtf/api/)** - OpenAPI 3.0 specification ([SwaggerUI](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml) | [ReDoc](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/matt-riley/mjrwtf/main/openapi.yaml))
+- **[Database Migrations](https://docs.mjr.wtf/operations/migrations/)** - Managing schema changes
+- **[Testing](https://docs.mjr.wtf/operations/integration-testing/)** - Running unit and integration tests
+- **[Docker Guide](https://docs.mjr.wtf/operations/docker/)** - Container deployment and production setup
+- **[Local Development](https://docs.mjr.wtf/getting-started/local-development/)** - Code generation, building, and contributing
 
 ## 🤝 Contributing
 
