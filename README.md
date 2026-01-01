@@ -8,6 +8,7 @@ A simple URL shortener, written in Go.
 - [API Documentation](#api-documentation)
 - [Authentication](#authentication)
 - [Configuration](#configuration)
+- [TUI CLI](docs/TUI.md)
 - [Database Migrations](#database-migrations)
 - [Testing](#testing)
 - [Local Development](#local-development)

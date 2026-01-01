@@ -1,8 +1,12 @@
 # Database Schema Documentation
 
-This directory contains the SQLite database schema for the mjr.wtf URL shortener application.
+This directory contains documentation for the mjr.wtf URL shortener application.
 
 Note: The active Goose migrations (and sqlc config) are currently **SQLite-only**.
+
+## Docs
+
+- [TUI CLI UX + keybindings](TUI.md)
 
 ## Schema Files
 
