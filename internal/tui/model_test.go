@@ -228,3 +228,89 @@ func TestListURLsCmd(t *testing.T) {
 		t.Fatalf("expected err for empty baseURL")
 	}
 }
+
+func TestModel_Update_OpenAnalytics(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.loading = false
+	m.urls = []tuiURL{{ShortCode: "abc123", OriginalURL: "https://example.com"}}
+	m.filtered = m.urls
+	m.cursor = 0
+
+	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	mm := m2.(model)
+	if mm.mode != modeViewingAnalytics {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if !mm.analyticsLoading {
+		t.Fatalf("expected analyticsLoading=true")
+	}
+	if mm.analyticsShortCode != "abc123" {
+		t.Fatalf("analyticsShortCode=%q", mm.analyticsShortCode)
+	}
+	if cmd == nil {
+		t.Fatalf("expected cmd")
+	}
+}
+
+func TestModel_Update_AnalyticsTimeRange_RequiresBoth(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.mode = modeAnalyticsTimeRange
+	m.analyticsShortCode = "abc123"
+	m.analyticsRangeFocus = 1
+	m.analyticsStartInput.SetValue("2025-11-20T00:00:00Z")
+	m.analyticsEndInput.SetValue("")
+
+	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm := m2.(model)
+	if mm.mode != modeAnalyticsTimeRange {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if !strings.Contains(mm.status, "provided together") {
+		t.Fatalf("status=%q", mm.status)
+	}
+}
+
+func TestModel_Update_AnalyticsTimeRange_EndAfterStart(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.mode = modeAnalyticsTimeRange
+	m.analyticsShortCode = "abc123"
+	m.analyticsRangeFocus = 1
+	m.analyticsStartInput.SetValue("2025-11-22T23:59:59Z")
+	m.analyticsEndInput.SetValue("2025-11-20T00:00:00Z")
+
+	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm := m2.(model)
+	if mm.mode != modeAnalyticsTimeRange {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if !strings.Contains(mm.status, "after") {
+		t.Fatalf("status=%q", mm.status)
+	}
+}
+
+func TestModel_Update_AnalyticsTimeRange_SuccessFetches(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.mode = modeAnalyticsTimeRange
+	m.analyticsShortCode = "abc123"
+	m.analyticsRangeFocus = 1
+	m.analyticsStartInput.SetValue("2025-11-20T00:00:00Z")
+	m.analyticsEndInput.SetValue("2025-11-22T23:59:59Z")
+
+	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm := m2.(model)
+	if mm.mode != modeViewingAnalytics {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if !mm.analyticsLoading {
+		t.Fatalf("expected analyticsLoading=true")
+	}
+	if cmd == nil {
+		t.Fatalf("expected cmd")
+	}
+	if mm.analyticsStartTime == nil || mm.analyticsEndTime == nil {
+		t.Fatalf("expected times set")
+	}
+	if !mm.analyticsStartTime.Before(*mm.analyticsEndTime) {
+		t.Fatalf("expected start < end")
+	}
+}
