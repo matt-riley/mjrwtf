@@ -26,7 +26,8 @@ RUN go install github.com/a-h/templ/cmd/templ@v0.3.960 && \
 # TARGETOS and TARGETARCH are automatically set by buildx for multi-arch builds
 ARG TARGETOS
 ARG TARGETARCH
-RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -a -installsuffix cgo -o server ./cmd/server
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -a -installsuffix cgo -o server ./cmd/server && \
+    CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -a -installsuffix cgo -o migrate ./cmd/migrate
 
 # Runtime stage
 FROM alpine:latest
@@ -41,11 +42,13 @@ RUN addgroup -g 1000 appuser && \
 # Set working directory
 WORKDIR /app
 
-# Copy the binary from builder
+# Copy the binaries from builder
 COPY --from=builder /build/server .
+COPY --from=builder /build/migrate .
+COPY docker-entrypoint.sh .
 
 # Change ownership to non-root user
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /app && chmod +x /app/docker-entrypoint.sh
 
 # Switch to non-root user
 USER appuser
@@ -60,5 +63,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-# Run the server
+# Run migrations, then start the server
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["./server"]
