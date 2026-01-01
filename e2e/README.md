@@ -5,7 +5,7 @@ This folder contains **real browser** E2E tests for the HTML UI.
 ## Run
 
 Prereqs:
-- Docker + Docker Compose
+- Go
 - Node.js
 - `sqlite3` available on your PATH (for DB assertions)
 
@@ -16,4 +16,4 @@ npx playwright install --with-deps chromium
 npm test
 ```
 
-The tests start `docker compose` with an isolated temp `DATA_DIR` and an ephemeral `HOST_PORT`, then clean up automatically.
+The tests start the Go server on an ephemeral port with an isolated temp SQLite database, then clean up automatically.

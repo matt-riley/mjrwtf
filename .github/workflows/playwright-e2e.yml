@@ -7,11 +7,16 @@ on:
 
 jobs:
   playwright-e2e:
-    timeout-minutes: 60
+    timeout-minutes: 20
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
+        with:
+          go-version-file: go.mod
+          cache: true
 
       - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
@@ -27,6 +32,11 @@ jobs:
 
       - name: Install sqlite3 (for DB assertions)
         run: sudo apt-get update && sudo apt-get install -y sqlite3
+
+      - name: Build server binaries
+        run: |
+          go build -o ./bin/server ./cmd/server
+          go build -o ./bin/migrate ./cmd/migrate
 
       - name: Install dependencies
         working-directory: e2e

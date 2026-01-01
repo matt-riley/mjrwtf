@@ -8,8 +8,8 @@ const path = require('node:path');
 const repoRoot = path.resolve(__dirname, '../..');
 
 const POLL_INTERVAL_MS = 250;
-// Docker builds on shared CI runners can be slow; keep this generous to avoid flakiness.
-const HEALTH_CHECK_TIMEOUT_MS = 300_000;
+// In CI we want to fail fast if the server can't start.
+const HEALTH_CHECK_TIMEOUT_MS = process.env.CI ? 30_000 : 120_000;
 // Max time to wait for SQLite writes to become visible across connections; 10s is a
 // generous upper bound chosen to keep e2e tests stable even on slow CI runners.
 const DB_WRITE_PROPAGATION_TIMEOUT_MS = 10_000;
@@ -33,6 +33,10 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function waitForExit(proc) {
+  return new Promise((resolve) => proc.once('exit', resolve));
+}
+
 async function getFreePort() {
   return await new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -45,7 +49,7 @@ async function getFreePort() {
   });
 }
 
-async function waitForHealthy(baseURL, timeoutMs) {
+async function waitForHealthy(baseURL, timeoutMs, proc) {
   const deadline = Date.now() + timeoutMs;
   let logged = false;
   /** @type {unknown} */
@@ -53,6 +57,10 @@ async function waitForHealthy(baseURL, timeoutMs) {
 
   // Node 18+ has global fetch.
   while (Date.now() < deadline) {
+    if (proc && proc.exitCode != null) {
+      throw new Error(`server process exited early (exitCode=${proc.exitCode})`);
+    }
+
     try {
       const res = await fetch(`${baseURL}/ready`);
       if (res.ok) return;
@@ -95,13 +103,13 @@ function sqliteGetOriginalURL(dbPath, shortCode) {
   return out.trimEnd();
 }
 
-test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
+test.describe('UI E2E: /create persists to SQLite (go server)', () => {
   test.describe.configure({ mode: 'serial' });
 
-  /** @type {{ projectName: string, containerName: string, dataDir: string, hostPort: number, authToken: string }} */
+  /** @type {{ serverProc: any, serverLogs: string, dataDir: string, hostPort: number, authToken: string }} */
   const ctx = {
-    projectName: `mjrwtf-e2e-${Date.now()}-${process.pid}`,
-    containerName: '',
+    serverProc: null,
+    serverLogs: '',
     dataDir: '',
     hostPort: 0,
     authToken: 'e2e-token',
@@ -109,64 +117,59 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
 
   test.beforeAll(async () => {
     ctx.hostPort = await getFreePort();
-    ctx.containerName = `${ctx.projectName}-server`;
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mjrwtf-e2e-'));
     ctx.dataDir = path.join(tmpDir, 'data');
     fs.mkdirSync(ctx.dataDir, { recursive: true });
 
+    const dbPath = path.join(ctx.dataDir, 'database.db');
+    const baseURL = `http://127.0.0.1:${ctx.hostPort}`;
+
     const env = {
       ...process.env,
-      COMPOSE_PROJECT_NAME: ctx.projectName,
-      CONTAINER_NAME: ctx.containerName,
-      HOST_PORT: String(ctx.hostPort),
-      DATA_DIR: ctx.dataDir,
+      DATABASE_URL: dbPath,
       AUTH_TOKENS: ctx.authToken,
+      SERVER_PORT: String(ctx.hostPort),
+      BASE_URL: baseURL,
     };
 
-    execFileSyncQuiet('docker', ['compose', 'up', '-d', '--build'], { cwd: repoRoot, env });
+    // Ensure schema exists.
+    const migrateBin = path.join(repoRoot, 'bin', 'migrate');
+    if (fs.existsSync(migrateBin)) {
+      execFileSyncQuiet(migrateBin, ['-url', dbPath, 'up'], { cwd: repoRoot, env });
+    } else {
+      execFileSyncQuiet('go', ['run', './cmd/migrate', '--', '-url', dbPath, 'up'], { cwd: repoRoot, env });
+    }
+
+    // Start server.
+    const serverBin = path.join(repoRoot, 'bin', 'server');
+    ctx.serverProc = fs.existsSync(serverBin)
+      ? childProcess.spawn(serverBin, [], { cwd: repoRoot, env })
+      : childProcess.spawn('go', ['run', './cmd/server'], { cwd: repoRoot, env });
+
+    ctx.serverProc.stdout.on('data', (d) => (ctx.serverLogs += d.toString()));
+    ctx.serverProc.stderr.on('data', (d) => (ctx.serverLogs += d.toString()));
 
     try {
-      await waitForHealthy(`http://127.0.0.1:${ctx.hostPort}`, HEALTH_CHECK_TIMEOUT_MS);
+      await waitForHealthy(baseURL, HEALTH_CHECK_TIMEOUT_MS, ctx.serverProc);
     } catch (err) {
-      // Surface docker state in CI logs to make failures actionable.
-      try {
-        console.error(
-          'docker compose ps:\n%s',
-          execFileSyncQuiet('docker', ['compose', 'ps'], { cwd: repoRoot, env, encoding: 'utf8' }),
-        );
-      } catch (psErr) {
-        console.error('Failed to capture docker compose ps:', psErr?.message ?? String(psErr));
+      if (ctx.serverLogs) {
+        console.error('server logs (tail):\n%s', ctx.serverLogs.slice(-4000));
       }
-
-      try {
-        console.error(
-          'docker compose logs (tail):\n%s',
-          execFileSyncQuiet('docker', ['compose', 'logs', '--no-color', '--tail', '200'], {
-            cwd: repoRoot,
-            env,
-            encoding: 'utf8',
-          }),
-        );
-      } catch (logsErr) {
-        console.error('Failed to capture docker compose logs:', logsErr?.message ?? String(logsErr));
-      }
-
       throw err;
     }
   });
 
   test.afterAll(async () => {
-    const env = {
-      ...process.env,
-      COMPOSE_PROJECT_NAME: ctx.projectName,
-      CONTAINER_NAME: ctx.containerName,
-      HOST_PORT: String(ctx.hostPort),
-      DATA_DIR: ctx.dataDir,
-    };
-
     try {
-      execFileSyncQuiet('docker', ['compose', 'down', '--remove-orphans'], { cwd: repoRoot, env });
+      if (ctx.serverProc && ctx.serverProc.exitCode == null) {
+        ctx.serverProc.kill('SIGTERM');
+        await Promise.race([waitForExit(ctx.serverProc), sleep(5000)]);
+        if (ctx.serverProc.exitCode == null) {
+          ctx.serverProc.kill('SIGKILL');
+          await Promise.race([waitForExit(ctx.serverProc), sleep(5000)]);
+        }
+      }
     } finally {
       if (ctx.dataDir) {
         // dataDir is <tmp>/data
