@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.5.1...mjrwtf-v0.6.0) (2026-01-01)
+
+
+### Features
+
+* **tui:** add internal HTTP client ([31206d0](https://github.com/matt-riley/mjrwtf/commit/31206d09f9358eb178e138272b7c8d39fd758eaf))
+
 ## [0.5.1](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.5.0...mjrwtf-v0.5.1) (2026-01-01)
 
 
