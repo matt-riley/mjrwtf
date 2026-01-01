@@ -16,6 +16,7 @@ type viewMode int
 const (
 	modeBrowsing viewMode = iota
 	modeFiltering
+	modeCreating
 )
 
 type tuiURL struct {

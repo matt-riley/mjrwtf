@@ -5,8 +5,10 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/matt-riley/mjrwtf/internal/client"
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
 )
 
@@ -17,6 +19,9 @@ type model struct {
 	spinner spinner.Model
 	loading bool
 	status  string
+
+	createInput   textinput.Model
+	createLoading bool
 
 	mode        viewMode
 	urls        []tuiURL
@@ -33,6 +38,11 @@ func newModel(cfg tui_config.Config, warnings []string) model {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 
+	ti := textinput.New()
+	ti.Placeholder = "https://example.com"
+	ti.CharLimit = 2048
+	ti.Width = 80
+
 	m := model{
 		cfg:      cfg,
 		warnings: warnings,
@@ -43,6 +53,8 @@ func newModel(cfg tui_config.Config, warnings []string) model {
 		filtered: []tuiURL{},
 		pageSize: 20,
 		offset:   0,
+
+		createInput: ti,
 	}
 	if len(warnings) > 0 {
 		m.status = warnings[0]
@@ -60,10 +72,46 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		}
+
+		if m.mode == modeCreating {
+			switch msg.String() {
+			case "esc":
+				m.mode = modeBrowsing
+				m.createLoading = false
+				m.status = "Create cancelled"
+				return m, nil
+			case "enter":
+				if m.createLoading {
+					return m, nil
+				}
+				original := strings.TrimSpace(m.createInput.Value())
+				if err := validateHTTPURL(original); err != nil {
+					m.status = err.Error()
+					return m, nil
+				}
+				m.createLoading = true
+				m.status = "Creating..."
+				return m, tea.Batch(m.spinner.Tick, createURLCmd(m.cfg, original))
+			default:
+				var cmd tea.Cmd
+				m.createInput, cmd = m.createInput.Update(msg)
+				return m, cmd
+			}
+		}
+
+		switch msg.String() {
 		case "r":
 			m.loading = true
 			m.status = "Refreshing..."
 			return m, tea.Batch(m.spinner.Tick, listURLsCmd(m.cfg, m.pageSize, m.offset))
+		case "c":
+			m.mode = modeCreating
+			m.createLoading = false
+			m.createInput.SetValue("")
+			cmd := m.createInput.Focus()
+			m.status = "Create: enter original URL"
+			return m, cmd
 		case "j", "down":
 			if m.mode != modeFiltering {
 				m.cursorDown()
@@ -99,7 +147,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case spinner.TickMsg:
-		if !m.loading {
+		if !(m.loading || m.createLoading) {
 			return m, nil
 		}
 		var cmd tea.Cmd
@@ -116,6 +164,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.applyFilter() // reapply current filter after refresh/page change
 		m.status = fmt.Sprintf("Loaded %d/%d", len(m.filtered), m.total)
 		return m, nil
+	case createURLMsg:
+		m.createLoading = false
+		if msg.err != nil {
+			if apiErr, ok := msg.err.(*client.APIError); ok {
+				m.status = fmt.Sprintf("Create failed (%d): %s", apiErr.StatusCode, apiErr.Message)
+			} else {
+				m.status = fmt.Sprintf("Create failed: %v", msg.err)
+			}
+			return m, nil
+		}
+		if msg.resp == nil {
+			m.status = "Create failed: empty response"
+			return m, nil
+		}
+
+		m.mode = modeBrowsing
+		m.status = fmt.Sprintf("Created: %s", msg.resp.ShortURL)
+		m.loading = true
+		return m, tea.Batch(m.spinner.Tick, listURLsCmd(m.cfg, m.pageSize, m.offset))
 	}
 
 	return m, nil
@@ -143,6 +210,9 @@ func (m model) View() string {
 }
 
 func (m model) mainLine() string {
+	if m.mode == modeCreating {
+		return m.createView()
+	}
 	if m.loading {
 		return fmt.Sprintf("%s Loading URLs...", m.spinner.View())
 	}
@@ -169,8 +239,26 @@ func (m model) mainLine() string {
 	return strings.Join(lines, "\n")
 }
 
+func (m model) createView() string {
+	lines := []string{
+		lipgloss.NewStyle().Bold(true).Render("Create URL"),
+		"",
+		"Original URL:",
+		m.createInput.View(),
+	}
+	if m.createLoading {
+		lines = append(lines, "", fmt.Sprintf("%s Creating...", m.spinner.View()))
+	}
+	return strings.Join(lines, "\n")
+}
+
 func (m model) footer() string {
-	hints := lipgloss.NewStyle().Faint(true).Render("[j/k/↑/↓] move  [n/p] page  [/] filter  [r] refresh  [q] quit")
+	hintsLine := "[j/k/↑/↓] move  [n/p] page  [/] filter  [c] create  [r] refresh  [q] quit"
+	if m.mode == modeCreating {
+		hintsLine = "[enter] submit  [esc] cancel  [q] quit"
+	}
+
+	hints := lipgloss.NewStyle().Faint(true).Render(hintsLine)
 	status := m.status
 	if m.mode == modeFiltering {
 		status = fmt.Sprintf("Filter: %s", m.filterQuery)

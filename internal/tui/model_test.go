@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -37,6 +38,74 @@ func TestModel_View_ShowsBaseURL(t *testing.T) {
 	out := m.View()
 	if !strings.Contains(out, "Base URL: http://example") {
 		t.Fatalf("expected base URL line")
+	}
+}
+
+func TestModel_Update_CreateMode_Cancel(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
+	m.loading = false
+
+	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	mm := m2.(model)
+	if mm.mode != modeCreating {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+
+	m3, _ := mm.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	mm2 := m3.(model)
+	if mm2.mode != modeBrowsing {
+		t.Fatalf("mode=%v", mm2.mode)
+	}
+}
+
+func TestModel_Update_CreateMode_InvalidURL(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
+	m.loading = false
+
+	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	mm := m2.(model)
+	mm.createInput.SetValue("ftp://example.com")
+
+	m3, _ := mm.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm2 := m3.(model)
+	if !strings.Contains(mm2.status, "http") {
+		t.Fatalf("status=%q", mm2.status)
+	}
+	if mm2.createLoading {
+		t.Fatalf("expected createLoading=false")
+	}
+}
+
+func TestCreateURLCmd(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if r.URL.Path != "/api/urls" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		b, _ := io.ReadAll(r.Body)
+		if !strings.Contains(string(b), `"original_url":"https://example.com"`) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"short_code":"abc123","short_url":"https://mjr.wtf/abc123","original_url":"https://example.com"}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	msg := createURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "https://example.com")().(createURLMsg)
+	if msg.err != nil {
+		t.Fatalf("expected nil err, got %v", msg.err)
+	}
+	if msg.resp == nil {
+		t.Fatalf("expected resp")
+	}
+	if msg.resp.ShortCode != "abc123" {
+		t.Fatalf("ShortCode=%q", msg.resp.ShortCode)
 	}
 }
 
