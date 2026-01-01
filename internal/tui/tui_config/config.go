@@ -1,7 +1,6 @@
 package tui_config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,8 +13,6 @@ import (
 type Config struct {
 	BaseURL string `yaml:"base_url" toml:"base_url"`
 	Token   string `yaml:"token" toml:"token"`
-
-	Source string `yaml:"-" toml:"-"`
 }
 
 type LoadOptions struct {
@@ -24,7 +21,7 @@ type LoadOptions struct {
 }
 
 func Load(opts LoadOptions) (Config, []string, error) {
-	cfg := Config{BaseURL: "http://localhost:8080", Source: "default"}
+	cfg := Config{BaseURL: "http://localhost:8080"}
 	warnings := []string{}
 
 	fileCfg, fileWarnings, err := loadFromFile()
@@ -32,37 +29,31 @@ func Load(opts LoadOptions) (Config, []string, error) {
 		return Config{}, nil, err
 	}
 	warnings = append(warnings, fileWarnings...)
-	merge(&cfg, fileCfg, "config")
+	merge(&cfg, fileCfg)
 
 	if v := strings.TrimSpace(os.Getenv("MJR_BASE_URL")); v != "" {
 		cfg.BaseURL = v
-		cfg.Source = "env"
 	}
 	if v := strings.TrimSpace(os.Getenv("MJR_TOKEN")); v != "" {
 		cfg.Token = v
-		cfg.Source = "env"
 	}
 
 	if strings.TrimSpace(opts.FlagBaseURL) != "" {
 		cfg.BaseURL = strings.TrimSpace(opts.FlagBaseURL)
-		cfg.Source = "flag"
 	}
 	if strings.TrimSpace(opts.FlagToken) != "" {
 		cfg.Token = strings.TrimSpace(opts.FlagToken)
-		cfg.Source = "flag"
 	}
 
 	return cfg, warnings, nil
 }
 
-func merge(dst *Config, src Config, source string) {
+func merge(dst *Config, src Config) {
 	if strings.TrimSpace(src.BaseURL) != "" {
 		dst.BaseURL = strings.TrimSpace(src.BaseURL)
-		dst.Source = source
 	}
 	if strings.TrimSpace(src.Token) != "" {
 		dst.Token = strings.TrimSpace(src.Token)
-		dst.Source = source
 	}
 }
 
@@ -112,10 +103,9 @@ func loadFromFile() (Config, []string, error) {
 			return Config{}, nil, fmt.Errorf("parse toml config: %w", err)
 		}
 	default:
-		return Config{}, nil, errors.New("unknown config format")
+		panic("unreachable: format must be yaml or toml")
 	}
 
-	cfg.Source = "config_file"
 	return cfg, warnings, nil
 }
 
