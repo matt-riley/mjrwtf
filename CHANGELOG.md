@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.6.0...mjrwtf-v0.7.0) (2026-01-01)
+
+
+### Features
+
+* **tui:** add Bubble Tea skeleton and config loading ([1668fa6](https://github.com/matt-riley/mjrwtf/commit/1668fa607a1e7375085d159cf94adcc2b335b58a))
+
 ## [0.6.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.5.1...mjrwtf-v0.6.0) (2026-01-01)
 
 
