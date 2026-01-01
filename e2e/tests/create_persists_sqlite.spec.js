@@ -9,7 +9,9 @@ const repoRoot = path.resolve(__dirname, '../..');
 
 const POLL_INTERVAL_MS = 250;
 const HEALTH_CHECK_TIMEOUT_MS = 120_000;
-const DB_POLL_TIMEOUT_MS = 10_000;
+// Max time to wait for SQLite writes to become visible across connections; 10s is a
+// generous upper bound chosen to keep e2e tests stable even on slow CI runners.
+const DB_WRITE_PROPAGATION_TIMEOUT_MS = 10_000;
 
 const SHORT_CODE_RE = /^[A-Za-z0-9_-]+$/;
 
@@ -57,7 +59,7 @@ async function waitForHealthy(baseURL, timeoutMs) {
       lastErr = err;
       if (!logged) {
         // Log once to aid debugging, but keep retrying until timeout.
-        console.error('Health check request failed:', err && err.name, err && err.message);
+        console.error('Health check request failed:', err?.name, err?.message);
         logged = true;
       }
     }
@@ -80,6 +82,7 @@ function sqliteGetOriginalURL(dbPath, shortCode) {
       '-cmd',
       '.parameter init',
       '-cmd',
+      // Safe: shortCode is validated against SHORT_CODE_RE (alnum/_/- only).
       `.parameter set @short_code '${shortCode}'`,
       `SELECT CASE WHEN EXISTS(SELECT 1 FROM urls WHERE short_code=@short_code)
         THEN (SELECT original_url FROM urls WHERE short_code=@short_code LIMIT 1)
@@ -96,7 +99,7 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
 
   /** @type {{ projectName: string, containerName: string, dataDir: string, hostPort: number, authToken: string }} */
   const ctx = {
-    projectName: `mjrwtf-e2e-${Date.now()}`,
+    projectName: `mjrwtf-e2e-${Date.now()}-${process.pid}`,
     containerName: '',
     dataDir: '',
     hostPort: 0,
@@ -146,7 +149,7 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
           console.error(
             'Failed to remove temporary directory %s: %s',
             tmpDir,
-            err && err.message ? err.message : err,
+            err?.message ?? String(err),
           );
         }
       }
@@ -169,21 +172,30 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
     const shortURL = (await shortUrlInput.inputValue()).trim();
     expect(shortURL).toMatch(/^https?:\/\//);
 
-    // Expected format is {baseURL}/{shortCode}.
-    const pathname = new URL(shortURL).pathname;
-    const shortCodeMatch = /\/([A-Za-z0-9_-]+)$/.exec(pathname);
-    const shortCode = shortCodeMatch ? shortCodeMatch[1] : '';
-    expect(shortCode).toBeTruthy();
+    // Expected format is {baseURL}/{shortCode}, but be tolerant of trailing slashes.
+    const urlObj = new URL(shortURL);
+    const trimmedPathname = urlObj.pathname.replace(/\/+$/, '');
+    const pathSegments = trimmedPathname.split('/');
+    const shortCode = pathSegments.pop() || '';
+    assertSafeShortCode(shortCode);
 
     const dbPath = path.join(ctx.dataDir, 'database.db');
 
-    const deadline = Date.now() + DB_POLL_TIMEOUT_MS;
+    const deadline = Date.now() + DB_WRITE_PROPAGATION_TIMEOUT_MS;
+    let loggedQueryErr = false;
     while (Date.now() < deadline) {
       if (fs.existsSync(dbPath)) {
-        const persisted = sqliteGetOriginalURL(dbPath, shortCode);
-        if (persisted !== SQLITE_NO_ROW) {
-          expect(persisted).toBe(originalURL);
-          return;
+        try {
+          const persisted = sqliteGetOriginalURL(dbPath, shortCode);
+          if (persisted !== SQLITE_NO_ROW) {
+            expect(persisted).toBe(originalURL);
+            return;
+          }
+        } catch (err) {
+          if (!loggedQueryErr) {
+            console.error('DB query failed (will retry):', err?.message ?? String(err));
+            loggedQueryErr = true;
+          }
         }
       }
 
