@@ -3,7 +3,8 @@
 /** @type {import('@playwright/test').PlaywrightTestConfig} */
 const config = {
   testDir: './tests',
-  timeout: 10 * 60 * 1000,
+  // Allow enough time for docker build + container startup on slower runners.
+  timeout: 5 * 60 * 1000,
   expect: {
     timeout: 20 * 1000,
   },
