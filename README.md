@@ -8,7 +8,7 @@ A simple URL shortener, written in Go.
 - [API Documentation](#api-documentation)
 - [Authentication](#authentication)
 - [Configuration](#configuration)
-- [TUI CLI](docs/TUI.md)
+- [TUI CLI](#tui-cli)
 - [Database Migrations](#database-migrations)
 - [Testing](#testing)
 - [Local Development](#local-development)
@@ -414,6 +414,66 @@ LOG_LEVEL=info
 LOG_FORMAT=json
 METRICS_AUTH_ENABLED=true
 ```
+
+## TUI CLI
+
+The `mjr` binary includes an interactive terminal UI (TUI) for managing short URLs via the authenticated HTTP API.
+
+### Install / run
+
+```bash
+# Build from source (recommended while developing)
+make build-mjr
+./bin/mjr tui
+
+# Or run without building a binary
+go run ./cmd/mjr tui
+
+# Or install the CLI with Go
+go install github.com/matt-riley/mjrwtf/cmd/mjr@latest
+mjr tui
+```
+
+### Configuration
+
+The TUI reads configuration from **flags**, then **environment variables**, then a **config file**.
+
+- `MJR_BASE_URL` (e.g. `http://localhost:8080` or `https://mjr.wtf`)
+- `MJR_TOKEN` (a Bearer token; must match one of `AUTH_TOKENS` / `AUTH_TOKEN` on the server)
+
+```bash
+# Local server
+export MJR_BASE_URL=http://localhost:8080
+export MJR_TOKEN=token-current
+mjr tui
+
+# Against prod
+export MJR_BASE_URL=https://mjr.wtf
+export MJR_TOKEN=token-current
+mjr tui
+```
+
+Config file (optional): `~/.config/mjrwtf/config.yaml`
+
+```yaml
+base_url: http://localhost:8080
+token: token-current
+```
+
+### Common workflows
+
+- **List URLs** (default screen)
+- **Create**: `c`
+- **Analytics**: `a`
+- **Delete**: `d` then `Enter`/`y`
+
+### Security + troubleshooting
+
+- Prefer env vars or a config file over `--token` to avoid leaking tokens into shell history.
+- **401 Unauthorized**: check `MJR_TOKEN`/`--token` matches a configured server auth token.
+- **429 Too Many Requests**: you hit the API rate limit; wait for `Retry-After` and/or refresh less frequently.
+
+See [docs/TUI.md](docs/TUI.md) for navigation/keybindings and additional details.
 
 ## Database Migrations
 

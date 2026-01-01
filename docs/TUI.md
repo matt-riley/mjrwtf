@@ -1,6 +1,86 @@
-# TUI CLI: UX, navigation, and keybindings (design)
+# TUI CLI
 
-This document records the agreed UX/navigation model for the **mjr.wtf** Bubble Tea TUI.
+This document covers how to install and use the **mjr.wtf** Bubble Tea TUI, plus the agreed UX/navigation model.
+
+## Install / run
+
+The TUI is shipped as part of the `mjr` CLI.
+
+```bash
+# Build from source
+make build-mjr
+./bin/mjr tui
+
+# Or run without building a binary
+go run ./cmd/mjr tui
+
+# Or install with Go
+go install github.com/matt-riley/mjrwtf/cmd/mjr@latest
+mjr tui
+```
+
+## Configuration
+
+Configuration precedence:
+
+1. Flags
+2. Environment variables
+3. Config file
+4. Defaults
+
+### Environment variables
+
+- `MJR_BASE_URL` (default: `http://localhost:8080`)
+- `MJR_TOKEN` (required for authenticated API calls)
+
+```bash
+# Local server
+export MJR_BASE_URL=http://localhost:8080
+export MJR_TOKEN=token-current
+mjr tui
+
+# Against prod
+export MJR_BASE_URL=https://mjr.wtf
+export MJR_TOKEN=token-current
+mjr tui
+```
+
+### Config file
+
+Default search path:
+
+1. `~/.config/mjrwtf/config.yaml` (preferred)
+2. `~/.config/mjrwtf/config.toml`
+
+Example YAML:
+
+```yaml
+base_url: http://localhost:8080
+token: token-current
+```
+
+## Common workflows
+
+From the URL list (default screen):
+
+- **List / refresh**: start the app; press `r` to refresh
+- **Create**: press `c`, fill the form, submit
+- **Analytics**: select a URL then press `a`
+- **Delete**: select a URL, press `d`, then confirm with `Enter`/`y`
+
+## Security notes
+
+- Avoid passing tokens on the command line (`--token ...`) since they can be captured in shell history and process lists.
+- Prefer `MJR_TOKEN` or a config file; if you must paste a token interactively, use a technique like `read -s` in your shell.
+
+## Troubleshooting
+
+- **401 Unauthorized**: ensure your token matches one of the server’s configured `AUTH_TOKENS`/`AUTH_TOKEN`.
+- **429 Too Many Requests**: you hit the API rate limit; wait for `Retry-After` and/or refresh less frequently.
+
+## UX, navigation, and keybindings (design)
+
+This section records the agreed UX/navigation model for the **mjr.wtf** Bubble Tea TUI.
 
 ## Entrypoint
 
