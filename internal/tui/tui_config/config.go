@@ -38,22 +38,22 @@ func Load(opts LoadOptions) (Config, []string, error) {
 		cfg.Token = v
 	}
 
-	if strings.TrimSpace(opts.FlagBaseURL) != "" {
-		cfg.BaseURL = strings.TrimSpace(opts.FlagBaseURL)
+	if v := strings.TrimSpace(opts.FlagBaseURL); v != "" {
+		cfg.BaseURL = v
 	}
-	if strings.TrimSpace(opts.FlagToken) != "" {
-		cfg.Token = strings.TrimSpace(opts.FlagToken)
+	if v := strings.TrimSpace(opts.FlagToken); v != "" {
+		cfg.Token = v
 	}
 
 	return cfg, warnings, nil
 }
 
 func merge(dst *Config, src Config) {
-	if strings.TrimSpace(src.BaseURL) != "" {
-		dst.BaseURL = strings.TrimSpace(src.BaseURL)
+	if v := strings.TrimSpace(src.BaseURL); v != "" {
+		dst.BaseURL = v
 	}
-	if strings.TrimSpace(src.Token) != "" {
-		dst.Token = strings.TrimSpace(src.Token)
+	if v := strings.TrimSpace(src.Token); v != "" {
+		dst.Token = v
 	}
 }
 
