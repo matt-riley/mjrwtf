@@ -314,3 +314,116 @@ func TestModel_Update_AnalyticsTimeRange_SuccessFetches(t *testing.T) {
 		t.Fatalf("expected start < end")
 	}
 }
+
+func TestDeleteURLCmd(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if r.URL.Path != "/api/urls/abc123" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(srv.Close)
+
+	msg := deleteURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "abc123")().(deleteURLMsg)
+	if msg.err != nil {
+		t.Fatalf("expected nil err, got %v", msg.err)
+	}
+	if msg.shortCode != "abc123" {
+		t.Fatalf("shortCode=%q", msg.shortCode)
+	}
+}
+
+func TestModel_Update_OpenDeleteConfirm(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.loading = false
+	m.total = 1
+	m.urls = []tuiURL{{ShortCode: "abc123", OriginalURL: "https://example.com"}}
+	m.filtered = m.urls
+	m.cursor = 0
+
+	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	mm := m2.(model)
+	if mm.mode != modeDeleteConfirm {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if mm.deleteConfirmShortCode != "abc123" {
+		t.Fatalf("deleteConfirmShortCode=%q", mm.deleteConfirmShortCode)
+	}
+	if !strings.Contains(mm.status, "Confirm") {
+		t.Fatalf("status=%q", mm.status)
+	}
+}
+
+func TestModel_Update_DeleteConfirm_Cancel(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.mode = modeDeleteConfirm
+	m.deleteConfirmShortCode = "abc123"
+	m.deleteConfirmOriginalURL = "https://example.com"
+
+	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	mm := m2.(model)
+	if mm.mode != modeBrowsing {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if !strings.Contains(mm.status, "cancel") {
+		t.Fatalf("status=%q", mm.status)
+	}
+}
+
+func TestModel_Update_DeleteConfirm_ConfirmStartsDelete(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.mode = modeDeleteConfirm
+	m.deleteConfirmShortCode = "abc123"
+
+	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm := m2.(model)
+	if !mm.deleteLoading {
+		t.Fatalf("expected deleteLoading=true")
+	}
+	if cmd == nil {
+		t.Fatalf("expected cmd")
+	}
+}
+
+func TestModel_Update_DeleteURLMsg_SuccessRemovesItem(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.loading = false
+	m.total = 2
+	m.urls = []tuiURL{{ShortCode: "abc123"}, {ShortCode: "def456"}}
+	m.filtered = m.urls
+	m.cursor = 0
+
+	m2, _ := m.Update(deleteURLMsg{shortCode: "abc123"})
+	mm := m2.(model)
+	if len(mm.urls) != 1 || mm.urls[0].ShortCode != "def456" {
+		t.Fatalf("urls=%v", mm.urls)
+	}
+	if mm.total != 1 {
+		t.Fatalf("total=%d", mm.total)
+	}
+	if !strings.Contains(mm.status, "Deleted") {
+		t.Fatalf("status=%q", mm.status)
+	}
+}
+
+func TestModel_Update_DeleteURLMsg_NotFoundRefreshes(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.loading = false
+
+	m2, cmd := m.Update(deleteURLMsg{shortCode: "abc123", err: &client.APIError{StatusCode: 404, Message: "Not found"}})
+	mm := m2.(model)
+	if !mm.loading {
+		t.Fatalf("expected loading=true")
+	}
+	if cmd == nil {
+		t.Fatalf("expected cmd")
+	}
+	if !strings.Contains(mm.status, "not found") {
+		t.Fatalf("status=%q", mm.status)
+	}
+}

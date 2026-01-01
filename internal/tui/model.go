@@ -28,6 +28,10 @@ type model struct {
 	createInput   textinput.Model
 	createLoading bool
 
+	deleteLoading            bool
+	deleteConfirmShortCode   string
+	deleteConfirmOriginalURL string
+
 	mode viewMode
 
 	urls        []tuiURL
@@ -267,6 +271,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+		case modeDeleteConfirm:
+			switch msg.String() {
+			case "esc", "n":
+				m.mode = modeBrowsing
+				m.deleteLoading = false
+				m.status = "Delete cancelled"
+				return m, nil
+			case "enter", "y":
+				if m.deleteLoading {
+					return m, nil
+				}
+				if strings.TrimSpace(m.deleteConfirmShortCode) == "" {
+					m.mode = modeBrowsing
+					m.status = "No selected URL"
+					return m, nil
+				}
+				m.deleteLoading = true
+				m.status = fmt.Sprintf("Deleting: %s...", m.deleteConfirmShortCode)
+				return m, tea.Batch(m.spinner.Tick, deleteURLCmd(m.cfg, m.deleteConfirmShortCode))
+			}
+
 		default:
 			switch msg.String() {
 			case "r":
@@ -301,6 +326,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.analyticsEndTime = nil
 				m.status = "Loading analytics..."
 				return m, tea.Batch(m.spinner.Tick, getAnalyticsCmd(m.cfg, m.analyticsShortCode, nil, nil))
+			case "d":
+				if m.loading {
+					return m, nil
+				}
+				if len(m.filtered) == 0 {
+					m.status = "No URLs to delete"
+					return m, nil
+				}
+				if m.cursor < 0 || m.cursor >= len(m.filtered) {
+					m.status = "No selected URL"
+					return m, nil
+				}
+				u := m.filtered[m.cursor]
+				m.mode = modeDeleteConfirm
+				m.deleteLoading = false
+				m.deleteConfirmShortCode = u.ShortCode
+				m.deleteConfirmOriginalURL = u.OriginalURL
+				m.status = fmt.Sprintf("Confirm delete: %s", u.ShortCode)
+				return m, nil
 			case "j", "down":
 				if m.mode != modeFiltering {
 					m.cursorDown()
@@ -338,7 +382,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if !(m.loading || m.createLoading || m.analyticsLoading) {
+		if !(m.loading || m.createLoading || m.analyticsLoading || m.deleteLoading) {
 			return m, nil
 		}
 		var cmd tea.Cmd
@@ -369,6 +413,56 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.analytics = msg.resp
 		m.status = "Analytics loaded"
+		return m, nil
+
+	case deleteURLMsg:
+		m.deleteLoading = false
+		m.mode = modeBrowsing
+		m.deleteConfirmShortCode = ""
+		m.deleteConfirmOriginalURL = ""
+		if msg.err != nil {
+			if apiErr, ok := msg.err.(*client.APIError); ok {
+				if apiErr.StatusCode == 404 {
+					m.status = fmt.Sprintf("Delete: %s not found (already deleted?)", msg.shortCode)
+					m.loading = true
+					return m, tea.Batch(m.spinner.Tick, listURLsCmd(m.cfg, m.pageSize, m.offset))
+				}
+				m.status = fmt.Sprintf("Delete failed (%d): %s", apiErr.StatusCode, apiErr.Message)
+			} else {
+				m.status = fmt.Sprintf("Delete failed: %v", msg.err)
+			}
+			return m, nil
+		}
+
+		if m.total > 0 {
+			m.total--
+		}
+
+		remaining := make([]tuiURL, 0, len(m.urls))
+		for _, u := range m.urls {
+			if u.ShortCode == msg.shortCode {
+				continue
+			}
+			remaining = append(remaining, u)
+		}
+		m.urls = remaining
+
+		remainingFiltered := make([]tuiURL, 0, len(m.filtered))
+		for _, u := range m.filtered {
+			if u.ShortCode == msg.shortCode {
+				continue
+			}
+			remainingFiltered = append(remainingFiltered, u)
+		}
+		m.filtered = remainingFiltered
+		if m.cursor >= len(m.filtered) {
+			m.cursor = len(m.filtered) - 1
+		}
+		if m.cursor < 0 {
+			m.cursor = 0
+		}
+
+		m.status = fmt.Sprintf("Deleted: %s", msg.shortCode)
 		return m, nil
 
 	case createURLMsg:
@@ -433,6 +527,8 @@ func (m model) mainLine() string {
 		return m.analyticsTimeRangeView()
 	case modeViewingAnalytics:
 		return m.analyticsView()
+	case modeDeleteConfirm:
+		return m.deleteConfirmView()
 	default:
 		if m.loading {
 			return fmt.Sprintf("%s Loading URLs...", m.spinner.View())
@@ -474,8 +570,21 @@ func (m model) createView() string {
 	return strings.Join(lines, "\n")
 }
 
+func (m model) deleteConfirmView() string {
+	lines := []string{
+		lipgloss.NewStyle().Bold(true).Render("Confirm Delete"),
+		"",
+		fmt.Sprintf("Short code: %s", m.deleteConfirmShortCode),
+		fmt.Sprintf("Original URL: %s", truncate(m.deleteConfirmOriginalURL, 120)),
+	}
+	if m.deleteLoading {
+		lines = append(lines, "", fmt.Sprintf("%s Deleting...", m.spinner.View()))
+	}
+	return strings.Join(lines, "\n")
+}
+
 func (m model) footer() string {
-	hintsLine := "[j/k/↑/↓] move  [n/p] page  [/] filter  [c] create  [a] analytics  [r] refresh  [q] quit"
+	hintsLine := "[j/k/↑/↓] move  [n/p] page  [/] filter  [c] create  [d] delete  [a] analytics  [r] refresh  [q] quit"
 	switch m.mode {
 	case modeCreating:
 		hintsLine = "[enter] submit  [esc] cancel  [q] quit"
@@ -483,6 +592,8 @@ func (m model) footer() string {
 		hintsLine = "[j/k/↑/↓] scroll  [t] time range  [r] refresh  [b/esc] back  [q] quit"
 	case modeAnalyticsTimeRange:
 		hintsLine = "[tab] switch field  [enter] next/apply  [esc] cancel  [q] quit"
+	case modeDeleteConfirm:
+		hintsLine = "[enter/y] confirm  [esc/n] cancel  [q] quit"
 	}
 
 	hints := lipgloss.NewStyle().Faint(true).Render(hintsLine)
