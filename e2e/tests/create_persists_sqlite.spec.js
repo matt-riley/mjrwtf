@@ -7,6 +7,18 @@ const path = require('node:path');
 
 const repoRoot = path.resolve(__dirname, '../..');
 
+const POLL_INTERVAL_MS = 250;
+const HEALTH_CHECK_TIMEOUT_MS = 120_000;
+const DB_POLL_TIMEOUT_MS = 10_000;
+
+const SHORT_CODE_RE = /^[A-Za-z0-9_-]+$/;
+
+function assertSafeShortCode(shortCode) {
+  if (!SHORT_CODE_RE.test(shortCode)) {
+    throw new Error('Invalid short code extracted from short URL');
+  }
+}
+
 function execFileSyncQuiet(cmd, args, options) {
   return childProcess.execFileSync(cmd, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -50,7 +62,7 @@ async function waitForHealthy(baseURL, timeoutMs) {
       }
     }
 
-    await sleep(250);
+    await sleep(POLL_INTERVAL_MS);
   }
 
   throw new Error(`Timed out waiting for ${baseURL}/health (lastErr=${lastErr})`);
@@ -59,6 +71,7 @@ async function waitForHealthy(baseURL, timeoutMs) {
 const SQLITE_NO_ROW = '__NO_ROW__';
 
 function sqliteGetOriginalURL(dbPath, shortCode) {
+  assertSafeShortCode(shortCode);
   const out = execFileSyncQuiet(
     'sqlite3',
     [
@@ -67,7 +80,7 @@ function sqliteGetOriginalURL(dbPath, shortCode) {
       '-cmd',
       '.parameter init',
       '-cmd',
-      `.parameter set @short_code ${shortCode}`,
+      `.parameter set @short_code '${shortCode}'`,
       `SELECT CASE WHEN EXISTS(SELECT 1 FROM urls WHERE short_code=@short_code)
         THEN (SELECT original_url FROM urls WHERE short_code=@short_code LIMIT 1)
         ELSE '${SQLITE_NO_ROW}'
@@ -79,7 +92,6 @@ function sqliteGetOriginalURL(dbPath, shortCode) {
 }
 
 test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
-  test.setTimeout(10 * 60 * 1000);
   test.describe.configure({ mode: 'serial' });
 
   /** @type {{ projectName: string, containerName: string, dataDir: string, hostPort: number, authToken: string }} */
@@ -110,7 +122,7 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
 
     execFileSyncQuiet('docker', ['compose', 'up', '-d', '--build'], { cwd: repoRoot, env });
 
-    await waitForHealthy(`http://localhost:${ctx.hostPort}`, 120_000);
+    await waitForHealthy(`http://localhost:${ctx.hostPort}`, HEALTH_CHECK_TIMEOUT_MS);
   });
 
   test.afterAll(async () => {
@@ -165,7 +177,7 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
 
     const dbPath = path.join(ctx.dataDir, 'database.db');
 
-    const deadline = Date.now() + 10_000;
+    const deadline = Date.now() + DB_POLL_TIMEOUT_MS;
     while (Date.now() < deadline) {
       if (fs.existsSync(dbPath)) {
         const persisted = sqliteGetOriginalURL(dbPath, shortCode);
@@ -175,9 +187,9 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
         }
       }
 
-      await sleep(250);
+      await sleep(POLL_INTERVAL_MS);
     }
 
-    throw new Error(`Row not found in sqlite DB for short_code=${shortCode}`);
+    throw new Error('Row not found in sqlite DB for created short URL');
   });
 });
