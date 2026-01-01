@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.4.1...mjrwtf-v0.5.0) (2026-01-01)
+
+
+### Features
+
+* **docker:** add migration binary and entrypoint script to run DB migrations before server start ([b91b9cc](https://github.com/matt-riley/mjrwtf/commit/b91b9cc91dca394b4a3a249c6d06a6dad4ca4e5b))
+
 ## [0.4.1](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.4.0...mjrwtf-v0.4.1) (2026-01-01)
 
 
