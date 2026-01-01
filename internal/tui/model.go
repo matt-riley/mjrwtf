@@ -173,14 +173,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.status = fmt.Sprintf("Create failed: %v", msg.err)
 			}
+			m.mode = modeBrowsing
+			m.createInput.SetValue("")
 			return m, nil
 		}
 		if msg.resp == nil {
 			m.status = "Create failed: empty response"
+			m.mode = modeBrowsing
+			m.createInput.SetValue("")
 			return m, nil
 		}
 
 		m.mode = modeBrowsing
+		m.createInput.SetValue("")
 		if err := clipboard.WriteAll(msg.resp.ShortURL); err != nil {
 			m.status = fmt.Sprintf("Created: %s (copy failed: %v)", msg.resp.ShortURL, err)
 		} else {

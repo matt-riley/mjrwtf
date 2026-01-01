@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/matt-riley/mjrwtf/internal/client"
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
 )
 
@@ -106,6 +107,49 @@ func TestCreateURLCmd(t *testing.T) {
 	}
 	if msg.resp.ShortCode != "abc123" {
 		t.Fatalf("ShortCode=%q", msg.resp.ShortCode)
+	}
+}
+
+func TestCreateURLCmd_APIError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"Unauthorized: invalid token"}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	msg := createURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "https://example.com")().(createURLMsg)
+	if msg.err == nil {
+		t.Fatalf("expected err")
+	}
+	apiErr, ok := msg.err.(*client.APIError)
+	if !ok {
+		t.Fatalf("expected *client.APIError, got %T", msg.err)
+	}
+	if apiErr.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("StatusCode=%d", apiErr.StatusCode)
+	}
+	if apiErr.Message == "" {
+		t.Fatalf("expected message")
+	}
+}
+
+func TestModel_Update_CreateURLMsg_ErrorResetsMode(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
+	m.loading = false
+	m.mode = modeCreating
+	m.createInput.SetValue("https://example.com")
+
+	m2, _ := m.Update(createURLMsg{err: &client.APIError{StatusCode: 401, Message: "Unauthorized"}})
+	mm := m2.(model)
+	if mm.mode != modeBrowsing {
+		t.Fatalf("mode=%v", mm.mode)
+	}
+	if mm.createInput.Value() != "" {
+		t.Fatalf("expected createInput cleared")
+	}
+	if !strings.Contains(mm.status, "Create failed") {
+		t.Fatalf("status=%q", mm.status)
 	}
 }
 
