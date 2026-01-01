@@ -32,29 +32,50 @@ async function getFreePort() {
 
 async function waitForHealthy(baseURL, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
+  let logged = false;
+  /** @type {unknown} */
+  let lastErr;
 
   // Node 18+ has global fetch.
   while (Date.now() < deadline) {
     try {
       const res = await fetch(`${baseURL}/health`);
       if (res.ok) return;
-    } catch {
-      // ignore
+    } catch (err) {
+      lastErr = err;
+      if (!logged) {
+        // Log once to aid debugging, but keep retrying until timeout.
+        console.error('Health check request failed:', err && err.name, err && err.message);
+        logged = true;
+      }
     }
 
     await sleep(250);
   }
 
-  throw new Error(`Timed out waiting for ${baseURL}/health`);
+  throw new Error(`Timed out waiting for ${baseURL}/health (lastErr=${lastErr})`);
 }
+
+const SQLITE_NO_ROW = '__NO_ROW__';
 
 function sqliteGetOriginalURL(dbPath, shortCode) {
   const out = execFileSyncQuiet(
     'sqlite3',
-    ['-readonly', dbPath, `SELECT original_url FROM urls WHERE short_code='${shortCode}';`],
+    [
+      '-readonly',
+      dbPath,
+      '-cmd',
+      '.parameter init',
+      '-cmd',
+      `.parameter set @short_code ${shortCode}`,
+      `SELECT CASE WHEN EXISTS(SELECT 1 FROM urls WHERE short_code=@short_code)
+        THEN (SELECT original_url FROM urls WHERE short_code=@short_code LIMIT 1)
+        ELSE '${SQLITE_NO_ROW}'
+      END;`,
+    ],
     { encoding: 'utf8' },
   );
-  return out.trim();
+  return out.trimEnd();
 }
 
 test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
@@ -99,7 +120,6 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
       CONTAINER_NAME: ctx.containerName,
       HOST_PORT: String(ctx.hostPort),
       DATA_DIR: ctx.dataDir,
-      AUTH_TOKENS: ctx.authToken,
     };
 
     try {
@@ -108,7 +128,15 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
       if (ctx.dataDir) {
         // dataDir is <tmp>/data
         const tmpDir = path.dirname(ctx.dataDir);
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        try {
+          fs.rmSync(tmpDir, { recursive: true, force: true });
+        } catch (err) {
+          console.error(
+            'Failed to remove temporary directory %s: %s',
+            tmpDir,
+            err && err.message ? err.message : err,
+          );
+        }
       }
     }
   });
@@ -129,9 +157,11 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
     const shortURL = (await shortUrlInput.inputValue()).trim();
     expect(shortURL).toMatch(/^https?:\/\//);
 
-    const shortCode = new URL(shortURL).pathname.replace(/^\/+/, '').split('/').pop();
+    // Expected format is {baseURL}/{shortCode}.
+    const pathname = new URL(shortURL).pathname;
+    const shortCodeMatch = /\/([A-Za-z0-9_-]+)$/.exec(pathname);
+    const shortCode = shortCodeMatch ? shortCodeMatch[1] : '';
     expect(shortCode).toBeTruthy();
-    expect(shortCode).toMatch(/^[A-Za-z0-9_-]+$/);
 
     const dbPath = path.join(ctx.dataDir, 'database.db');
 
@@ -139,7 +169,7 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
     while (Date.now() < deadline) {
       if (fs.existsSync(dbPath)) {
         const persisted = sqliteGetOriginalURL(dbPath, shortCode);
-        if (persisted) {
+        if (persisted !== SQLITE_NO_ROW) {
           expect(persisted).toBe(originalURL);
           return;
         }
