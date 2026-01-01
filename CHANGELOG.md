@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.5.0...mjrwtf-v0.5.1) (2026-01-01)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.33 ([2415f38](https://github.com/matt-riley/mjrwtf/commit/2415f38e9968e63fa8c1bb7be78ce13b07def87d))
+
 ## [0.5.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.4.1...mjrwtf-v0.5.0) (2026-01-01)
 
 
