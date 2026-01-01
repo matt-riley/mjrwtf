@@ -164,10 +164,16 @@ test.describe('UI E2E: /create persists to SQLite (go server)', () => {
     try {
       if (ctx.serverProc && ctx.serverProc.exitCode == null) {
         ctx.serverProc.kill('SIGTERM');
-        await Promise.race([waitForExit(ctx.serverProc), sleep(5000)]);
-        if (ctx.serverProc.exitCode == null) {
+        const termResult = await Promise.race([
+          waitForExit(ctx.serverProc).then(() => 'exit'),
+          sleep(5000).then(() => 'timeout'),
+        ]);
+        if (termResult === 'timeout' && ctx.serverProc.exitCode == null) {
           ctx.serverProc.kill('SIGKILL');
-          await Promise.race([waitForExit(ctx.serverProc), sleep(5000)]);
+          await Promise.race([
+            waitForExit(ctx.serverProc).then(() => 'exit'),
+            sleep(5000).then(() => 'timeout'),
+          ]);
         }
       }
     } finally {
