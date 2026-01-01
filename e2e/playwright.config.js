@@ -8,10 +8,15 @@ const config = {
   expect: {
     timeout: 20 * 1000,
   },
+  // Prefer stability in CI (docker build + shared runners).
+  workers: process.env.CI ? 1 : undefined,
   use: {
     headless: true,
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
+    video: 'retain-on-failure',
   },
-  reporter: [['list']],
+  reporter: [['list'], ['html', { open: 'never' }]],
 };
 
 module.exports = config;
