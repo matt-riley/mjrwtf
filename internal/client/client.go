@@ -88,6 +88,10 @@ func (c *Client) CreateURL(ctx context.Context, originalURL string) (*CreateURLR
 	return &out, nil
 }
 
+// ListURLs calls GET /api/urls.
+//
+// Note: passing limit=0 and/or offset=0 omits those query parameters so the server can apply
+// its defaults (limit defaults to 20; offset defaults to 0).
 func (c *Client) ListURLs(ctx context.Context, limit, offset int) (*ListURLsResponse, error) {
 	u := c.resolve("/api/urls")
 	q := u.Query()
@@ -185,7 +189,9 @@ func (c *Client) do(req *http.Request, expectedStatus int, out any) error {
 	}
 
 	if out == nil {
-		io.Copy(io.Discard, resp.Body)
+		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+			return fmt.Errorf("discard response body: %w", err)
+		}
 		return nil
 	}
 

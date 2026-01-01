@@ -23,7 +23,7 @@ type URLResponse struct {
 
 type ListURLsResponse struct {
 	URLs   []URLResponse `json:"urls"`
-	Total  int64         `json:"total"`
+	Total  int           `json:"total"`
 	Limit  int           `json:"limit"`
 	Offset int           `json:"offset"`
 }
