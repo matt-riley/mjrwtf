@@ -8,7 +8,8 @@ const path = require('node:path');
 const repoRoot = path.resolve(__dirname, '../..');
 
 const POLL_INTERVAL_MS = 250;
-const HEALTH_CHECK_TIMEOUT_MS = 120_000;
+// Docker builds on shared CI runners can be slow; keep this generous to avoid flakiness.
+const HEALTH_CHECK_TIMEOUT_MS = 300_000;
 // Max time to wait for SQLite writes to become visible across connections; 10s is a
 // generous upper bound chosen to keep e2e tests stable even on slow CI runners.
 const DB_WRITE_PROPAGATION_TIMEOUT_MS = 10_000;
@@ -125,7 +126,34 @@ test.describe('UI E2E: /create persists to SQLite (docker compose)', () => {
 
     execFileSyncQuiet('docker', ['compose', 'up', '-d', '--build'], { cwd: repoRoot, env });
 
-    await waitForHealthy(`http://127.0.0.1:${ctx.hostPort}`, HEALTH_CHECK_TIMEOUT_MS);
+    try {
+      await waitForHealthy(`http://127.0.0.1:${ctx.hostPort}`, HEALTH_CHECK_TIMEOUT_MS);
+    } catch (err) {
+      // Surface docker state in CI logs to make failures actionable.
+      try {
+        console.error(
+          'docker compose ps:\n%s',
+          execFileSyncQuiet('docker', ['compose', 'ps'], { cwd: repoRoot, env, encoding: 'utf8' }),
+        );
+      } catch (psErr) {
+        console.error('Failed to capture docker compose ps:', psErr?.message ?? String(psErr));
+      }
+
+      try {
+        console.error(
+          'docker compose logs (tail):\n%s',
+          execFileSyncQuiet('docker', ['compose', 'logs', '--no-color', '--tail', '200'], {
+            cwd: repoRoot,
+            env,
+            encoding: 'utf8',
+          }),
+        );
+      } catch (logsErr) {
+        console.error('Failed to capture docker compose logs:', logsErr?.message ?? String(logsErr));
+      }
+
+      throw err;
+    }
   });
 
   test.afterAll(async () => {
