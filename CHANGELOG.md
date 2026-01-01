@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.4.0...mjrwtf-v0.4.1) (2026-01-01)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/a-h/templ to v0.3.977 ([88c4b82](https://github.com/matt-riley/mjrwtf/commit/88c4b820b431897fb6744b5d873d08d2b4b15515))
+
 ## [0.4.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.3.0...mjrwtf-v0.4.0) (2025-12-31)
 
 
