@@ -277,7 +277,11 @@ test.describe('UI E2E: /create persists to SQLite (go server)', () => {
     // Dashboard should show the created URL.
     await page.goto(`${baseURL}/dashboard`);
     const tableBody = page.locator('#urls-table-body');
-    await expect(tableBody).toContainText(shortCode);
-    await expect(tableBody).toContainText(originalURL);
+    await expect(tableBody).toContainText(shortCode, {
+      timeout: DB_WRITE_PROPAGATION_TIMEOUT_MS,
+    });
+    await expect(tableBody).toContainText(originalURL, {
+      timeout: DB_WRITE_PROPAGATION_TIMEOUT_MS,
+    });
   });
 });
