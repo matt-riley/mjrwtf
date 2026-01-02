@@ -852,11 +852,14 @@ func formatTopMapSection(title string, in map[string]int64, maxItems int) []stri
 	if maxItems > 0 && len(items) > maxItems {
 		shown = items[:maxItems]
 	}
+
+	baseRowStyle := lipgloss.NewStyle().Background(styles.Surface0).Foreground(styles.Text).Padding(0, 1)
+	topRowStyle := lipgloss.NewStyle().Background(styles.Surface1).Foreground(styles.Lavender).Bold(true).Padding(0, 1)
 	for i, it := range shown {
 		row := fmt.Sprintf("%-32s %10d", truncate(it.k, 32), it.v)
-		rowStyle := lipgloss.NewStyle().Background(styles.Surface0).Foreground(styles.Text).Padding(0, 1)
+		rowStyle := baseRowStyle
 		if i == 0 {
-			rowStyle = lipgloss.NewStyle().Background(styles.Surface1).Foreground(styles.Lavender).Bold(true).Padding(0, 1)
+			rowStyle = topRowStyle
 		}
 		inner = append(inner, rowStyle.Render(row))
 	}
@@ -884,9 +887,11 @@ func formatDateMapSection(title string, in map[string]int64, maxItems int) []str
 	if maxItems > 0 && len(keys) > maxItems {
 		shown = keys[:maxItems]
 	}
+
+	rowStyle := lipgloss.NewStyle().Background(styles.Surface0).Foreground(styles.Text).Padding(0, 1)
 	for _, k := range shown {
 		row := fmt.Sprintf("%s  %10d", k, in[k])
-		inner = append(inner, lipgloss.NewStyle().Background(styles.Surface0).Foreground(styles.Text).Padding(0, 1).Render(row))
+		inner = append(inner, rowStyle.Render(row))
 	}
 	if len(shown) < len(keys) {
 		inner = append(inner, styles.MutedStyle.Render(fmt.Sprintf("…and %d more", len(keys)-len(shown))))
