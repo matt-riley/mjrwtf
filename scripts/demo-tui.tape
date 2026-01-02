@@ -14,7 +14,7 @@ Set LoopOffset 20%
 
 # Note: This demo assumes:
 # 1. Server is running at localhost:8080
-# 2. AUTH_TOKEN is set to "demo-token"
+# 2. MJR_TOKEN is set to "demo-token"
 # 3. The TUI binary is built at ./bin/mjr
 
 # Show the command being run
