@@ -9,6 +9,7 @@ import (
 
 func TestLoadConfig_Success(t *testing.T) {
 	// Set required environment variables
+	os.Unsetenv("AUTH_TOKENS")
 	os.Setenv("DATABASE_URL", "./database.db")
 	os.Setenv("AUTH_TOKEN", "test-token")
 	defer cleanEnv()

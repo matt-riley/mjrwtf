@@ -587,29 +587,41 @@ func (m model) mainLine() string {
 }
 
 func (m model) createView() string {
+	inputBox := styles.InputBoxStyle
+	if m.createInput.Focused() {
+		inputBox = styles.InputBoxFocusedStyle
+	}
+
 	lines := []string{
-		lipgloss.NewStyle().Bold(true).Render("Create URL"),
+		styles.TitleStyle.Render("Create URL"),
 		"",
-		"Original URL:",
-		m.createInput.View(),
+		styles.MutedStyle.Render("Original URL:"),
+		inputBox.Render(m.createInput.View()),
 	}
 	if m.createLoading {
-		lines = append(lines, "", fmt.Sprintf("%s Creating...", m.spinner.View()))
+		loading := fmt.Sprintf("%s Creating...", m.spinner.View())
+		lines = append(lines, "", styles.TitleStyle.Copy().Bold(false).Render(loading))
 	}
-	return strings.Join(lines, "\n")
+
+	return styles.PanelStyle.Render(strings.Join(lines, "\n"))
 }
 
 func (m model) deleteConfirmView() string {
+	shortCode := styles.TitleStyle.Copy().Foreground(styles.Lavender).Render(m.deleteConfirmShortCode)
+	originalURL := styles.LinkStyle.Render(truncate(m.deleteConfirmOriginalURL, 120))
+
 	lines := []string{
-		lipgloss.NewStyle().Bold(true).Render("Confirm Delete"),
+		styles.WarningStyle.Render("Confirm Delete"),
 		"",
-		fmt.Sprintf("Short code: %s", m.deleteConfirmShortCode),
-		fmt.Sprintf("Original URL: %s", truncate(m.deleteConfirmOriginalURL, 120)),
+		fmt.Sprintf("%s %s", styles.MutedStyle.Render("Short code:"), shortCode),
+		fmt.Sprintf("%s %s", styles.MutedStyle.Render("Original URL:"), originalURL),
 	}
 	if m.deleteLoading {
-		lines = append(lines, "", fmt.Sprintf("%s Deleting...", m.spinner.View()))
+		loading := fmt.Sprintf("%s Deleting...", m.spinner.View())
+		lines = append(lines, "", styles.WarningStyle.Copy().Bold(false).Render(loading))
 	}
-	return strings.Join(lines, "\n")
+
+	return styles.WarningPanelStyle.Render(strings.Join(lines, "\n"))
 }
 
 type statusKind int
@@ -701,18 +713,32 @@ func (m model) analyticsVisibleLines() int {
 }
 
 func (m model) analyticsTimeRangeView() string {
-	lines := []string{
-		lipgloss.NewStyle().Bold(true).Render("Analytics time range (optional)"),
-		"",
-		"Enter RFC3339 timestamps. Leave both blank for all-time.",
-		"",
-		"start_time:",
-		m.analyticsStartInput.View(),
-		"",
-		"end_time:",
-		m.analyticsEndInput.View(),
+	startBox := styles.InputBoxStyle
+	startLabel := styles.MutedStyle.Render("start_time:")
+	if m.analyticsStartInput.Focused() {
+		startBox = styles.InputBoxFocusedStyle
+		startLabel = styles.TitleStyle.Copy().Bold(false).Render("start_time:")
 	}
-	return strings.Join(lines, "\n")
+
+	endBox := styles.InputBoxStyle
+	endLabel := styles.MutedStyle.Render("end_time:")
+	if m.analyticsEndInput.Focused() {
+		endBox = styles.InputBoxFocusedStyle
+		endLabel = styles.TitleStyle.Copy().Bold(false).Render("end_time:")
+	}
+
+	lines := []string{
+		styles.TitleStyle.Render("Analytics time range (optional)"),
+		"",
+		styles.MutedStyle.Render("Enter RFC3339 timestamps. Leave both blank for all-time."),
+		"",
+		startLabel,
+		startBox.Render(m.analyticsStartInput.View()),
+		"",
+		endLabel,
+		endBox.Render(m.analyticsEndInput.View()),
+	}
+	return styles.PanelStyle.Render(strings.Join(lines, "\n"))
 }
 
 func (m model) analyticsView() string {
