@@ -6,7 +6,7 @@ compatibility: Applies to the mjrwtf Go server; requires bash and git for repo w
 metadata:
   repo: mjrwtf
   runner: github-copilot-cli
-  version: 1.2
+  version: 1.3
 allowed-tools: Bash(git:*) Bash(go:*) Bash(make:*) Read
 ---
 
@@ -17,7 +17,8 @@ allowed-tools: Bash(git:*) Bash(go:*) Bash(make:*) Read
 
 ## Authentication & secrets
 
-- `AUTH_TOKEN` is required for protected routes; never hardcode it.
+- Auth tokens: `AUTH_TOKENS` (preferred; comma-separated) or `AUTH_TOKEN` (legacy; single token).
+- Never hardcode tokens; use environment variables.
 - Avoid logging full URLs, tokens, session cookies, or authorization headers.
 
 ## Rate limiting & client IP

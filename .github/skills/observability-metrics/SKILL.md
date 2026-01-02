@@ -6,7 +6,7 @@ compatibility: Requires bash and curl; server must be running.
 metadata:
   repo: mjrwtf
   runner: github-copilot-cli
-  version: 1.1
+  version: 1.2
 allowed-tools: Bash(git:*) Bash(curl:*) Bash(make:*) Bash(go:*) Read
 ---
 
@@ -30,7 +30,8 @@ curl -i http://localhost:8080/metrics
 If metrics auth is enabled:
 
 ```bash
-curl -i -H "Authorization: Bearer $AUTH_TOKEN" http://localhost:8080/metrics
+# Use any token from AUTH_TOKENS
+curl -i -H "Authorization: Bearer $YOUR_TOKEN" http://localhost:8080/metrics
 ```
 
 ## Security note
