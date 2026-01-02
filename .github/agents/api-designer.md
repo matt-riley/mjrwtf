@@ -7,7 +7,7 @@ tools: ["read", "search", "edit", "github"]
 Design and evolve the mjr.wtf HTTP API and keep it consistent with `openapi.yaml`.
 
 ## Project constraints
-- Auth is a configured bearer token (`AUTH_TOKEN`).
+- Auth uses bearer tokens (`AUTH_TOKENS` preferred; `AUTH_TOKEN` legacy).
 - Current error shape is simple and stable: `{ "error": "..." }`.
 - Public routes exist (`/{shortCode}` redirect; `/health`; `/metrics`).
 

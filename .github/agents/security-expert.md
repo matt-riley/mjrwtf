@@ -7,7 +7,7 @@ tools: ["read", "search", "edit", "github"]
 Review changes through a “ship-safe” lens for mjr.wtf.
 
 ## Highest-risk areas in this repo
-- Auth (`AUTH_TOKEN`) and any route protection.
+- Auth tokens (`AUTH_TOKENS`/`AUTH_TOKEN`) and route protection.
 - Redirect behavior (`/{shortCode}`) and URL validation.
 - Metrics exposure (`/metrics`) and logs leaking secrets.
 - Rate limiting and client IP handling.
