@@ -106,7 +106,7 @@ refactor: simplify repository error handling
 - Update README.md for user-facing changes
 - Update inline comments for complex logic
 - Add GoDoc comments for exported functions
-- Update schema documentation in `docs/` for database changes
+- Update documentation in `docs-site/` for user-facing changes (see [docs.mjr.wtf](https://docs.mjr.wtf))
 
 ### Commit Messages
 
