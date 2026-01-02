@@ -17,7 +17,6 @@ var BorderStyle = lipgloss.NewStyle().
 // StatusBarStyle - Status bar with Surface0 background
 var StatusBarStyle = lipgloss.NewStyle().
 	Background(Surface0).
-	Foreground(Text).
 	Padding(0, 1)
 
 // HintStyle - Muted text for keyboard hints and help text
