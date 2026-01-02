@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.8.0...mjrwtf-v0.9.0) (2026-01-02)
+
+
+### Features
+
+* Add adaptive color support and fix CI workflow ([0bfb9d2](https://github.com/matt-riley/mjrwtf/commit/0bfb9d2951352b0eb3ffd91f393ab7d056aff345))
+* Add centralized TUI style infrastructure with Catppuccin Mocha palette ([9683f06](https://github.com/matt-riley/mjrwtf/commit/9683f06e8d4fd80ebb96e5b1c2f63ee0f243f05e))
+* **tui:** Apply centralized styles to header, footer, and status bar (issue [#213](https://github.com/matt-riley/mjrwtf/issues/213)) ([1f9466d](https://github.com/matt-riley/mjrwtf/commit/1f9466d12837cbfeb0e295411728d91ca324cacc))
+* **tui:** style form and modal views ([#215](https://github.com/matt-riley/mjrwtf/issues/215)) ([45288fc](https://github.com/matt-riley/mjrwtf/commit/45288fce6bfb885e5928cec3f0667d8c79f54b16))
+
+
+### Bug Fixes
+
+* **tui:** Make status prefix matching case-insensitive ([9820d58](https://github.com/matt-riley/mjrwtf/commit/9820d58f2ae8604cc46c70b9f4cf1aec184ecdf5))
+* **tui:** preserve status colors ([4374f76](https://github.com/matt-riley/mjrwtf/commit/4374f76067863f7683d5766b922a82b745f945d9))
+
 ## [0.8.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.7.0...mjrwtf-v0.8.0) (2026-01-02)
 
 
