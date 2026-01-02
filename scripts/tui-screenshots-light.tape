@@ -38,5 +38,36 @@ Type "c"
 Sleep 1s
 Screenshot docs-site/public/images/tui/screenshots/tui-create-light.png
 
+Type "https://github.com/matt-riley/mjrwtf"
+Sleep 300ms
+Tab
+Sleep 300ms
+Type "demo"
+Sleep 300ms
+Enter
+Sleep 2s
+
+# Exit to generate some clicks, then re-open for analytics
+Type "q"
+Sleep 500ms
+Type "for i in 1 2 3; do curl -s -o /dev/null http://localhost:8080/demo; done"
+Enter
+Sleep 500ms
+
+Type "./bin/mjr tui"
+Enter
+Sleep 2s
+Type "a"
+Sleep 2s
+Screenshot docs-site/public/images/tui/screenshots/tui-analytics-light.png
+Type "b"
+Sleep 1s
+
+# Delete confirmation
+Type "d"
+Sleep 1s
+Screenshot docs-site/public/images/tui/screenshots/tui-delete-confirmation-light.png
+Type "n"
+Sleep 500ms
 Type "q"
 Sleep 500ms
