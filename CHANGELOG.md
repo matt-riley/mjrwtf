@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.7.0...mjrwtf-v0.8.0) (2026-01-02)
+
+
+### Features
+
+* Add visual assets infrastructure and TUI demo integration ([6a873c3](https://github.com/matt-riley/mjrwtf/commit/6a873c3e196c8004e95377dbd50329da022f40d2))
+
 ## [0.7.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.6.0...mjrwtf-v0.7.0) (2026-01-01)
 
 
