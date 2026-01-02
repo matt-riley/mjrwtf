@@ -2,7 +2,7 @@ package styles
 
 import "github.com/charmbracelet/lipgloss"
 
-// Base Styles using Catppuccin Mocha palette
+// Base Styles using Catppuccin adaptive color palette (Mocha for dark, Latte for light terminals)
 
 // TitleStyle - Bold text with Mauve accent for titles and headers
 var TitleStyle = lipgloss.NewStyle().
