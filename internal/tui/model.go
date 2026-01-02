@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/matt-riley/mjrwtf/internal/tui/styles"
 	"github.com/matt-riley/mjrwtf/internal/client"
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
 )
@@ -501,17 +502,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	title := lipgloss.NewStyle().Bold(true).Render("mjr.wtf TUI")
+	title := styles.TitleStyle.Render("mjr.wtf TUI")
 
 	baseURL := m.cfg.BaseURL
 	if baseURL == "" {
 		baseURL = "<empty>"
 	}
 
+	baseLabel := styles.MutedStyle.Render("Base URL:")
+	baseValue := styles.LinkStyle.Render(baseURL)
+
 	body := strings.Join([]string{
 		title,
 		"",
-		fmt.Sprintf("Base URL: %s", baseURL),
+		fmt.Sprintf("%s %s", baseLabel, baseValue),
 		"",
 		m.mainLine(),
 		"",
@@ -598,7 +602,7 @@ func (m model) footer() string {
 		hintsLine = "[enter/y] confirm  [esc/n] cancel  [q] quit"
 	}
 
-	hints := lipgloss.NewStyle().Faint(true).Render(hintsLine)
+	hints := styles.HintStyle.Render(hintsLine)
 	status := m.status
 	if m.mode == modeFiltering {
 		status = fmt.Sprintf("Filter: %s", m.filterQuery)
@@ -606,7 +610,22 @@ func (m model) footer() string {
 	if status == "" {
 		status = " "
 	}
-	return fmt.Sprintf("%s\n%s", hints, status)
+
+	// Color status based on keywords
+	lower := strings.ToLower(status)
+	var statusRendered string
+	if strings.HasPrefix(status, "Created:") || strings.HasPrefix(status, "Deleted:") || strings.Contains(lower, "success") || strings.Contains(lower, "created") || strings.Contains(lower, "copied") {
+		statusRendered = styles.SuccessStyle.Render(status)
+	} else if strings.Contains(lower, "failed") || strings.Contains(lower, "error") || strings.Contains(lower, "not found") {
+		statusRendered = styles.ErrorStyle.Render(status)
+	} else if strings.Contains(lower, "warn") || strings.Contains(lower, "warning") {
+		statusRendered = styles.WarningStyle.Render(status)
+	} else {
+		statusRendered = styles.MutedStyle.Render(status)
+	}
+
+	statusBox := styles.StatusBarStyle.Render(statusRendered)
+	return fmt.Sprintf("%s\n%s", hints, statusBox)
 }
 
 func (m model) analyticsVisibleLines() int {
