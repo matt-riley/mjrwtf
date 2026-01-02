@@ -774,7 +774,8 @@ func (m model) analyticsView() string {
 	}
 	view := lines[start:end]
 	if len(lines) > visible {
-		view = append(view, lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("(lines %d-%d of %d)", start+1, end, len(lines))))
+		indicator := fmt.Sprintf("Scroll: %d-%d of %d", start+1, end, len(lines))
+		view = append(view, styles.TitleStyle.Copy().Bold(false).Render(indicator))
 	}
 	return strings.Join(view, "\n")
 }
@@ -784,20 +785,27 @@ func (m model) analyticsLines() []string {
 		return nil
 	}
 
-	head := lipgloss.NewStyle().Bold(true).Render("Analytics")
-	lines := []string{head, ""}
-
-	lines = append(lines,
-		fmt.Sprintf("Short code: %s", m.analytics.ShortCode),
-		fmt.Sprintf("Original URL: %s", truncate(m.analytics.OriginalURL, 120)),
-		fmt.Sprintf("Total clicks: %d", m.analytics.TotalClicks),
-	)
+	shortCode := styles.TitleStyle.Copy().Foreground(styles.Lavender).Bold(false).Render(m.analytics.ShortCode)
+	originalURL := styles.LinkStyle.Render(truncate(m.analytics.OriginalURL, 120))
+	totalClicks := styles.SuccessStyle.Copy().Bold(true).Render(fmt.Sprintf("%d", m.analytics.TotalClicks))
 
 	rangeLabel := "Time range: all-time"
 	if m.analyticsStartTime != nil && m.analyticsEndTime != nil {
 		rangeLabel = fmt.Sprintf("Time range: %s → %s", m.analyticsStartTime.UTC().Format(time.RFC3339), m.analyticsEndTime.UTC().Format(time.RFC3339))
 	}
-	lines = append(lines, rangeLabel, "")
+
+	headerLines := []string{
+		styles.TitleStyle.Render("Analytics"),
+		"",
+		fmt.Sprintf("%s %s", styles.MutedStyle.Render("Short code:"), shortCode),
+		fmt.Sprintf("%s %s", styles.MutedStyle.Render("Original URL:"), originalURL),
+		fmt.Sprintf("%s %s", styles.MutedStyle.Render("Total clicks:"), totalClicks),
+		styles.MutedStyle.Render(rangeLabel),
+	}
+	box := styles.BorderStyle.Copy().BorderForeground(styles.Mauve).Padding(1, 2).Render(strings.Join(headerLines, "\n"))
+
+	lines := splitRenderedLines(box)
+	lines = append(lines, "")
 
 	lines = append(lines, formatTopMapSection("By country", m.analytics.ByCountry, 50)...)
 	lines = append(lines, "")
@@ -815,10 +823,18 @@ type kv struct {
 	v int64
 }
 
+func splitRenderedLines(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, "\n")
+}
+
 func formatTopMapSection(title string, in map[string]int64, maxItems int) []string {
-	out := []string{lipgloss.NewStyle().Bold(true).Render(title)}
+	inner := []string{styles.TitleStyle.Copy().Bold(true).Render(title), ""}
 	if len(in) == 0 {
-		return append(out, lipgloss.NewStyle().Faint(true).Render("(none)"))
+		inner = append(inner, styles.MutedStyle.Render("(none)"))
+		return splitRenderedLines(styles.BorderStyle.Copy().Padding(1, 2).Render(strings.Join(inner, "\n")))
 	}
 
 	items := make([]kv, 0, len(in))
@@ -836,19 +852,26 @@ func formatTopMapSection(title string, in map[string]int64, maxItems int) []stri
 	if maxItems > 0 && len(items) > maxItems {
 		shown = items[:maxItems]
 	}
-	for _, it := range shown {
-		out = append(out, fmt.Sprintf("%-32s %10d", truncate(it.k, 32), it.v))
+	for i, it := range shown {
+		row := fmt.Sprintf("%-32s %10d", truncate(it.k, 32), it.v)
+		rowStyle := lipgloss.NewStyle().Background(styles.Surface0).Foreground(styles.Text).Padding(0, 1)
+		if i == 0 {
+			rowStyle = lipgloss.NewStyle().Background(styles.Surface1).Foreground(styles.Lavender).Bold(true).Padding(0, 1)
+		}
+		inner = append(inner, rowStyle.Render(row))
 	}
 	if len(shown) < len(items) {
-		out = append(out, lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("…and %d more", len(items)-len(shown))))
+		inner = append(inner, styles.MutedStyle.Render(fmt.Sprintf("…and %d more", len(items)-len(shown))))
 	}
-	return out
+
+	return splitRenderedLines(styles.BorderStyle.Copy().Padding(1, 2).Render(strings.Join(inner, "\n")))
 }
 
 func formatDateMapSection(title string, in map[string]int64, maxItems int) []string {
-	out := []string{lipgloss.NewStyle().Bold(true).Render(title)}
+	inner := []string{styles.TitleStyle.Copy().Bold(true).Render(title), ""}
 	if len(in) == 0 {
-		return append(out, lipgloss.NewStyle().Faint(true).Render("(none)"))
+		inner = append(inner, styles.MutedStyle.Render("(none)"))
+		return splitRenderedLines(styles.BorderStyle.Copy().Padding(1, 2).Render(strings.Join(inner, "\n")))
 	}
 
 	keys := make([]string, 0, len(in))
@@ -862,10 +885,11 @@ func formatDateMapSection(title string, in map[string]int64, maxItems int) []str
 		shown = keys[:maxItems]
 	}
 	for _, k := range shown {
-		out = append(out, fmt.Sprintf("%s  %10d", k, in[k]))
+		row := fmt.Sprintf("%s  %10d", k, in[k])
+		inner = append(inner, lipgloss.NewStyle().Background(styles.Surface0).Foreground(styles.Text).Padding(0, 1).Render(row))
 	}
 	if len(shown) < len(keys) {
-		out = append(out, lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("…and %d more", len(keys)-len(shown))))
+		inner = append(inner, styles.MutedStyle.Render(fmt.Sprintf("…and %d more", len(keys)-len(shown))))
 	}
-	return out
+	return splitRenderedLines(styles.BorderStyle.Copy().Padding(1, 2).Render(strings.Join(inner, "\n")))
 }
