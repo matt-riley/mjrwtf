@@ -1,7 +1,7 @@
 # VHS Tape Script for mjr.wtf TUI Dark Theme Screenshots
 # Generates PNG screenshots under docs-site/public/images/tui/screenshots/.
 
-Output docs-site/public/images/tui/screenshots/.tui-screenshots-dark.gif
+Output docs-site/public/images/tui/tour-dark.gif
 
 Set FontSize 16
 Set Width 1400

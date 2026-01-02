@@ -33,7 +33,7 @@ The `demo-tui.tape` file is a VHS (Video for the Terminal) script that records a
    make build-mjr
    ```
 
-### Recording the Demo
+### Recording the Demo (Dark)
 
 ```bash
 # From repository root
@@ -41,6 +41,15 @@ vhs scripts/demo-tui.tape
 ```
 
 This will generate `docs-site/public/images/tui/demo.gif`.
+
+### Recording the Demo (Light)
+
+```bash
+# From repository root
+vhs scripts/demo-tui-light.tape
+```
+
+This will generate `docs-site/public/images/tui/demo-light.gif`.
 
 ## TUI Screenshots (PNG)
 
@@ -68,7 +77,11 @@ vhs scripts/tui-screenshots-light.tape
 
 This will generate PNGs in `docs-site/public/images/tui/screenshots/`.
 
-Note: VHS also produces temporary hidden GIF outputs in `docs-site/public/images/tui/screenshots/` (prefixed with `.tui-screenshots-`). They are not intended to be committed and can be safely deleted.
+Note: The screenshot tapes also produce small “tour” GIFs:
+- `docs-site/public/images/tui/tour-dark.gif`
+- `docs-site/public/images/tui/tour-light.gif`
+
+Security note: VHS recordings include whatever you type into the terminal. Never use real tokens when recording/regenerating these assets.
 
 ### What the Demo Shows
 
