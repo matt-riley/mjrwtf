@@ -589,6 +589,42 @@ func (m model) deleteConfirmView() string {
 	return strings.Join(lines, "\n")
 }
 
+type statusKind int
+
+const (
+	statusKindDefault statusKind = iota
+	statusKindSuccess
+	statusKindError
+	statusKindWarning
+)
+
+func statusKindFromText(status string) statusKind {
+	lower := strings.ToLower(status)
+	if strings.HasPrefix(status, "Created:") || strings.HasPrefix(status, "Deleted:") || strings.Contains(lower, "success") || strings.Contains(lower, "created") || strings.Contains(lower, "copied") {
+		return statusKindSuccess
+	}
+	if strings.Contains(lower, "failed") || strings.Contains(lower, "error") || strings.Contains(lower, "not found") {
+		return statusKindError
+	}
+	if strings.Contains(lower, "warn") || strings.Contains(lower, "warning") {
+		return statusKindWarning
+	}
+	return statusKindDefault
+}
+
+func statusStyleForText(status string) lipgloss.Style {
+	switch statusKindFromText(status) {
+	case statusKindSuccess:
+		return styles.SuccessStyle
+	case statusKindError:
+		return styles.ErrorStyle
+	case statusKindWarning:
+		return styles.WarningStyle
+	default:
+		return styles.MutedStyle
+	}
+}
+
 func (m model) footer() string {
 	hintsLine := "[j/k/↑/↓] move  [n/p] page  [/] filter  [c] create  [d] delete  [a] analytics  [r] refresh  [q] quit"
 	switch m.mode {
@@ -611,19 +647,7 @@ func (m model) footer() string {
 		status = " "
 	}
 
-	// Color status based on keywords
-	lower := strings.ToLower(status)
-	var statusRendered string
-	if strings.HasPrefix(status, "Created:") || strings.HasPrefix(status, "Deleted:") || strings.Contains(lower, "success") || strings.Contains(lower, "created") || strings.Contains(lower, "copied") {
-		statusRendered = styles.SuccessStyle.Render(status)
-	} else if strings.Contains(lower, "failed") || strings.Contains(lower, "error") || strings.Contains(lower, "not found") {
-		statusRendered = styles.ErrorStyle.Render(status)
-	} else if strings.Contains(lower, "warn") || strings.Contains(lower, "warning") {
-		statusRendered = styles.WarningStyle.Render(status)
-	} else {
-		statusRendered = styles.MutedStyle.Render(status)
-	}
-
+	statusRendered := statusStyleForText(status).Render(status)
 	statusBox := styles.StatusBarStyle.Render(statusRendered)
 	return fmt.Sprintf("%s\n%s", hints, statusBox)
 }
