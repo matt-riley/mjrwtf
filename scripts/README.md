@@ -42,6 +42,34 @@ vhs scripts/demo-tui.tape
 
 This will generate `docs-site/public/images/tui/demo.gif`.
 
+## TUI Screenshots (PNG)
+
+Issue #218 tracks capturing static screenshots for documentation.
+
+### Prerequisites
+
+Same as the demo GIF:
+- ffmpeg
+- VHS (`go install github.com/charmbracelet/vhs@latest`)
+- a running server (`docker compose up -d` with `AUTH_TOKENS` set)
+- built CLI binary (`make build-mjr`)
+
+### Generate screenshots
+
+```bash
+# Run server with tokens used by the tapes
+AUTH_TOKENS=demo-token,empty-token docker compose up -d
+
+make build-mjr
+
+vhs scripts/tui-screenshots-dark.tape
+vhs scripts/tui-screenshots-light.tape
+```
+
+This will generate PNGs in `docs/screenshots/`.
+
+Note: VHS also produces temporary hidden GIF outputs in `docs/screenshots/` (prefixed with `.tui-screenshots-`). They are not intended to be committed and can be safely deleted.
+
 ### What the Demo Shows
 
 The recorded demo demonstrates:
