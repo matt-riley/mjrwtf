@@ -19,6 +19,28 @@ import (
 
 var clipboardWriteAll = clipboard.WriteAll
 
+const (
+	createInputSideMargin = 10
+	minCreateInputWidth   = 20
+	maxCreateInputWidth   = 100
+
+	analyticsInputsTotalMargin = 20
+	minAnalyticsInputWidth     = 20
+	maxAnalyticsInputWidth     = 40
+
+	defaultTableURLWidth = 80
+	tableURLWidthMargin  = 60
+	minTableURLWidth     = 20
+	maxTableURLWidth     = 120
+
+	maxDetailURLWidth    = 120
+	detailURLWidthMargin = 20
+	minDetailURLWidth    = 30
+
+	statusWidthMargin = 4
+	minStatusWidth    = 10
+)
+
 type model struct {
 	cfg      tui_config.Config
 	warnings []string
@@ -114,21 +136,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		if m.width > 0 {
-			w := m.width - 10
-			if w < 20 {
-				w = 20
+			w := m.width - createInputSideMargin
+			if w < minCreateInputWidth {
+				w = minCreateInputWidth
 			}
-			if w > 100 {
-				w = 100
+			if w > maxCreateInputWidth {
+				w = maxCreateInputWidth
 			}
 			m.createInput.Width = w
 
-			tw := (m.width - 20) / 2
-			if tw < 20 {
-				tw = 20
+			tw := (m.width - analyticsInputsTotalMargin) / 2
+			if tw < minAnalyticsInputWidth {
+				tw = minAnalyticsInputWidth
 			}
-			if tw > 40 {
-				tw = 40
+			if tw > maxAnalyticsInputWidth {
+				tw = maxAnalyticsInputWidth
 			}
 			m.analyticsStartInput.Width = tw
 			m.analyticsEndInput.Width = tw
@@ -581,14 +603,14 @@ func (m model) mainLine() string {
 			return styles.BorderStyle.Padding(1, 2).Render(msg)
 		}
 
-		urlMax := 80
+		urlMax := defaultTableURLWidth
 		if m.width > 0 {
-			urlMax = m.width - 60
-			if urlMax < 20 {
-				urlMax = 20
+			urlMax = m.width - tableURLWidthMargin
+			if urlMax < minTableURLWidth {
+				urlMax = minTableURLWidth
 			}
-			if urlMax > 120 {
-				urlMax = 120
+			if urlMax > maxTableURLWidth {
+				urlMax = maxTableURLWidth
 			}
 		}
 
@@ -654,11 +676,11 @@ func (m model) createView() string {
 
 func (m model) deleteConfirmView() string {
 	shortCode := styles.TitleStyle.Copy().Foreground(styles.Lavender).Render(m.deleteConfirmShortCode)
-	maxURL := 120
+	maxURL := maxDetailURLWidth
 	if m.width > 0 {
-		maxURL = m.width - 20
-		if maxURL < 30 {
-			maxURL = 30
+		maxURL = m.width - detailURLWidthMargin
+		if maxURL < minDetailURLWidth {
+			maxURL = minDetailURLWidth
 		}
 	}
 	originalURL := styles.LinkStyle.Render(truncate(m.deleteConfirmOriginalURL, maxURL))
@@ -748,9 +770,9 @@ func (m model) footer() string {
 		status = " "
 	}
 	if m.width > 0 {
-		max := m.width - 4
-		if max < 10 {
-			max = 10
+		max := m.width - statusWidthMargin
+		if max < minStatusWidth {
+			max = minStatusWidth
 		}
 		status = truncate(status, max)
 	}
@@ -846,11 +868,11 @@ func (m model) analyticsLines() []string {
 	}
 
 	shortCode := styles.TitleStyle.Copy().Foreground(styles.Lavender).Bold(false).Render(m.analytics.ShortCode)
-	maxURL := 120
+	maxURL := maxDetailURLWidth
 	if m.width > 0 {
-		maxURL = m.width - 20
-		if maxURL < 30 {
-			maxURL = 30
+		maxURL = m.width - detailURLWidthMargin
+		if maxURL < minDetailURLWidth {
+			maxURL = minDetailURLWidth
 		}
 	}
 	originalURL := styles.LinkStyle.Render(truncate(m.analytics.OriginalURL, maxURL))
