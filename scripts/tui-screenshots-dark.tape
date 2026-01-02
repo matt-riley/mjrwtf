@@ -1,7 +1,7 @@
 # VHS Tape Script for mjr.wtf TUI Dark Theme Screenshots
-# Generates PNG screenshots under docs/screenshots/.
+# Generates PNG screenshots under docs-site/public/images/tui/screenshots/.
 
-Output docs/screenshots/.tui-screenshots-dark.gif
+Output docs-site/public/images/tui/screenshots/.tui-screenshots-dark.gif
 
 Set FontSize 16
 Set Width 1400
@@ -21,7 +21,7 @@ Sleep 200ms
 Type "./bin/mjr tui"
 Enter
 Sleep 2s
-Screenshot docs/screenshots/tui-empty-dark.png
+Screenshot docs-site/public/images/tui/screenshots/tui-empty-dark.png
 Type "q"
 Sleep 500ms
 
@@ -32,11 +32,11 @@ Sleep 200ms
 Type "./bin/mjr tui"
 Enter
 Sleep 2s
-Screenshot docs/screenshots/tui-browsing-dark.png
+Screenshot docs-site/public/images/tui/screenshots/tui-browsing-dark.png
 
 Type "c"
 Sleep 1s
-Screenshot docs/screenshots/tui-create-dark.png
+Screenshot docs-site/public/images/tui/screenshots/tui-create-dark.png
 
 Type "https://github.com/matt-riley/mjrwtf"
 Sleep 300ms
@@ -59,14 +59,14 @@ Enter
 Sleep 2s
 Type "a"
 Sleep 2s
-Screenshot docs/screenshots/tui-analytics-dark.png
+Screenshot docs-site/public/images/tui/screenshots/tui-analytics-dark.png
 Type "b"
 Sleep 1s
 
 # Delete confirmation
 Type "d"
 Sleep 1s
-Screenshot docs/screenshots/tui-delete-confirmation-dark.png
+Screenshot docs-site/public/images/tui/screenshots/tui-delete-confirmation-dark.png
 Type "n"
 Sleep 500ms
 Type "q"

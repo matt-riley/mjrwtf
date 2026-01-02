@@ -1,7 +1,7 @@
 # VHS Tape Script for mjr.wtf TUI Light Theme Screenshots
-# Generates PNG screenshots under docs/screenshots/.
+# Generates PNG screenshots under docs-site/public/images/tui/screenshots/.
 
-Output docs/screenshots/.tui-screenshots-light.gif
+Output docs-site/public/images/tui/screenshots/.tui-screenshots-light.gif
 
 Set FontSize 16
 Set Width 1400
@@ -21,7 +21,7 @@ Sleep 200ms
 Type "./bin/mjr tui"
 Enter
 Sleep 2s
-Screenshot docs/screenshots/tui-empty-light.png
+Screenshot docs-site/public/images/tui/screenshots/tui-empty-light.png
 Type "q"
 Sleep 500ms
 
@@ -32,11 +32,11 @@ Sleep 200ms
 Type "./bin/mjr tui"
 Enter
 Sleep 2s
-Screenshot docs/screenshots/tui-browsing-light.png
+Screenshot docs-site/public/images/tui/screenshots/tui-browsing-light.png
 
 Type "c"
 Sleep 1s
-Screenshot docs/screenshots/tui-create-light.png
+Screenshot docs-site/public/images/tui/screenshots/tui-create-light.png
 
 Type "q"
 Sleep 500ms

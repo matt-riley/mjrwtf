@@ -66,9 +66,9 @@ vhs scripts/tui-screenshots-dark.tape
 vhs scripts/tui-screenshots-light.tape
 ```
 
-This will generate PNGs in `docs/screenshots/`.
+This will generate PNGs in `docs-site/public/images/tui/screenshots/`.
 
-Note: VHS also produces temporary hidden GIF outputs in `docs/screenshots/` (prefixed with `.tui-screenshots-`). They are not intended to be committed and can be safely deleted.
+Note: VHS also produces temporary hidden GIF outputs in `docs-site/public/images/tui/screenshots/` (prefixed with `.tui-screenshots-`). They are not intended to be committed and can be safely deleted.
 
 ### What the Demo Shows
 
