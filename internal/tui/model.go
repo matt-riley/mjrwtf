@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/matt-riley/mjrwtf/internal/client"
 	"github.com/matt-riley/mjrwtf/internal/tui/styles"
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
@@ -540,26 +541,48 @@ func (m model) mainLine() string {
 			return fmt.Sprintf("%s Loading URLs...", m.spinner.View())
 		}
 
-		head := lipgloss.NewStyle().Bold(true).Render("short_code  created_at            click_count  original_url")
-		lines := []string{head}
 		if len(m.filtered) == 0 {
-			lines = append(lines, lipgloss.NewStyle().Faint(true).Render("(no URLs)"))
-			return strings.Join(lines, "\n")
+			msg := styles.MutedStyle.Render("No URLs yet. Press [c] to create one, or [r] to refresh.")
+			return styles.BorderStyle.Padding(1, 2).Render(msg)
 		}
 
-		for i, u := range m.filtered {
-			prefix := "  "
-			if i == m.cursor {
-				prefix = "> "
-			}
+		rows := make([][]string, 0, len(m.filtered))
+		for _, u := range m.filtered {
 			created := ""
 			if u.CreatedAt != nil {
 				created = u.CreatedAt.Format("2006-01-02 15:04:05")
 			}
-			line := fmt.Sprintf("%s%-10s  %-19s  %10d  %s", prefix, u.ShortCode, created, u.ClickCount, truncate(u.OriginalURL, 80))
-			lines = append(lines, line)
+			rows = append(rows, []string{
+				u.ShortCode,
+				created,
+				fmt.Sprintf("%d", u.ClickCount),
+				truncate(u.OriginalURL, 80),
+			})
 		}
-		return strings.Join(lines, "\n")
+
+		t := table.New().
+			Headers("short_code", "created_at", "click_count", "original_url").
+			Rows(rows...).
+			Border(lipgloss.RoundedBorder()).
+			BorderStyle(styles.BorderStyle).
+			Wrap(false).
+			StyleFunc(func(row, col int) lipgloss.Style {
+				cell := styles.UnselectedRowStyle
+				if row == table.HeaderRow {
+					cell = styles.TitleStyle
+				} else if row == m.cursor {
+					cell = styles.SelectedRowStyle
+				}
+				cell = cell.Padding(0, 1)
+				if col == 2 {
+					cell = cell.Align(lipgloss.Right)
+				}
+				return cell
+			})
+		if m.width > 0 {
+			t.Width(m.width)
+		}
+		return t.Render()
 	}
 }
 
