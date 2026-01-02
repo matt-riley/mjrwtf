@@ -8,34 +8,38 @@ import (
 
 func TestColorPalette(t *testing.T) {
 	tests := []struct {
-		name     string
-		color    lipgloss.Color
-		expected string
+		name          string
+		color         lipgloss.AdaptiveColor
+		expectedDark  string
+		expectedLight string
 	}{
 		// Brand/Accent colors
-		{"Mauve", Mauve, "#cba6f7"},
-		{"Sapphire", Sapphire, "#74c7ec"},
-		{"Green", Green, "#a6e3a1"},
-		{"Red", Red, "#f38ba8"},
-		{"Peach", Peach, "#fab387"},
-		{"Lavender", Lavender, "#b4befe"},
-		
+		{"Mauve", Mauve, "#cba6f7", "#8839ef"},
+		{"Sapphire", Sapphire, "#74c7ec", "#209fb5"},
+		{"Green", Green, "#a6e3a1", "#40a02b"},
+		{"Red", Red, "#f38ba8", "#d20f39"},
+		{"Peach", Peach, "#fab387", "#fe640b"},
+		{"Lavender", Lavender, "#b4befe", "#7287fd"},
+
 		// Text colors
-		{"Text", Text, "#cdd6f4"},
-		{"Subtext1", Subtext1, "#bac2de"},
-		{"Subtext0", Subtext0, "#a6adc8"},
-		
+		{"Text", Text, "#cdd6f4", "#4c4f69"},
+		{"Subtext1", Subtext1, "#bac2de", "#5c5f77"},
+		{"Subtext0", Subtext0, "#a6adc8", "#6c6f85"},
+
 		// Surface colors
-		{"Base", Base, "#1e1e2e"},
-		{"Surface0", Surface0, "#313244"},
-		{"Surface1", Surface1, "#45475a"},
-		{"Overlay0", Overlay0, "#6c7086"},
+		{"Base", Base, "#1e1e2e", "#eff1f5"},
+		{"Surface0", Surface0, "#313244", "#e6e9ef"},
+		{"Surface1", Surface1, "#45475a", "#dce0e8"},
+		{"Overlay0", Overlay0, "#6c7086", "#9ca0b0"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if string(tt.color) != tt.expected {
-				t.Errorf("color %s = %v, want %v", tt.name, tt.color, tt.expected)
+			if string(tt.color.Dark) != tt.expectedDark {
+				t.Errorf("color %s dark = %v, want %v", tt.name, tt.color.Dark, tt.expectedDark)
+			}
+			if string(tt.color.Light) != tt.expectedLight {
+				t.Errorf("color %s light = %v, want %v", tt.name, tt.color.Light, tt.expectedLight)
 			}
 		})
 	}
@@ -70,7 +74,7 @@ func TestStyleRendering(t *testing.T) {
 
 			// Render the style with text - should not panic
 			result := tt.style.Render(tt.text)
-			
+
 			// Result should not be empty
 			if result == "" {
 				t.Errorf("style %s produced empty output", tt.name)
