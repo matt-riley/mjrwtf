@@ -6,7 +6,7 @@ compatibility: Requires bash, git, Go, and make.
 metadata:
   repo: mjrwtf
   runner: github-copilot-cli
-  version: 1.2
+  version: 1.3
 allowed-tools: Bash(git:*) Bash(make:*) Bash(go:*) Read
 ---
 
@@ -54,5 +54,5 @@ go test -v ./path/to/pkg
 ## What to cover when adding features
 
 - Domain validation (table-driven tests).
-- Repository behavior (SQLite always; Postgres best-effort/skip).
+- Repository behavior (in-memory SQLite tests).
 - HTTP behavior (status codes + auth + schemas).
