@@ -37,8 +37,34 @@ func TestModel_Update_ListURLsMsgSetsStatus(t *testing.T) {
 func TestModel_View_ShowsBaseURL(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	out := m.View()
-	if !strings.Contains(out, "Base URL: http://example") {
+	if !strings.Contains(out, "Base URL:") || !strings.Contains(out, "http://example") {
 		t.Fatalf("expected base URL line")
+	}
+}
+
+func TestStatusKindFromText(t *testing.T) {
+	tests := []struct {
+		name   string
+		status string
+		want   statusKind
+	}{
+		{"success_prefix_created", "Created: https://mjr.wtf/abc", statusKindSuccess},
+		{"success_prefix_deleted", "Deleted: abc", statusKindSuccess},
+		{"success_contains", "ok - copied to clipboard", statusKindSuccess},
+		{"error_contains_failed", "Create failed: unauthorized", statusKindError},
+		{"error_contains_error", "Error: boom", statusKindError},
+		{"error_contains_not_found", "Delete: abc not found", statusKindError},
+		{"warning_contains_warn", "Warning: something", statusKindWarning},
+		{"default_other", "Loading...", statusKindDefault},
+		{"default_empty", " ", statusKindDefault},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := statusKindFromText(tt.status); got != tt.want {
+				t.Fatalf("statusKindFromText(%q)=%v want %v", tt.status, got, tt.want)
+			}
+		})
 	}
 }
 
