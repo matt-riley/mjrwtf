@@ -600,7 +600,7 @@ const (
 
 func statusKindFromText(status string) statusKind {
 	lower := strings.ToLower(status)
-	if strings.HasPrefix(status, "Created:") || strings.HasPrefix(status, "Deleted:") || strings.Contains(lower, "success") || strings.Contains(lower, "created") || strings.Contains(lower, "copied") {
+	if strings.HasPrefix(lower, "created:") || strings.HasPrefix(lower, "deleted:") || strings.Contains(lower, "success") || strings.Contains(lower, "created") || strings.Contains(lower, "copied") {
 		return statusKindSuccess
 	}
 	if strings.Contains(lower, "failed") || strings.Contains(lower, "error") || strings.Contains(lower, "not found") {

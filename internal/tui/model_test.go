@@ -49,7 +49,9 @@ func TestStatusKindFromText(t *testing.T) {
 		want   statusKind
 	}{
 		{"success_prefix_created", "Created: https://mjr.wtf/abc", statusKindSuccess},
+		{"success_prefix_created_lower", "created: https://mjr.wtf/abc", statusKindSuccess},
 		{"success_prefix_deleted", "Deleted: abc", statusKindSuccess},
+		{"success_prefix_deleted_lower", "deleted: abc", statusKindSuccess},
 		{"success_contains", "ok - copied to clipboard", statusKindSuccess},
 		{"error_contains_failed", "Create failed: unauthorized", statusKindError},
 		{"error_contains_error", "Error: boom", statusKindError},
