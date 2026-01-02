@@ -1,7 +1,7 @@
 # VHS Tape Script for mjr.wtf TUI Light Theme Screenshots
 # Generates PNG screenshots under docs-site/public/images/tui/screenshots/.
 
-Output docs-site/public/images/tui/screenshots/.tui-screenshots-light.gif
+Output docs-site/public/images/tui/tour-light.gif
 
 Set FontSize 16
 Set Width 1400
