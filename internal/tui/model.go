@@ -603,15 +603,25 @@ func statusKindFromText(status string) statusKind {
 	if lower == "" {
 		return statusKindDefault
 	}
-	if strings.HasPrefix(lower, "created:") || strings.HasPrefix(lower, "deleted:") || strings.Contains(lower, "success") || strings.Contains(lower, "created") || strings.Contains(lower, "copied") {
-		return statusKindSuccess
+
+	// Prefer errors/warnings first so non-status text (e.g. URLs) can't accidentally override them.
+	if strings.HasPrefix(lower, "create failed") || strings.HasPrefix(lower, "delete failed") || strings.HasPrefix(lower, "list failed") || strings.HasPrefix(lower, "analytics failed") || strings.HasPrefix(lower, "failed:") || strings.HasPrefix(lower, "error:") {
+		return statusKindError
 	}
-	if strings.HasPrefix(lower, "create failed") || strings.HasPrefix(lower, "delete failed") || strings.HasPrefix(lower, "list failed") || strings.HasPrefix(lower, "analytics failed") || strings.HasPrefix(lower, "failed:") || strings.HasPrefix(lower, "error:") || strings.Contains(lower, "not found") {
+	if strings.Contains(lower, "not found") {
 		return statusKindError
 	}
 	if strings.HasPrefix(lower, "warn:") || strings.HasPrefix(lower, "warning:") {
 		return statusKindWarning
 	}
+
+	if strings.HasPrefix(lower, "created:") || strings.HasPrefix(lower, "deleted:") {
+		return statusKindSuccess
+	}
+	if strings.Contains(lower, "success") || strings.Contains(lower, "copied") {
+		return statusKindSuccess
+	}
+
 	return statusKindDefault
 }
 
