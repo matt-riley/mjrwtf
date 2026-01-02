@@ -53,6 +53,10 @@ func TestStyleRendering(t *testing.T) {
 	}{
 		{"TitleStyle", TitleStyle, "Test Title"},
 		{"BorderStyle", BorderStyle, "Bordered Content"},
+		{"PanelStyle", PanelStyle, "Panel Content"},
+		{"WarningPanelStyle", WarningPanelStyle, "Warning Panel"},
+		{"InputBoxStyle", InputBoxStyle, "Input"},
+		{"InputBoxFocusedStyle", InputBoxFocusedStyle, "Input"},
 		{"StatusBarStyle", StatusBarStyle, "Status Message"},
 		{"HintStyle", HintStyle, "Press q to quit"},
 		{"SuccessStyle", SuccessStyle, "Success!"},
