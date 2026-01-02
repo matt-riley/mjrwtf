@@ -5,6 +5,12 @@ description: Interactive terminal UI for managing short URLs.
 
 This document covers how to install and use the **mjr.wtf** Bubble Tea TUI, plus the agreed UX/navigation model.
 
+## Demo
+
+![Interactive TUI showing URL management with vim-like keybindings, create form, and analytics views](/images/tui/demo.gif)
+
+*The mjr.wtf TUI in action - navigate URLs, create short links, view analytics, all with vim-like keybindings.*
+
 ## Install / run
 
 The TUI is shipped as part of the `mjr` CLI.

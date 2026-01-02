@@ -2,6 +2,12 @@
 
 A simple URL shortener written in Go with SQLite storage, built for speed and ease of deployment.
 
+## 🎬 See It In Action
+
+![mjr.wtf TUI Demo - Interactive terminal UI showing URL list, creation, analytics, and vim-like navigation](./docs-site/public/images/tui/demo.gif)
+
+*The Terminal UI in action: list URLs, create short links, view analytics, all from your terminal with vim-like keybindings.*
+
 ## ✨ Key Features
 
 - **Fast & Lightweight** - Minimal dependencies, SQLite database, sub-millisecond redirects
