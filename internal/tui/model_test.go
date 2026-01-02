@@ -54,6 +54,7 @@ func TestStatusKindFromText(t *testing.T) {
 		{"success_prefix_deleted", "Deleted: abc", statusKindSuccess},
 		{"success_prefix_deleted_lower", "deleted: abc", statusKindSuccess},
 		{"success_contains", "ok - copied to clipboard", statusKindSuccess},
+		{"error_failed_not_created", "Failed: resource not created", statusKindError},
 		{"error_prefix_create_failed", "Create failed: unauthorized", statusKindError},
 		{"error_prefix_list_failed", "List failed: 401", statusKindError},
 		{"error_prefix_error", "Error: boom", statusKindError},
