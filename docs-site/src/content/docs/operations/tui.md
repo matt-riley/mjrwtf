@@ -1,4 +1,7 @@
-# TUI CLI
+---
+title: TUI CLI
+description: Interactive terminal UI for managing short URLs.
+---
 
 This document covers how to install and use the **mjr.wtf** Bubble Tea TUI, plus the agreed UX/navigation model.
 
@@ -75,7 +78,7 @@ From the URL list (default screen):
 
 ## Troubleshooting
 
-- **401 Unauthorized**: ensure your token matches one of the server’s configured `AUTH_TOKENS`/`AUTH_TOKEN`.
+- **401 Unauthorized**: ensure your token matches one of the server's configured `AUTH_TOKENS`/`AUTH_TOKEN`.
 - **429 Too Many Requests**: you hit the API rate limit; wait for `Retry-After` and/or refresh less frequently.
 
 ## UX, navigation, and keybindings (design)
@@ -131,7 +134,7 @@ Behaviors:
 - Show totals and breakdowns (as supported by the endpoint response).
 - Support an optional time range (RFC3339 `start_time`/`end_time`).
   - Validate: start/end provided together; `start_time < end_time`.
-- Provide a clear “back” path to the list.
+- Provide a clear "back" path to the list.
 - Large breakdown maps should be usable via truncation and/or scrolling.
 
 ### 4) Delete confirmation
