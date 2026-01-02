@@ -9,7 +9,7 @@ Write and update documentation that stays in sync with the code.
 ## Preferred docs targets
 - `README.md` (user-facing usage + config)
 - `openapi.yaml` (API contract)
-- `docs/*` (deep dives like schema/docker)
+- `docs-site/src/content/docs/*` (comprehensive documentation site)
 
 ## How to be effective (and concise)
 - Update only the sections impacted by the change.

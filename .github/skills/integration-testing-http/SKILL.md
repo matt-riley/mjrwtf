@@ -39,4 +39,4 @@ go test -v -run TestAPI ./internal/infrastructure/http/server/
 
 ## Reference
 
-See `docs/INTEGRATION_TESTING.md` for the current suite structure and scenarios.
+See `docs-site/src/content/docs/operations/integration-testing.md` for the current suite structure and scenarios.
