@@ -51,7 +51,7 @@ Type "https://github.com/matt-riley/mjrwtf"
 Sleep 500ms
 
 # Tab to short code field
-Type@100ms Tab
+Tab
 Sleep 500ms
 
 # Enter short code
