@@ -1,16 +1,13 @@
-# Database Schema Documentation
+---
+title: Database Schema
+description: SQLite database schema reference for mjr.wtf.
+---
 
-This directory contains documentation for the mjr.wtf URL shortener application.
+This document describes the database schema for the mjr.wtf URL shortener application.
 
 Note: The active Goose migrations (and sqlc config) are currently **SQLite-only**.
 
-## Docs
-
-- [TUI CLI UX + keybindings](TUI.md)
-
-## Schema Files
-
-- **`schema.sqlite.sql`** - SQLite-ready schema (represents the current DB schema; should match `internal/migrations/sqlite/` when fully migrated)
+The schema is defined in migration files located in `internal/migrations/sqlite/`. For information on running migrations, see [Database Migrations](/operations/migrations/).
 
 ## Tables
 
@@ -56,21 +53,6 @@ Stores analytics data for each click on a shortened URL.
 - `idx_clicks_clicked_at` on `clicked_at` - For time-based filtering and sorting
 - `idx_clicks_referrer_domain` on `referrer_domain` - For referrer domain analytics
 - (Optional) `idx_clicks_country` on `country` - Add if country-based analytics is common
-
-## Usage
-
-### SQLite
-
-```bash
-# Create database with schema
-sqlite3 database.db < docs/schema.sqlite.sql
-
-```
-
-**Important:** Foreign key constraints must be enabled for each connection:
-```sql
-PRAGMA foreign_keys = ON;
-```
 
 ## Common Queries
 
@@ -123,9 +105,9 @@ All critical indexes are included in the schema:
 
 ## Integration with sqlc
 
-This repo uses [sqlc](https://github.com/sqlc-dev/sqlc); the schema input for sqlc is the SQLite Goose migration files explicitly listed in the repo root `sqlc.yaml` (not the `docs/schema*.sql` snapshots).
+This repo uses [sqlc](https://github.com/sqlc-dev/sqlc); the schema input for sqlc is the SQLite Goose migration files explicitly listed in the repo root `sqlc.yaml`.
 
-Recommended excerpt (kept intentionally short):
+Example configuration:
 ```yaml
 version: "2"
 sql:
