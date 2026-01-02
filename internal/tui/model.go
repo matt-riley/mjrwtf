@@ -65,6 +65,7 @@ type model struct {
 func newModel(cfg tui_config.Config, warnings []string) model {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
+	sp.Style = lipgloss.NewStyle().Foreground(styles.Mauve)
 
 	create := textinput.New()
 	create.Placeholder = "https://example.com"
@@ -112,6 +113,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		if m.width > 0 {
+			w := m.width - 10
+			if w < 20 {
+				w = 20
+			}
+			if w > 100 {
+				w = 100
+			}
+			m.createInput.Width = w
+
+			tw := (m.width - 20) / 2
+			if tw < 20 {
+				tw = 20
+			}
+			if tw > 40 {
+				tw = 40
+			}
+			m.analyticsStartInput.Width = tw
+			m.analyticsEndInput.Width = tw
+		}
 		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -174,7 +195,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				startStr := strings.TrimSpace(m.analyticsStartInput.Value())
 				endStr := strings.TrimSpace(m.analyticsEndInput.Value())
 				if (startStr != "" && endStr == "") || (startStr == "" && endStr != "") {
-					m.status = "start_time and end_time must be provided together"
+					m.status = "Error: start_time and end_time must be provided together"
 					return m, nil
 				}
 
@@ -183,16 +204,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if startStr != "" {
 					st, err := time.Parse(time.RFC3339, startStr)
 					if err != nil {
-						m.status = "invalid start_time (must be RFC3339)"
+						m.status = "Error: invalid start_time (must be RFC3339)"
 						return m, nil
 					}
 					et, err := time.Parse(time.RFC3339, endStr)
 					if err != nil {
-						m.status = "invalid end_time (must be RFC3339)"
+						m.status = "Error: invalid end_time (must be RFC3339)"
 						return m, nil
 					}
 					if !st.Before(et) {
-						m.status = "end_time must be after start_time"
+						m.status = "Error: end_time must be after start_time"
 						return m, nil
 					}
 					m.analyticsStartTime = &st
@@ -503,7 +524,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	title := styles.TitleStyle.Render("mjr.wtf TUI")
+	modeLabel := "Browse"
+	switch m.mode {
+	case modeFiltering:
+		modeLabel = "Filter"
+	case modeCreating:
+		modeLabel = "Create"
+	case modeViewingAnalytics:
+		modeLabel = "Analytics"
+	case modeAnalyticsTimeRange:
+		modeLabel = "Time Range"
+	case modeDeleteConfirm:
+		modeLabel = "Delete"
+	}
+
+	title := styles.TitleStyle.Render(fmt.Sprintf("mjr.wtf TUI · %s", modeLabel))
 
 	baseURL := m.cfg.BaseURL
 	if baseURL == "" {
@@ -538,12 +573,23 @@ func (m model) mainLine() string {
 		return m.deleteConfirmView()
 	default:
 		if m.loading {
-			return fmt.Sprintf("%s Loading URLs...", m.spinner.View())
+			return styles.MutedStyle.Render(fmt.Sprintf("%s Loading URLs...", m.spinner.View()))
 		}
 
 		if len(m.filtered) == 0 {
 			msg := styles.MutedStyle.Render("No URLs yet. Press [c] to create one, or [r] to refresh.")
 			return styles.BorderStyle.Padding(1, 2).Render(msg)
+		}
+
+		urlMax := 80
+		if m.width > 0 {
+			urlMax = m.width - 60
+			if urlMax < 20 {
+				urlMax = 20
+			}
+			if urlMax > 120 {
+				urlMax = 120
+			}
 		}
 
 		rows := make([][]string, 0, len(m.filtered))
@@ -556,7 +602,7 @@ func (m model) mainLine() string {
 				u.ShortCode,
 				created,
 				fmt.Sprintf("%d", u.ClickCount),
-				truncate(u.OriginalURL, 80),
+				truncate(u.OriginalURL, urlMax),
 			})
 		}
 
@@ -599,8 +645,8 @@ func (m model) createView() string {
 		inputBox.Render(m.createInput.View()),
 	}
 	if m.createLoading {
-		loading := fmt.Sprintf("%s Creating...", m.spinner.View())
-		lines = append(lines, "", styles.TitleStyle.Copy().Bold(false).Render(loading))
+		loading := styles.MutedStyle.Render(fmt.Sprintf("%s Creating...", m.spinner.View()))
+		lines = append(lines, "", loading)
 	}
 
 	return styles.PanelStyle.Render(strings.Join(lines, "\n"))
@@ -608,7 +654,14 @@ func (m model) createView() string {
 
 func (m model) deleteConfirmView() string {
 	shortCode := styles.TitleStyle.Copy().Foreground(styles.Lavender).Render(m.deleteConfirmShortCode)
-	originalURL := styles.LinkStyle.Render(truncate(m.deleteConfirmOriginalURL, 120))
+	maxURL := 120
+	if m.width > 0 {
+		maxURL = m.width - 20
+		if maxURL < 30 {
+			maxURL = 30
+		}
+	}
+	originalURL := styles.LinkStyle.Render(truncate(m.deleteConfirmOriginalURL, maxURL))
 
 	lines := []string{
 		styles.WarningStyle.Render("Confirm Delete"),
@@ -617,8 +670,8 @@ func (m model) deleteConfirmView() string {
 		fmt.Sprintf("%s %s", styles.MutedStyle.Render("Original URL:"), originalURL),
 	}
 	if m.deleteLoading {
-		loading := fmt.Sprintf("%s Deleting...", m.spinner.View())
-		lines = append(lines, "", styles.WarningStyle.Copy().Bold(false).Render(loading))
+		loading := styles.MutedStyle.Render(fmt.Sprintf("%s Deleting...", m.spinner.View()))
+		lines = append(lines, "", loading)
 	}
 
 	return styles.WarningPanelStyle.Render(strings.Join(lines, "\n"))
@@ -694,6 +747,13 @@ func (m model) footer() string {
 	if status == "" {
 		status = " "
 	}
+	if m.width > 0 {
+		max := m.width - 4
+		if max < 10 {
+			max = 10
+		}
+		status = truncate(status, max)
+	}
 
 	statusRendered := statusStyleForText(status).Render(status)
 	statusBox := styles.StatusBarStyle.Render(statusRendered)
@@ -743,7 +803,7 @@ func (m model) analyticsTimeRangeView() string {
 
 func (m model) analyticsView() string {
 	if m.analyticsLoading {
-		return fmt.Sprintf("%s Loading analytics...", m.spinner.View())
+		return styles.MutedStyle.Render(fmt.Sprintf("%s Loading analytics...", m.spinner.View()))
 	}
 	if m.analytics == nil {
 		return lipgloss.NewStyle().Faint(true).Render("(no analytics loaded)")
@@ -786,7 +846,14 @@ func (m model) analyticsLines() []string {
 	}
 
 	shortCode := styles.TitleStyle.Copy().Foreground(styles.Lavender).Bold(false).Render(m.analytics.ShortCode)
-	originalURL := styles.LinkStyle.Render(truncate(m.analytics.OriginalURL, 120))
+	maxURL := 120
+	if m.width > 0 {
+		maxURL = m.width - 20
+		if maxURL < 30 {
+			maxURL = 30
+		}
+	}
+	originalURL := styles.LinkStyle.Render(truncate(m.analytics.OriginalURL, maxURL))
 	totalClicks := styles.SuccessStyle.Copy().Bold(true).Render(fmt.Sprintf("%d", m.analytics.TotalClicks))
 
 	rangeLabel := "Time range: all-time"

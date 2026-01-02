@@ -20,15 +20,15 @@ type createURLMsg struct {
 func validateHTTPURL(s string) error {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return fmt.Errorf("original URL is required")
+		return fmt.Errorf("Error: original URL is required")
 	}
 
 	u, err := url.Parse(s)
 	if err != nil || u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("original URL must be a valid http or https URL")
+		return fmt.Errorf("Error: original URL must be a valid http or https URL")
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return fmt.Errorf("original URL must start with http:// or https://")
+		return fmt.Errorf("Error: original URL must start with http:// or https://")
 	}
 	return nil
 }
