@@ -13,9 +13,9 @@ Turn ambiguous requests into implementable GitHub issues for mjr.wtf.
 - Test plan (what needs coverage)
 
 ## Project constraints to surface in issues
-- Dual DB support (SQLite + Postgres): migrations/queries often need both.
+- SQLite database: migrations and queries use SQLite syntax.
 - Generated code: if SQL/templ changes, must run `make generate`.
-- Auth model: bearer token (`AUTH_TOKEN`) for protected API.
+- Auth model: bearer tokens (`AUTH_TOKENS`) for protected API.
 
 ## Suggested issue template
 - Problem / motivation
