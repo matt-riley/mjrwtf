@@ -599,14 +599,17 @@ const (
 )
 
 func statusKindFromText(status string) statusKind {
-	lower := strings.ToLower(status)
+	lower := strings.ToLower(strings.TrimSpace(status))
+	if lower == "" {
+		return statusKindDefault
+	}
 	if strings.HasPrefix(lower, "created:") || strings.HasPrefix(lower, "deleted:") || strings.Contains(lower, "success") || strings.Contains(lower, "created") || strings.Contains(lower, "copied") {
 		return statusKindSuccess
 	}
-	if strings.Contains(lower, "failed") || strings.Contains(lower, "error") || strings.Contains(lower, "not found") {
+	if strings.HasPrefix(lower, "create failed") || strings.HasPrefix(lower, "delete failed") || strings.HasPrefix(lower, "list failed") || strings.HasPrefix(lower, "analytics failed") || strings.HasPrefix(lower, "failed:") || strings.HasPrefix(lower, "error:") || strings.Contains(lower, "not found") {
 		return statusKindError
 	}
-	if strings.Contains(lower, "warn") || strings.Contains(lower, "warning") {
+	if strings.HasPrefix(lower, "warn:") || strings.HasPrefix(lower, "warning:") {
 		return statusKindWarning
 	}
 	return statusKindDefault
