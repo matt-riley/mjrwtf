@@ -133,7 +133,7 @@ The project includes a `docker-compose.yml` file that runs the server with a per
 ```bash
 # 1. Copy environment variables
 cp .env.example .env
-# Edit .env to set AUTH_TOKENS (preferred) or AUTH_TOKEN
+# Edit .env to set AUTH_TOKENS (preferred) or AUTH_TOKEN (legacy)
 
 # 2. Prepare a persistent data directory
 mkdir -p data

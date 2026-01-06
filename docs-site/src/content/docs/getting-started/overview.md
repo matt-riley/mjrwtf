@@ -24,7 +24,7 @@ make docker-compose-up
 curl http://localhost:8080/health
 ```
 
-Docker runs migrations automatically on startup.
+Docker Compose runs migrations automatically on startup via docker-entrypoint.sh.
 
 ## How to use these docs
 
