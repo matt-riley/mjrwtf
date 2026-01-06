@@ -32,7 +32,6 @@ Sleep 200ms
 Type "./bin/mjr tui"
 Enter
 Sleep 2s
-Screenshot docs-site/public/images/tui/screenshots/tui-browsing-dark.png
 
 Type "c"
 Sleep 1s
@@ -46,6 +45,7 @@ Type "demo"
 Sleep 300ms
 Enter
 Sleep 2s
+Screenshot docs-site/public/images/tui/screenshots/tui-browsing-dark.png
 
 # Exit to generate some clicks, then re-open for analytics
 Type "q"
