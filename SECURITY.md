@@ -21,9 +21,13 @@ mjr.wtf implements multiple security controls to protect users and the system:
 - **Scheme Allowlist**: Only `http://` and `https://` schemes are permitted
 
 ### Authentication & Authorization
-- **Bearer Token Authentication**: API endpoints require valid authentication tokens
-- **Ownership Verification**: Users can only modify/delete URLs they created
-- **Constant-Time Comparison**: Token validation uses constant-time comparison to prevent timing attacks
+- **Bearer Token Authentication**: API endpoints require valid authentication tokens.
+  - Configure tokens via `AUTH_TOKENS` (preferred; comma-separated) or `AUTH_TOKEN` (legacy; used only if `AUTH_TOKENS` is unset).
+  - Avoid passing tokens via CLI arguments or logging them.
+- **Ownership Verification**: Deleting URLs and viewing analytics is restricted to the creator (`created_by`).
+- **Prometheus metrics auth (optional)**: `/metrics` is public by default; set `METRICS_AUTH_ENABLED=true` to require Bearer auth (uses the same tokens as the API).
+- **Rate limiting**: Rate limiting applies to `/{shortCode}` and `/api/*`; configure via `REDIRECT_RATE_LIMIT_PER_MINUTE` (default: 120) and `API_RATE_LIMIT_PER_MINUTE` (default: 60).
+- **Constant-Time Comparison**: Token validation uses constant-time comparison to prevent timing attacks.
 
 ### Database Security
 - **SQL Injection Prevention**: All database queries use parameterized statements via sqlc

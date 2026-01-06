@@ -54,6 +54,26 @@ Stores analytics data for each click on a shortened URL.
 - `idx_clicks_referrer_domain` on `referrer_domain` - For referrer domain analytics
 - (Optional) `idx_clicks_country` on `country` - Add if country-based analytics is common
 
+### url_status
+Stores periodic destination status + archive lookup results for each URL.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `url_id` | INTEGER | Primary key; foreign key to `urls.id` |
+| `last_checked_at` | TIMESTAMP | Last time the destination was checked (nullable) |
+| `last_status_code` | INTEGER | Last HTTP status code observed (nullable) |
+| `gone_at` | TIMESTAMP | Non-NULL means the destination is confirmed gone (HTTP 404/410) |
+| `archive_url` | TEXT | Archived snapshot URL (nullable) |
+| `archive_checked_at` | TIMESTAMP | Last time archive lookup ran (nullable) |
+
+**Constraints:**
+- FOREIGN KEY `url_id` REFERENCES `urls(id)` ON DELETE CASCADE
+
+**Indexes:**
+- `idx_url_status_gone_at` on `gone_at`
+- `idx_url_status_last_checked_at` on `last_checked_at`
+- `idx_url_status_archive_checked_at` on `archive_checked_at`
+
 ## Common Queries
 
 ### Redirect Query (most common)
@@ -116,6 +136,7 @@ sql:
     schema:
       - "internal/migrations/sqlite/00001_initial_schema.sql"
       - "internal/migrations/sqlite/00002_add_referrer_domain.sql"
+      - "internal/migrations/sqlite/00003_add_url_status.sql"
     queries: "internal/adapters/repository/sqlc/sqlite/queries.sql"
     gen:
       go:

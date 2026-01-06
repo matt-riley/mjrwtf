@@ -81,7 +81,8 @@ The build process:
 docker run -d \
   --name mjrwtf \
   -p 8080:8080 \
-  -e DATABASE_URL=./database.db \
+  -v ./data:/app/data \
+  -e DATABASE_URL=/app/data/database.db \
   -e AUTH_TOKENS=your-secret-token \
   mjrwtf:latest
 ```
@@ -116,8 +117,9 @@ docker run -d \
 docker run -d \
   --name mjrwtf \
   -p 8080:8080 \
+  -v ./data:/app/data \
   -v ./GeoLite2-Country.mmdb:/app/geoip.mmdb:ro \
-  -e DATABASE_URL=./database.db \
+  -e DATABASE_URL=/app/data/database.db \
   -e AUTH_TOKENS=your-secret-token \
   -e GEOIP_ENABLED=true \
   -e GEOIP_DATABASE=/app/geoip.mmdb \
@@ -264,38 +266,22 @@ docker run -p 9090:8080 mjrwtf:latest
 
 ### Database Migrations
 
-The container doesn't automatically run migrations. Run them separately before starting the application.
+The image runs migrations automatically on startup via `docker-entrypoint.sh` (it executes `./migrate up` before starting the server).
 
-**Option 1: Run migrations from the host (recommended)**
+Ensure `DATABASE_URL` points to a writable SQLite file (for example `/app/data/database.db` with `-v ./data:/app/data`).
+
+If you prefer to run migrations explicitly (e.g., in CI/deploy pipelines), you can run the embedded migrate binary:
 
 ```bash
-# Build the migrate tool
-make build-migrate
-
-# Run migrations against your SQLite file
-export DATABASE_URL=./data/database.db
-./bin/migrate up
+docker run --rm \
+  -v ./data:/app/data \
+  -e DATABASE_URL=/app/data/database.db \
+  mjrwtf:latest ./migrate up
 ```
-
-**Option 2: Use a separate migration job**
-
-Create a separate Docker image or Kubernetes Job that includes the migrate binary, or run migrations as part of your deployment pipeline before starting the application containers.
-
-The main application container only includes the server binary for security and minimal image size.
 
 ## Development
 
-For development, you might want to mount the source code and rebuild:
-
-```bash
-docker run -d \
-  --name mjrwtf-dev \
-  -p 8080:8080 \
-  -v $(pwd):/app \
-  -e DATABASE_URL=./database.db \
-  -e AUTH_TOKENS=dev-token \
-  mjrwtf:latest
-```
+For local development, prefer running the server directly on your host (e.g. `make build-server && ./bin/server`) rather than bind-mounting over `/app` (which would hide the container binaries).
 
 ## Production Deployment
 

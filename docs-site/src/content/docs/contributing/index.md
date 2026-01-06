@@ -110,7 +110,7 @@ refactor: simplify repository error handling
 - Update README.md for user-facing changes
 - Update inline comments for complex logic
 - Add GoDoc comments for exported functions
-- Update schema documentation in `docs/` for database changes
+- Update schema/migration docs in `docs-site/` for database changes (see `docs-site/src/content/docs/operations/`)
 
 ### Commit Messages
 
