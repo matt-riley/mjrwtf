@@ -33,7 +33,7 @@ cp .env.example .env
 # 2. Create a persistent data directory (SQLite database will live here)
 mkdir -p data
 
-# 3. Start the server (runs migrations automatically on startup)
+# 3. Start the server (Docker Compose runs migrations automatically on startup via docker-entrypoint.sh)
 make docker-compose-up
 
 # 4. Verify it's running
