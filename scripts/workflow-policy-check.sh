@@ -26,12 +26,12 @@ if [[ ! -d "$WORKFLOWS_DIR" ]]; then
 fi
 
 check_sha_pinning() {
-  if grep -RInE '^\s*(-\s*)?uses:\s+[^#[:space:]]+@(main|master|HEAD)\b' "$WORKFLOWS_DIR"; then
+  if grep -RInE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]+[^#[:space:]]+@(main|master|HEAD)([[:space:]]|$)' "$WORKFLOWS_DIR"; then
     echo "Error: workflows must not pin actions to main/master/HEAD" >&2
     exit 1
   fi
 
-  if grep -RInE '^\s*(-\s*)?uses:\s+[^#[:space:]]+@v[0-9]+(\.[0-9]+)*\b' "$WORKFLOWS_DIR"; then
+  if grep -RInE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]+[^#[:space:]]+@v[0-9]+(\.[0-9]+)*([[:space:]]|$)' "$WORKFLOWS_DIR"; then
     echo "Error: workflows must pin actions by commit SHA (not @vX tags)" >&2
     exit 1
   fi
@@ -39,7 +39,7 @@ check_sha_pinning() {
   while IFS= read -r line; do
     content="$(echo "$line" | cut -d: -f3-)"
 
-    ref="$(echo "$content" | sed -E 's/^\s*-?\s*uses:\s+//; s/\s+#.*$//; s/[[:space:]]+$//')"
+    ref="$(echo "$content" | sed -E 's/^[[:space:]]*-?[[:space:]]*uses:[[:space:]]+//; s/[[:space:]]+#.*$//; s/[[:space:]]+$//')"
     ref="${ref%\"}"
     ref="${ref#\"}"
     ref="${ref%\'}"
@@ -53,7 +53,7 @@ check_sha_pinning() {
       echo "Error: unpinned action reference: $content" >&2
       exit 1
     fi
-  done < <(grep -RInE '^\s*(-\s*)?uses:\s+' "$WORKFLOWS_DIR" || true)
+  done < <(grep -RInE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]+' "$WORKFLOWS_DIR" || true)
 }
 
 check_release_codegen() {
