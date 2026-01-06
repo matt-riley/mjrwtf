@@ -1,208 +1,84 @@
 # HTTP Infrastructure
 
-This package provides the HTTP server infrastructure for the mjrwtf URL shortener, including routing, middleware, and graceful shutdown handling.
+This package provides the HTTP server infrastructure for the mjr.wtf URL shortener: routing, middleware, and handlers.
 
 ## Structure
 
 ```
 internal/infrastructure/http/
-├── handlers/            # HTTP request handlers
-│   ├── page_handler.go    # HTML page rendering
-│   ├── url_handler.go     # API URL management
-│   ├── redirect_handler.go # URL redirection
-│   └── *_test.go          # Handler tests
-├── middleware/          # HTTP middleware components
-│   ├── recovery.go        # Panic recovery middleware
-│   ├── logger.go          # Request logging middleware
-│   ├── auth.go            # Authentication middleware
-│   └── *_test.go          # Middleware tests
-├── server/              # HTTP server implementation
-│   ├── server.go          # Main server with routing
-│   ├── server_test.go     # Unit tests
-│   └── integration_test.go  # Integration tests
-└── templates/           # Templ HTML templates (see templates/README.md)
-    ├── layouts/           # Layout templates
-    ├── pages/             # Page templates
-    └── components/        # Reusable components
+├── handlers/    # HTTP handlers (HTML + API)
+├── middleware/  # HTTP middleware components
+└── server/      # Server wiring (router + routes)
 ```
+
+Templ templates live in `internal/adapters/http/templates/` (see that README for details).
 
 ## Components
 
 ### Server (`server/`)
 
-The main HTTP server with:
-- **Router**: Uses `chi` router for efficient routing
-- **Graceful Shutdown**: Handles SIGTERM/SIGINT with 30s timeout
-- **Timeouts**: Configurable read (15s), write (15s), and idle (60s) timeouts
-- **Health Check (Liveness)**: `/health` endpoint for monitoring
-- **Readiness Check**: `/ready` endpoint for dependency checks (e.g. DB)
-- **HTML Rendering**: Serves HTML pages using Templ templates
-- **API Routes**: RESTful API endpoints for URL management
+The server is built around `chi` and wires together:
+
+- Global middleware stack (panic recovery, request IDs, logging, metrics, sessions, CORS, etc.)
+- Routes for:
+  - Liveness: `GET /health`
+  - Readiness (DB ping with timeout): `GET /ready`
+  - Metrics: `GET /metrics` (optionally authenticated)
+  - HTML pages (home/create/login/dashboard)
+  - Redirects: `GET /{shortCode}`
+  - API: `/api/urls/*`
+
+A complete working example of constructing and running the server is in `cmd/server/main.go`.
 
 ### Handlers (`handlers/`)
 
-Request handlers for different concerns:
-- **PageHandler**: Renders HTML pages (home, error pages)
-- **URLHandler**: API endpoints for URL CRUD operations
-- **RedirectHandler**: Handles short URL redirects with analytics
+- `PageHandler` — HTML pages (and session auth flows)
+- `URLHandler` — API URL create/list/delete
+- `RedirectHandler` — short URL redirects (records clicks asynchronously)
+- `AnalyticsHandler` — URL analytics endpoint(s)
 
 ### Middleware (`middleware/`)
 
-Middleware stack executes in this order:
-1. **Recovery**: Catches panics and returns 500 errors (HTML for browser, JSON for API)
-2. **Logger**: Logs all requests with method, path, status, duration
-3. **CORS**: Handles cross-origin requests
-4. **Auth**: Authentication middleware (applied to `/api` routes only)
-5. **Handlers**: Route handlers
+The global middleware stack (order matters) is configured in `server.New(...)`:
 
-## Usage
+1. Recovery (with optional Discord notifier)
+2. Request ID
+3. Security headers
+4. Logger injection (request-scoped logger)
+5. Request logger
+6. Prometheus metrics
+7. Session middleware
+8. CORS
 
-### Starting the Server
+Route-specific auth is applied at the router level:
 
-```go
-import (
-    "github.com/matt-riley/mjrwtf/internal/infrastructure/config"
-    "github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
-)
+- `/dashboard` requires a session
+- `/api/urls/*` uses `SessionOrBearerAuth(...)` (session for browser dashboard flows, bearer token for API clients)
+- `/metrics` is public by default; enable auth with `METRICS_AUTH_ENABLED=true`
 
-// Load configuration
-cfg, err := config.LoadConfig()
-if err != nil {
-    log.Fatal(err)
-}
-
-// Create and start server
-srv := server.New(cfg)
-go func() {
-    if err := srv.Start(); err != nil {
-        log.Fatal(err)
-    }
-}()
-
-// Graceful shutdown
-ctx := context.Background()
-srv.Shutdown(ctx)
-```
-
-### Adding Routes
-
-```go
-srv := server.New(cfg, db)
-router := srv.Router()
-
-// Add custom HTML page routes
-router.Get("/custom", customPageHandler)
-
-// Add custom API routes
-router.Route("/api/custom", func(r chi.Router) {
-    r.Use(middleware.Auth(cfg.ActiveAuthTokens()))
-    r.Get("/", handleList)
-    r.Post("/", handleCreate)
-})
-```
-
-### Rendering HTML Pages
-
-```go
-import "github.com/matt-riley/mjrwtf/internal/adapters/http/templates/pages"
-
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "text/html; charset=utf-8")
-    if err := pages.Home().Render(r.Context(), w); err != nil {
-        http.Error(w, "Error rendering page", http.StatusInternalServerError)
-    }
-}
-```
-
-See `internal/adapters/http/templates/README.md` for more on Templ templates.
-
-### Testing
+## Testing
 
 ```bash
-# Run all HTTP tests
-go test ./internal/infrastructure/http/... -v
-
-# Run with coverage
-go test ./internal/infrastructure/http/... -cover
-
-# Run benchmarks
-go test ./internal/infrastructure/http/... -bench=. -benchmem
+# Unit + integration tests under this package
+go test ./internal/infrastructure/http/...
 ```
 
-## Configuration
+## Configuration (common)
 
-The server reads configuration from environment variables:
+This package is configured via `internal/infrastructure/config` env vars; commonly relevant here:
 
-```bash
-SERVER_PORT=8080          # Port to bind to (default: 8080)
-ALLOWED_ORIGINS=*         # CORS allowed origins (default: "*" - not recommended for production)
-DATABASE_URL=...          # SQLite database file path (e.g. ./database.db)
-AUTH_TOKEN=...            # API authentication token
-```
+- `SERVER_PORT` (default: `8080`)
+- `BASE_URL` (default: `http://localhost:8080`)
+- `ALLOWED_ORIGINS` (default: `*`, comma-separated)
+- `DATABASE_URL` (SQLite file path)
+- `AUTH_TOKENS` (preferred; comma-separated) or `AUTH_TOKEN` (legacy)
+- `SECURE_COOKIES` (set true when behind HTTPS)
+- `REDIRECT_RATE_LIMIT_PER_MINUTE` (default: `120`)
+- `API_RATE_LIMIT_PER_MINUTE` (default: `60`)
+- `METRICS_AUTH_ENABLED` (default: `false`)
+- `ENABLE_HSTS` (default: `false`)
+- `DB_TIMEOUT` (default: `5s`)
+- `LOG_STACK_TRACES` (default: `true`)
+- `DISCORD_WEBHOOK_URL` (optional)
 
-See `.env.example` for full configuration options.
-
-## Middleware Details
-
-### Recovery Middleware
-
-Catches panics in request handlers and returns a 500 Internal Server Error (when headers have not yet been written):
-
-```go
-// Automatically applied to all routes
-// Logs panic details and (optionally) stack traces
-// Stack traces can be disabled via LOG_STACK_TRACES=false
-// Re-panics http.ErrAbortHandler to preserve net/http semantics
-// Returns a plain text 500 response when possible
-```
-
-### Logger Middleware
-
-Logs every request with:
-- HTTP method (GET, POST, etc.)
-- Request path
-- Response status code
-- Request duration
-
-Example log output:
-```
-2025/11/08 15:03:21 GET /health 200 15B 7.023µs
-2025/11/08 15:03:22 POST /api/urls 201 1200B 1.234ms
-2025/11/08 15:03:23 GET /api/urls 200 512B 456.789µs
-```
-
-### CORS Middleware
-
-Configured to allow:
-- **Origins**: All (`*`)
-- **Methods**: GET, POST, PUT, DELETE, OPTIONS
-- **Headers**: Accept, Authorization, Content-Type
-- **Max Age**: 300 seconds
-
-## Performance
-
-Benchmark results (on GitHub Actions runner):
-```
-BenchmarkServer_HealthCheck         396768    2949 ns/op    6602 B/op    26 allocs/op
-BenchmarkServer_WithMiddleware      419599    2715 ns/op    6570 B/op    25 allocs/op
-```
-
-~3μs per request with full middleware stack.
-
-## Graceful Shutdown
-
-The server supports graceful shutdown with:
-- Signal handling (SIGTERM, SIGINT)
-- Configurable timeout (30s default)
-- Completes in-flight requests
-- Closes idle connections
-
-## Future Enhancements
-
-- [x] Authentication middleware
-- [x] HTML page rendering with Templ
-- [x] Rate limiting middleware
-- [ ] Request ID tracking
-- [x] Metrics/monitoring middleware
-- [ ] Compression middleware
-- [ ] ETag support
+See `.env.example` for the full set.
