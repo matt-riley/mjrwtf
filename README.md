@@ -25,7 +25,7 @@ A simple URL shortener written in Go with SQLite storage, built for speed and ea
 ```bash
 # 1. Copy and configure environment variables
 cp .env.example .env
-# Edit .env to set AUTH_TOKEN (required)
+# Edit .env to set AUTH_TOKENS (recommended) or AUTH_TOKEN (legacy)
 
 # 2. Prepare a persistent data directory and run migrations
 mkdir -p data
@@ -53,6 +53,12 @@ For detailed documentation, visit **[docs.mjr.wtf](https://docs.mjr.wtf)**:
 - **[Testing](https://docs.mjr.wtf/operations/integration-testing/)** - Running unit and integration tests
 - **[Docker Guide](https://docs.mjr.wtf/operations/docker/)** - Container deployment and production setup
 - **[Local Development](https://docs.mjr.wtf/getting-started/local-development/)** - Code generation, building, and contributing
+
+## 📦 Releases
+
+- Git tags are created by Release Please and use the format `mjrwtf-vX.Y.Z`.
+- GitHub Releases include attached `server` + `migrate` binaries (and checksums).
+- Docker images are published to GHCR and tagged with `X.Y.Z`, `X.Y`, `X`, and `latest`.
 
 ## 🤝 Contributing
 
