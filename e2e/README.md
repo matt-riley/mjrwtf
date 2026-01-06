@@ -2,18 +2,28 @@
 
 This folder contains **real browser** E2E tests for the HTML UI.
 
+The tests start the Go server on an ephemeral port with an isolated, temp **file-backed** SQLite database, then clean up automatically.
+
 ## Run
 
 Prereqs:
 - Go
 - Node.js
-- `sqlite3` available on your PATH (for DB assertions)
+- `sqlite3` available on your PATH (used for DB assertions)
+
+From repo root, make sure generated code is up-to-date:
+
+```bash
+make generate
+```
+
+Then run Playwright:
 
 ```bash
 cd e2e
-npm install
-npx playwright install --with-deps chromium
+npm ci
+npx playwright install chromium
 npm test
 ```
 
-The tests start the Go server on an ephemeral port with an isolated temp SQLite database, then clean up automatically.
+Linux CI note: `npx playwright install --with-deps chromium`.

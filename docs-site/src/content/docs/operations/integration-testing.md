@@ -1,38 +1,46 @@
 ---
 title: Integration testing
-description: End-to-end HTTP integration tests (SQLite in-memory).
+description: Go HTTP integration tests (SQLite in-memory) + browser E2E (Playwright).
 ---
 
+This page covers the different test suites in this repo:
 
-This document describes the comprehensive integration testing suite for the mjr.wtf URL shortener.
+- **Go tests (all)**: `make test` (runs `go test ./...`)
+- **Go unit-ish tests**: `make test-unit` (runs `go test -short ./...`)
+- **Go HTTP integration tests**: `make test-integration` (runs `go test ./internal/infrastructure/http/server/...` with an in-memory SQLite DB + embedded goose migrations)
+- **Browser E2E tests (Playwright)**: `cd e2e && npm test` (real browser against a real server process + temp, file-backed SQLite DB)
 
-## Overview
+## Quick commands
 
-The integration testing suite provides end-to-end testing of the entire application stack, including:
-- HTTP API endpoints
-- Database operations (SQLite in-memory)
-- Authentication and authorization
-- URL creation, redirection, and analytics
-- Error handling and edge cases
-- Concurrent request handling
+```bash
+make test              # all Go tests
+make test-unit         # fast-ish: `go test -short ./...`
+make test-integration  # HTTP integration tests (SQLite in-memory)
+```
 
-## Running Integration Tests
+## Browser E2E tests (Playwright)
 
-### Quick Start
+Prereqs:
+- Go
+- Node.js
+- `sqlite3` available on your PATH (used for DB assertions)
 
-Run all integration tests:
+```bash
+make generate
+cd e2e
+npm ci
+npx playwright install chromium
+npm test
+```
+
+Linux CI note: `npx playwright install --with-deps chromium`.
+
+## Go HTTP integration tests
+
+Run all HTTP integration tests:
+
 ```bash
 make test-integration
-```
-
-Run all tests (unit + integration):
-```bash
-make test
-```
-
-Run unit tests only (fast, excludes integration tests):
-```bash
-make test-unit
 ```
 
 ### Specific Test Suites
