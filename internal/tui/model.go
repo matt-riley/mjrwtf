@@ -538,6 +538,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.status = fmt.Sprintf("Created: %s (copied to clipboard)", msg.resp.ShortURL)
 		}
+
+		// New URLs are listed newest-first, so jump to the first page to make the created URL visible.
+		m.offset = 0
+		m.cursor = 0
+
 		m.loading = true
 		return m, tea.Batch(m.spinner.Tick, listURLsCmd(m.cfg, m.pageSize, m.offset))
 	}
@@ -599,7 +604,13 @@ func (m model) mainLine() string {
 		}
 
 		if len(m.filtered) == 0 {
-			msg := styles.MutedStyle.Render("No URLs yet. Press [c] to create one, or [r] to refresh.")
+			msgText := "No URLs yet. Press [c] to create one, or [r] to refresh."
+			if strings.TrimSpace(m.filterQuery) != "" {
+				msgText = "No matches for filter. Press [/] to change the filter (or [/] then [esc] to clear)."
+			} else if m.offset > 0 {
+				msgText = "No URLs on this page. Press [p] for previous page, or [r] to refresh."
+			}
+			msg := styles.MutedStyle.Render(msgText)
 			return styles.BorderStyle.Padding(1, 2).Render(msg)
 		}
 

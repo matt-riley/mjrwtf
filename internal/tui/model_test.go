@@ -198,6 +198,7 @@ func TestModel_Update_CreateURLMsg_SuccessCopiesAndRefreshes(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	m.loading = false
 	m.mode = modeCreating
+	m.offset = 40
 	m.createInput.SetValue("https://example.com")
 
 	m2, cmd := m.Update(createURLMsg{resp: &client.CreateURLResponse{ShortCode: "abc123", ShortURL: "https://mjr.wtf/abc123", OriginalURL: "https://example.com"}})
@@ -217,8 +218,40 @@ func TestModel_Update_CreateURLMsg_SuccessCopiesAndRefreshes(t *testing.T) {
 	if !mm.loading {
 		t.Fatalf("expected loading=true")
 	}
+	if mm.offset != 0 {
+		t.Fatalf("offset=%d", mm.offset)
+	}
 	if cmd == nil {
 		t.Fatalf("expected refresh cmd")
+	}
+}
+
+func TestModel_View_EmptyState_OffsetNonZeroNotMisleading(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.loading = false
+	m.offset = 20
+	m.urls = nil
+	m.filtered = nil
+
+	out := m.View()
+	if !strings.Contains(out, "No URLs on this page") {
+		t.Fatalf("expected page empty-state, got:\n%s", out)
+	}
+	if strings.Contains(out, "No URLs yet") {
+		t.Fatalf("did not expect global empty-state when offset>0")
+	}
+}
+
+func TestModel_View_EmptyState_FilterNotMisleading(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "t"}, nil)
+	m.loading = false
+	m.filterQuery = "abc"
+	m.urls = nil
+	m.filtered = nil
+
+	out := m.View()
+	if !strings.Contains(out, "No matches for filter") {
+		t.Fatalf("expected filter empty-state, got:\n%s", out)
 	}
 }
 
