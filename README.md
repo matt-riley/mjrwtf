@@ -23,16 +23,17 @@ A simple URL shortener written in Go with SQLite storage, built for speed and ea
 ## 🚀 Quick Start
 
 ```bash
+git clone https://github.com/matt-riley/mjrwtf.git
+cd mjrwtf
+
 # 1. Copy and configure environment variables
 cp .env.example .env
-# Edit .env to set AUTH_TOKENS (recommended) or AUTH_TOKEN (legacy)
+# Edit .env and set AUTH_TOKENS (preferred) or AUTH_TOKEN (legacy)
 
-# 2. Prepare a persistent data directory and run migrations
+# 2. Create a persistent data directory (SQLite database will live here)
 mkdir -p data
-export DATABASE_URL=./data/database.db
-make migrate-up
 
-# 3. Start the server
+# 3. Start the server (runs migrations automatically on startup)
 make docker-compose-up
 
 # 4. Verify it's running
