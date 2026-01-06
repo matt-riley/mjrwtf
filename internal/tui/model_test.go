@@ -221,6 +221,9 @@ func TestModel_Update_CreateURLMsg_SuccessCopiesAndRefreshes(t *testing.T) {
 	if mm.offset != 0 {
 		t.Fatalf("offset=%d", mm.offset)
 	}
+	if mm.cursor != 0 {
+		t.Fatalf("cursor=%d", mm.cursor)
+	}
 	if cmd == nil {
 		t.Fatalf("expected refresh cmd")
 	}
