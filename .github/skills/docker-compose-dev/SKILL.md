@@ -16,19 +16,16 @@ allowed-tools: Bash(git:*) Bash(make:*) Bash(docker:*) Bash(curl:*) Read
 
 ```bash
 cp .env.example .env
-# set AUTH_TOKENS (recommended) or AUTH_TOKEN
+# set AUTH_TOKENS (preferred) or AUTH_TOKEN
 ```
 
-2) Run migrations on the host (required on first run):
+2) Create the persistent data directory:
 
 ```bash
 mkdir -p data
-export DATABASE_URL=./data/database.db
-make build-migrate
-make migrate-up
 ```
 
-3) Start services:
+3) Start services (Docker Compose runs migrations automatically on startup via docker-entrypoint.sh):
 
 ```bash
 make docker-compose-up

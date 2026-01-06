@@ -133,14 +133,12 @@ The project includes a `docker-compose.yml` file that runs the server with a per
 ```bash
 # 1. Copy environment variables
 cp .env.example .env
-# Edit .env to set AUTH_TOKENS (recommended) or AUTH_TOKEN
+# Edit .env to set AUTH_TOKENS (preferred) or AUTH_TOKEN
 
-# 2. Prepare a persistent data directory and run migrations (required on first run)
+# 2. Prepare a persistent data directory
 mkdir -p data
-export DATABASE_URL=./data/database.db
-make migrate-up
 
-# 3. Start the server
+# 3. Start the server (Docker Compose runs migrations automatically on startup via docker-entrypoint.sh)
 make docker-compose-up
 
 # 4. Verify the application is ready
