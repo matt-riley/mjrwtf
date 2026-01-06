@@ -55,7 +55,7 @@ Logging is structured via `zerolog`.
 
 - `LOG_LEVEL` (default: `info`)
 - `LOG_FORMAT` (`json` or `pretty`, default: `json`)
-- `LOG_STACK_TRACES` (default: `true`; include panic stack traces)
+- `LOG_STACK_TRACES` (default: `true`; include stack traces in panic recovery logs)
 
 Each HTTP request is logged with fields like `request_id`, `method`, `path`, `status`, `size`, and `duration`.
 
