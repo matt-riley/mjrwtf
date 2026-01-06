@@ -19,14 +19,15 @@ docker compose config --services
 
 ## Testing Checklist
 
-### 1. Migrations (required on first run)
+### 1. First run setup (data + auth)
 
 - [ ] Create the persistent data directory: `mkdir -p data`
-- [ ] Run migrations on the host:
-  ```bash
-  export DATABASE_URL=./data/database.db
-  make migrate-up
-  ```
+
+- [ ] Configure auth (at least one of):
+  - `AUTH_TOKENS` (preferred; comma-separated)
+  - `AUTH_TOKEN` (legacy; used only if `AUTH_TOKENS` is unset)
+
+> Note: the container runs `./migrate up` automatically on startup (see `docker-entrypoint.sh`) and will create/apply the SQLite schema in `/app/data/database.db`.
 
 ### 2. Basic Startup Tests
 

@@ -15,23 +15,24 @@ docker compose config --services
 
 ## Testing Checklist
 
-### 1. Migrations (required on first run)
+### 1. First run setup (data + auth)
 
 - [ ] Create the persistent data directory: `mkdir -p data`
 
 > Tip: you can override the bind-mounted data directory and host port with:
 > - `DATA_DIR=/absolute/path/to/data`
 > - `HOST_PORT=18080`
-- [ ] Run migrations on the host:
-  ```bash
-  export DATABASE_URL=./data/database.db
-  make migrate-up
-  ```
+
+- [ ] Configure auth (at least one of):
+  - `AUTH_TOKENS` (preferred; comma-separated)
+  - `AUTH_TOKEN` (legacy; used only if `AUTH_TOKENS` is unset)
+
+> Note: the container runs `./migrate up` automatically on startup (see `docker-entrypoint.sh`) and will create/apply the SQLite schema in `/app/data/database.db`.
 
 ### 2. Basic Startup Tests
 
 - [ ] Start service: `make docker-compose-up`
-- [ ] Export a client token for API calls (must match one of the server's configured `AUTH_TOKENS` / legacy `AUTH_TOKEN`): `export AUTH_TOKEN=your-token`
+- [ ] Set a client token for API calls (must match one of the server's configured `AUTH_TOKENS` / legacy `AUTH_TOKEN`): `TOKEN=your-token`
 - [ ] Verify service is running: `make docker-compose-ps`
 - [ ] Verify no errors in logs: `make docker-compose-logs`
 
@@ -45,7 +46,7 @@ docker compose config --services
 - [ ] Create a short URL (note the returned `short_code`):
   ```bash
   curl -X POST http://localhost:8080/api/urls \
-    -H "Authorization: Bearer $AUTH_TOKEN" \
+    -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
     -d '{"original_url": "https://example.com"}'
   ```

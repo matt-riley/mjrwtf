@@ -130,7 +130,7 @@ curl https://mjr.wtf/api/urls?limit=10&offset=0 \
 
 **DELETE** `/api/urls/{shortCode}`
 
-Deletes a shortened URL. Requires authentication (multi-user/ownership is not implemented yet).
+Deletes a shortened URL. Requires authentication; only the creator (`created_by`) can delete the URL (returns 403 otherwise).
 
 **Authentication:** Required
 
@@ -139,6 +139,8 @@ Deletes a shortened URL. Requires authentication (multi-user/ownership is not im
 
 **Response (204 No Content):**
 No response body.
+
+**Errors:** 401 (unauthorized), 403 (forbidden), 404 (not found), 429 (rate limited)
 
 **Example:**
 ```bash
@@ -156,9 +158,9 @@ curl -X DELETE https://mjr.wtf/api/urls/abc123 \
 
 Retrieves analytics data for a shortened URL including click counts, geographic distribution, and referrer information.
 
-**Authentication:** Required (returns 403 if the auth identity does not match `created_by`)
+**Authentication:** Required; only the creator (`created_by`) can view analytics (returns 403 otherwise).
 
-**Note:** mjr.wtf currently maps all valid tokens to a single shared identity, so this typically behaves as "any valid token can view analytics".
+**Note:** mjr.wtf currently maps all valid tokens to a single shared identity (`created_by: "authenticated-user"`), so this typically behaves like a single-tenant deployment.
 
 **Path Parameters:**
 - `shortCode`: The short code to get analytics for
@@ -339,6 +341,7 @@ All error responses follow a consistent format:
 - **403 Forbidden** - Insufficient permissions (e.g., trying to delete another user's URL)
 - **404 Not Found** - Resource not found
 - **409 Conflict** - Resource already exists (e.g., duplicate short code)
+- **429 Too Many Requests** - Rate limit exceeded
 - **500 Internal Server Error** - Server error
 
 ### Common Error Examples
@@ -346,7 +349,7 @@ All error responses follow a consistent format:
 **Missing authentication:**
 ```json
 {
-  "error": "missing authorization header"
+  "error": "Unauthorized: missing authorization header"
 }
 ```
 
