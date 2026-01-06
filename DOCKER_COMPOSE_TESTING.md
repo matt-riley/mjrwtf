@@ -31,6 +31,7 @@ docker compose config --services
 ### 2. Basic Startup Tests
 
 - [ ] Start service: `make docker-compose-up`
+- [ ] Export a client token for API calls (must match one of the server's configured `AUTH_TOKENS` / legacy `AUTH_TOKEN`): `export AUTH_TOKEN=your-token`
 - [ ] Verify service is running: `make docker-compose-ps`
 - [ ] Verify no errors in logs: `make docker-compose-logs`
 

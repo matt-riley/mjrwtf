@@ -20,12 +20,17 @@ The `demo-tui.tape` file is a VHS (Video for the Terminal) script that records a
 2. **VHS** - Terminal recording tool
    ```bash
    go install github.com/charmbracelet/vhs@latest
+   # Ensure VHS is on your PATH:
+   export PATH="$(go env GOPATH)/bin:$PATH"
    ```
 
-3. **Running server** - The demo requires a live server
+3. **Running server** - The tapes assume a live server at `http://localhost:8080` with demo tokens configured
    ```bash
-   docker compose up -d
-   # Verify: curl http://localhost:8080/health
+   # The tapes use MJR_TOKEN=demo-token and MJR_TOKEN=empty-token
+   AUTH_TOKENS=demo-token,empty-token docker compose up -d
+
+   # Verify:
+   curl http://localhost:8080/health
    ```
 
 4. **TUI binary** - Build the mjr CLI
@@ -53,7 +58,7 @@ This will generate `docs-site/public/images/tui/demo-light.gif`.
 
 ## TUI Screenshots (PNG)
 
-Issue #218 tracks capturing static screenshots for documentation.
+Use the screenshot tapes to generate static screenshots for the docs.
 
 ### Prerequisites
 

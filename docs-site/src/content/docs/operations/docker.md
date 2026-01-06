@@ -24,7 +24,7 @@ docker run -d \
 
 Available image tags:
 - `latest` - Latest published release
-- `v1.2.3` - Specific semantic version
+- `1.2.3` - Specific semantic version (from the release tag `mjrwtf-v1.2.3`)
 - `1.2` - Latest patch version in the 1.2.x series
 - `1` - Latest minor and patch version in the 1.x series
 
@@ -47,7 +47,7 @@ Production-ready images are automatically built and published to GitHub Containe
 
 ```bash
 # Pull a specific version
-docker pull ghcr.io/matt-riley/mjrwtf:v1.0.0
+docker pull ghcr.io/matt-riley/mjrwtf:1.0.0
 
 # Pull the latest version
 docker pull ghcr.io/matt-riley/mjrwtf:latest
@@ -63,7 +63,7 @@ docker tag ghcr.io/matt-riley/mjrwtf:latest mjrwtf:latest
 docker build -t mjrwtf:latest .
 
 # Build with a specific tag
-docker build -t mjrwtf:v1.0.0 .
+docker build -t mjrwtf:1.0.0 .
 ```
 
 The build process:
