@@ -16,9 +16,9 @@ import (
 
 // mockWhoIsClientForIntegration is a configurable mock for integration testing.
 type mockWhoIsClientForIntegration struct {
-	Profile  *middleware.TailscaleUserProfile
-	Err      error
-	CallLog  []string // Records remote addresses passed to WhoIs
+	Profile *middleware.TailscaleUserProfile
+	Err     error
+	CallLog []string // Records remote addresses passed to WhoIs
 }
 
 func (m *mockWhoIsClientForIntegration) WhoIs(ctx context.Context, remoteAddr string) (*middleware.TailscaleUserProfile, error) {
