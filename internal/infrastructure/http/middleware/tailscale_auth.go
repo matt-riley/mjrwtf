@@ -54,6 +54,15 @@ func TailscaleAuth(client WhoIsClient, logger zerolog.Logger) func(http.Handler)
 				return
 			}
 
+			// Validate that we have a valid user identity
+			if profile == nil || profile.LoginName == "" {
+				logger.Warn().
+					Str("remote_addr", remoteAddr).
+					Msg("tailscale WhoIs returned empty user identity")
+				respondJSONError(w, "Unauthorized: invalid Tailscale identity", http.StatusUnauthorized)
+				return
+			}
+
 			logger.Debug().
 				Str("login", profile.LoginName).
 				Str("name", profile.DisplayName).
