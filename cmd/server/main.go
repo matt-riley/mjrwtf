@@ -57,6 +57,8 @@ func main() {
 			logger.Fatal().Err(err).Msg("failed to create Tailscale server")
 		}
 
+		serverOpts = append(serverOpts, server.WithTailscaleServer(tsServer))
+
 		// Create WhoIs client for authentication
 		tsWhoIsClient = tailscale.NewWhoIsClient(tsServer, logger)
 		serverOpts = append(serverOpts, server.WithTailscaleClient(tsWhoIsClient))
