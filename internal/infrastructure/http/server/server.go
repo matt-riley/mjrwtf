@@ -311,7 +311,7 @@ func (s *Server) setupPageRoutes(pageHandler *handlers.PageHandler) {
 	s.router.Get("/", pageHandler.Home)
 	s.router.HandleFunc("/create", pageHandler.CreatePage)
 
-	// Login/logout routes - only needed in standard auth mode (when no Tailscale client is configured)
+	// Login/logout routes - only needed in standard auth mode (when no Tailscale server is configured)
 	if s.tailscaleServer == nil {
 		s.router.HandleFunc("/login", pageHandler.Login)
 		s.router.Get("/logout", pageHandler.Logout)
