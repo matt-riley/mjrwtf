@@ -528,3 +528,32 @@ func TestPageHandler_Dashboard_TailscaleUser_ShowsIdentityAndHidesLogout(t *test
 		t.Fatalf("expected logout link to be hidden in Tailscale mode")
 	}
 }
+
+func TestPageHandler_Dashboard_SessionAuth_ShowsLogoutAndHidesTailscaleIdentity(t *testing.T) {
+	listUseCase := &mockListURLsUseCase{executeFunc: func(ctx context.Context, req application.ListURLsRequest) (*application.ListURLsResponse, error) {
+		return &application.ListURLsResponse{URLs: []application.URLResponse{}, Total: 0}, nil
+	}}
+
+	h := NewPageHandler(&mockCreateURLUseCase{}, listUseCase, []string{"test-token"}, newTestSessionStore(t), false)
+
+	req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+	ctx := context.WithValue(req.Context(), middleware.SessionUserIDKey, "session-user")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	h.Dashboard(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if strings.Contains(body, "Logged in as") {
+		t.Fatalf("expected dashboard to not include tailscale identity")
+	}
+	if !strings.Contains(body, "href=\"/logout\"") {
+		t.Fatalf("expected logout link to be shown for session auth")
+	}
+}
