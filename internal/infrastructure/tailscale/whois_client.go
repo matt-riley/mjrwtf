@@ -27,14 +27,9 @@ func NewWhoIsClient(server *Server, logger zerolog.Logger) *WhoIsClient {
 // WhoIs looks up the Tailscale identity for the given remote address.
 // The remoteAddr should be in the format "ip:port" (e.g., "100.64.0.1:12345").
 func (c *WhoIsClient) WhoIs(ctx context.Context, remoteAddr string) (*middleware.TailscaleUserProfile, error) {
-	tsServer, err := c.server.LocalClient()
+	lc, err := c.getLocalClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get local client: %w", err)
-	}
-
-	lc, err := tsServer.LocalClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tailscale client: %w", err)
+		return nil, err
 	}
 
 	// Parse the remote address to get just the IP
@@ -64,15 +59,26 @@ func (c *WhoIsClient) WhoIs(ctx context.Context, remoteAddr string) (*middleware
 	return profile, nil
 }
 
+// getLocalClient returns the Tailscale LocalClient for API calls.
+func (c *WhoIsClient) getLocalClient() (*tailscale.LocalClient, error) {
+	tsServer, err := c.server.TSNetServer()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tsnet server: %w", err)
+	}
+
+	lc, err := tsServer.LocalClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tailscale client: %w", err)
+	}
+
+	return lc, nil
+}
+
 // Ensure WhoIsClient implements middleware.WhoIsClient
 var _ middleware.WhoIsClient = (*WhoIsClient)(nil)
 
 // LocalClientForTesting returns the underlying tailscale client for testing.
 // This is used by integration tests that need to create listeners.
 func (c *WhoIsClient) LocalClientForTesting() (*tailscale.LocalClient, error) {
-	tsServer, err := c.server.LocalClient()
-	if err != nil {
-		return nil, err
-	}
-	return tsServer.LocalClient()
+	return c.getLocalClient()
 }

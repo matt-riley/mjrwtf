@@ -67,7 +67,6 @@ func NewServer(cfg *config.Config, logger zerolog.Logger) (*Server, error) {
 	logger.Info().
 		Str("hostname", cfg.TailscaleHostname).
 		Str("state_dir", cfg.TailscaleStateDir).
-		Bool("has_auth_key", cfg.TailscaleAuthKey != "").
 		Str("control_url", cfg.TailscaleControlURL).
 		Msg("tailscale server configured")
 
@@ -86,6 +85,8 @@ func (s *Server) Listen(network, addr string) (net.Listener, error) {
 		s.mu.Unlock()
 		return nil, errors.New("server is closed")
 	}
+	// Mark as started before releasing lock to prevent race with Close()
+	s.started = true
 	s.mu.Unlock()
 
 	s.logger.Info().
@@ -97,10 +98,6 @@ func (s *Server) Listen(network, addr string) (net.Listener, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on tailscale: %w", err)
 	}
-
-	s.mu.Lock()
-	s.started = true
-	s.mu.Unlock()
 
 	s.logger.Info().
 		Str("network", network).
@@ -115,9 +112,10 @@ func (s *Server) Hostname() string {
 	return s.hostname
 }
 
-// LocalClient returns a Tailscale local client for making API calls.
-// This can be used for WhoIs lookups to identify connecting users.
-func (s *Server) LocalClient() (*tsnet.Server, error) {
+// TSNetServer returns the underlying tsnet.Server for advanced operations.
+// Callers can use this to get a LocalClient via tsServer.LocalClient().
+// Returns an error if the server has been closed.
+func (s *Server) TSNetServer() (*tsnet.Server, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

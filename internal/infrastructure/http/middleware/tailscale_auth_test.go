@@ -35,7 +35,7 @@ func TestTailscaleAuth_Success(t *testing.T) {
 	logger := zerolog.Nop()
 
 	handler := middleware.TailscaleAuth(client, logger)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify user context is set
+		// Verify TailscaleUser context is set
 		profile, ok := middleware.GetTailscaleUser(r.Context())
 		if !ok {
 			t.Error("Expected Tailscale user in context")
@@ -47,6 +47,16 @@ func TestTailscaleAuth_Success(t *testing.T) {
 		if profile.DisplayName != "Alice Smith" {
 			t.Errorf("Expected name 'Alice Smith', got: %s", profile.DisplayName)
 		}
+
+		// Verify UserID context is also set (for compatibility with Bearer auth handlers)
+		userID, ok := middleware.GetUserID(r.Context())
+		if !ok {
+			t.Error("Expected UserID to be set in context")
+		}
+		if userID != "alice@example.com" {
+			t.Errorf("Expected UserID 'alice@example.com', got: %s", userID)
+		}
+
 		w.WriteHeader(http.StatusOK)
 	}))
 
