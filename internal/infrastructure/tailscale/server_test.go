@@ -144,3 +144,76 @@ func TestServer_Close_Idempotent(t *testing.T) {
 		t.Errorf("Second close failed: %v", err)
 	}
 }
+
+func TestServer_TSNetServer_WhenOpen(t *testing.T) {
+	cfg := &config.Config{
+		TailscaleEnabled:  true,
+		TailscaleHostname: "test-host",
+		TailscaleStateDir: t.TempDir(),
+	}
+	logger := zerolog.Nop()
+
+	server, err := tailscale.NewServer(cfg, logger)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	defer server.Close()
+
+	tsServer, err := server.TSNetServer()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	if tsServer == nil {
+		t.Fatal("Expected tsnet.Server to be non-nil")
+	}
+}
+
+func TestServer_TSNetServer_WhenClosed(t *testing.T) {
+	cfg := &config.Config{
+		TailscaleEnabled:  true,
+		TailscaleHostname: "test-host",
+		TailscaleStateDir: t.TempDir(),
+	}
+	logger := zerolog.Nop()
+
+	server, err := tailscale.NewServer(cfg, logger)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Close the server first
+	if err := server.Close(); err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
+
+	// TSNetServer should return an error when closed
+	_, err = server.TSNetServer()
+	if err == nil {
+		t.Fatal("Expected error when server is closed, got nil")
+	}
+}
+
+func TestServer_Listen_WhenClosed(t *testing.T) {
+	cfg := &config.Config{
+		TailscaleEnabled:  true,
+		TailscaleHostname: "test-host",
+		TailscaleStateDir: t.TempDir(),
+	}
+	logger := zerolog.Nop()
+
+	server, err := tailscale.NewServer(cfg, logger)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Close the server first
+	if err := server.Close(); err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
+
+	// Listen should return an error when closed
+	_, err = server.Listen("tcp", ":443")
+	if err == nil {
+		t.Fatal("Expected error when server is closed, got nil")
+	}
+}
