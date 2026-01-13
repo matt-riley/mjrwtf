@@ -49,14 +49,25 @@ type Server struct {
 	rateLimiters     []*middleware.RateLimiterMiddleware
 	redirectUseCase  *application.RedirectURLUseCase
 	urlStatusChecker *application.URLStatusChecker
+	tailscaleClient  middleware.WhoIsClient
 
 	bgCtx    context.Context
 	bgCancel context.CancelFunc
 }
 
+// ServerOption is a functional option for configuring the server.
+type ServerOption func(*Server)
+
+// WithTailscaleClient sets the Tailscale WhoIs client for authentication.
+func WithTailscaleClient(client middleware.WhoIsClient) ServerOption {
+	return func(s *Server) {
+		s.tailscaleClient = client
+	}
+}
+
 // New creates a new HTTP server with configured middleware and dependencies
 // Returns an error if the server cannot be initialized properly
-func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error) {
+func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger, opts ...ServerOption) (*Server, error) {
 	r := chi.NewRouter()
 
 	// Initialize Prometheus metrics
@@ -123,6 +134,18 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger) (*Server, error)
 			WriteTimeout: writeTimeout,
 			IdleTimeout:  idleTimeout,
 		},
+	}
+
+	// Apply functional options
+	for _, opt := range opts {
+		opt(server)
+	}
+
+	// Log which authentication mode is active
+	if server.tailscaleClient != nil && cfg.TailscaleEnabled {
+		logger.Info().Msg("server running in Tailscale authentication mode")
+	} else {
+		logger.Info().Msg("server running in standard authentication mode (Bearer/Session)")
 	}
 
 	// Setup routes
@@ -270,14 +293,24 @@ func (s *Server) buildHandlers() (*routeHandlers, error) {
 }
 
 func (s *Server) setupPageRoutes(pageHandler *handlers.PageHandler) {
-	// HTML page routes
+	// HTML page routes - public
 	s.router.Get("/", pageHandler.Home)
 	s.router.HandleFunc("/create", pageHandler.CreatePage)
-	s.router.HandleFunc("/login", pageHandler.Login)
-	s.router.Get("/logout", pageHandler.Logout)
 
-	// Protected dashboard route (requires session)
-	s.router.With(middleware.RequireSession(s.sessionStore, "/login")).Get("/dashboard", pageHandler.Dashboard)
+	// Login/logout routes - only needed in standard auth mode
+	if s.tailscaleClient == nil || !s.config.TailscaleEnabled {
+		s.router.HandleFunc("/login", pageHandler.Login)
+		s.router.Get("/logout", pageHandler.Logout)
+	}
+
+	// Protected dashboard route
+	if s.tailscaleClient != nil && s.config.TailscaleEnabled {
+		// Tailscale mode: use WhoIs auth
+		s.router.With(middleware.TailscaleAuth(s.tailscaleClient, s.logger)).Get("/dashboard", pageHandler.Dashboard)
+	} else {
+		// Standard mode: use session auth with redirect to login
+		s.router.With(middleware.RequireSession(s.sessionStore, "/login")).Get("/dashboard", pageHandler.Dashboard)
+	}
 }
 
 func (s *Server) setupRedirectRoutes(redirectHandler *handlers.RedirectHandler, redirectRateLimiter *middleware.RateLimiterMiddleware) {
@@ -290,9 +323,14 @@ func (s *Server) setupAPIRoutes(urlHandler *handlers.URLHandler, analyticsHandle
 		r.Use(apiRateLimiter.Middleware)
 
 		r.Route("/urls", func(r chi.Router) {
-			// Apply auth middleware to all URL endpoints
-			// Support both Bearer token auth (for API) and session auth (for dashboard)
-			r.Use(middleware.SessionOrBearerAuth(s.config.ActiveAuthTokens()))
+			// Apply auth middleware based on mode
+			if s.tailscaleClient != nil && s.config.TailscaleEnabled {
+				// Tailscale mode: use WhoIs auth
+				r.Use(middleware.TailscaleAuth(s.tailscaleClient, s.logger))
+			} else {
+				// Standard mode: support both Bearer token auth (for API) and session auth (for dashboard)
+				r.Use(middleware.SessionOrBearerAuth(s.config.ActiveAuthTokens()))
+			}
 
 			r.Post("/", urlHandler.Create)
 			r.Get("/", urlHandler.List)
@@ -388,4 +426,9 @@ func (s *Server) Router() *chi.Mux {
 // Metrics returns the Prometheus metrics for the server
 func (s *Server) Metrics() *metrics.Metrics {
 	return s.metrics
+}
+
+// TailscaleClient returns the Tailscale WhoIs client, if configured.
+func (s *Server) TailscaleClient() middleware.WhoIsClient {
+	return s.tailscaleClient
 }

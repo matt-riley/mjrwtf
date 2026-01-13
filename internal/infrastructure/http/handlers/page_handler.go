@@ -235,10 +235,19 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user ID from session (set by SessionMiddleware)
-	userID, ok := middleware.GetSessionUserID(r.Context())
-	if !ok {
-		// This shouldn't happen if RequireSession middleware is applied
+	// Get user ID from context - check both Tailscale and session auth
+	// TailscaleAuth middleware sets UserIDKey, SessionMiddleware sets SessionUserIDKey
+	var userID string
+	var ok bool
+
+	// First check for Tailscale user (via GetUserID which reads UserIDKey)
+	if userID, ok = middleware.GetUserID(r.Context()); !ok || userID == "" {
+		// Fallback to session-based user ID
+		userID, ok = middleware.GetSessionUserID(r.Context())
+	}
+
+	if !ok || userID == "" {
+		// This shouldn't happen if auth middleware is applied
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.DashboardWithError("Authentication required").Render(r.Context(), w); err != nil {
 			w.Write([]byte("Error rendering page"))
