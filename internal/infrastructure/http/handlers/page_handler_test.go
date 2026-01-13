@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/matt-riley/mjrwtf/internal/application"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/session"
 )
 
@@ -489,5 +490,41 @@ func TestPageHandler_Login_POST_InvalidToken(t *testing.T) {
 
 	if w.Result().StatusCode != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestPageHandler_Dashboard_TailscaleUser_ShowsIdentityAndHidesLogout(t *testing.T) {
+	listUseCase := &mockListURLsUseCase{executeFunc: func(ctx context.Context, req application.ListURLsRequest) (*application.ListURLsResponse, error) {
+		return &application.ListURLsResponse{URLs: []application.URLResponse{}, Total: 0}, nil
+	}}
+
+	h := NewPageHandler(&mockCreateURLUseCase{}, listUseCase, []string{"test-token"}, newTestSessionStore(t), false)
+
+	req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+	ctx := context.WithValue(req.Context(), middleware.TailscaleUserKey, &middleware.TailscaleUserProfile{LoginName: "alice@example.com"})
+	ctx = context.WithValue(ctx, middleware.UserIDKey, "alice@example.com")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	h.Dashboard(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Logged in as") {
+		t.Fatalf("expected dashboard to include logged-in identity")
+	}
+	if !strings.Contains(body, "alice@example.com") {
+		t.Fatalf("expected dashboard to include tailscale login")
+	}
+	if !strings.Contains(body, "mailto:alice@example.com") {
+		t.Fatalf("expected dashboard identity to be a mailto link")
+	}
+	if strings.Contains(body, "href=\"/logout\"") {
+		t.Fatalf("expected logout link to be hidden in Tailscale mode")
 	}
 }
