@@ -21,6 +21,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/metrics"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/session"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/tailscale"
 	"github.com/rs/zerolog"
 )
 
@@ -49,6 +50,7 @@ type Server struct {
 	rateLimiters     []*middleware.RateLimiterMiddleware
 	redirectUseCase  *application.RedirectURLUseCase
 	urlStatusChecker *application.URLStatusChecker
+	tailscaleServer  *tailscale.Server
 	tailscaleClient  middleware.WhoIsClient
 
 	bgCtx    context.Context
@@ -62,6 +64,13 @@ type ServerOption func(*Server)
 func WithTailscaleClient(client middleware.WhoIsClient) ServerOption {
 	return func(s *Server) {
 		s.tailscaleClient = client
+	}
+}
+
+// WithTailscaleServer sets the Tailscale server for authentication and routing decisions.
+func WithTailscaleServer(tsServer *tailscale.Server) ServerOption {
+	return func(s *Server) {
+		s.tailscaleServer = tsServer
 	}
 }
 
@@ -141,8 +150,13 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger, opts ...ServerOp
 		opt(server)
 	}
 
+	// If a Tailscale server is provided but no WhoIs client, create one.
+	if server.tailscaleServer != nil && server.tailscaleClient == nil {
+		server.tailscaleClient = tailscale.NewWhoIsClient(server.tailscaleServer, logger)
+	}
+
 	// Log which authentication mode is active
-	if server.tailscaleClient != nil {
+	if server.tailscaleServer != nil {
 		logger.Info().Msg("server running in Tailscale authentication mode")
 	} else {
 		logger.Info().Msg("server running in standard authentication mode (Bearer/Session)")
@@ -298,13 +312,13 @@ func (s *Server) setupPageRoutes(pageHandler *handlers.PageHandler) {
 	s.router.HandleFunc("/create", pageHandler.CreatePage)
 
 	// Login/logout routes - only needed in standard auth mode (when no Tailscale client is configured)
-	if s.tailscaleClient == nil {
+	if s.tailscaleServer == nil {
 		s.router.HandleFunc("/login", pageHandler.Login)
 		s.router.Get("/logout", pageHandler.Logout)
 	}
 
 	// Protected dashboard route
-	if s.tailscaleClient != nil {
+	if s.tailscaleServer != nil {
 		// Tailscale mode: use WhoIs auth
 		s.router.With(middleware.TailscaleAuth(s.tailscaleClient, s.logger)).Get("/dashboard", pageHandler.Dashboard)
 	} else {
@@ -323,8 +337,8 @@ func (s *Server) setupAPIRoutes(urlHandler *handlers.URLHandler, analyticsHandle
 		r.Use(apiRateLimiter.Middleware)
 
 		r.Route("/urls", func(r chi.Router) {
-			// Apply auth middleware based on mode (presence of Tailscale client is the source of truth)
-			if s.tailscaleClient != nil {
+			// Apply auth middleware based on mode (presence of Tailscale server is the source of truth)
+			if s.tailscaleServer != nil {
 				// Tailscale mode: use WhoIs auth
 				r.Use(middleware.TailscaleAuth(s.tailscaleClient, s.logger))
 			} else {
@@ -431,4 +445,9 @@ func (s *Server) Metrics() *metrics.Metrics {
 // TailscaleClient returns the Tailscale WhoIs client, if configured.
 func (s *Server) TailscaleClient() middleware.WhoIsClient {
 	return s.tailscaleClient
+}
+
+// TailscaleServer returns the configured Tailscale server, if set.
+func (s *Server) TailscaleServer() *tailscale.Server {
+	return s.tailscaleServer
 }

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/tailscale"
 )
 
 // mockWhoIsClient is a mock implementation of middleware.WhoIsClient for testing.
@@ -79,6 +80,8 @@ func TestServer_AdminRoutes_TailscaleMode(t *testing.T) {
 	cfg := testConfig()
 	cfg.TailscaleEnabled = true
 
+	tsServer := &tailscale.Server{}
+
 	mockClient := &mockWhoIsClient{
 		profile: &middleware.TailscaleUserProfile{
 			LoginName:   "alice@example.com",
@@ -87,7 +90,7 @@ func TestServer_AdminRoutes_TailscaleMode(t *testing.T) {
 		},
 	}
 
-	srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+	srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -221,7 +224,8 @@ func TestServer_PublicRoutes_AccessibleInBothModes(t *testing.T) {
 
 			if tc.tailscaleClient != nil {
 				cfg.TailscaleEnabled = true
-				srv, err = New(cfg, db, testLogger(), WithTailscaleClient(tc.tailscaleClient))
+				tsServer := &tailscale.Server{}
+				srv, err = New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(tc.tailscaleClient))
 			} else {
 				cfg.TailscaleEnabled = false
 				srv, err = New(cfg, db, testLogger())
@@ -261,11 +265,13 @@ func TestServer_TailscaleMode_WhoIsFailure(t *testing.T) {
 	cfg := testConfig()
 	cfg.TailscaleEnabled = true
 
+	tsServer := &tailscale.Server{}
+
 	mockClient := &mockWhoIsClient{
 		err: context.DeadlineExceeded, // Simulate WhoIs failure
 	}
 
-	srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+	srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -350,7 +356,8 @@ func TestServerMode_Logging(t *testing.T) {
 			var err error
 
 			if tt.tailscaleClient != nil {
-				srv, err = New(cfg, db, testLogger(), WithTailscaleClient(tt.tailscaleClient))
+				tsServer := &tailscale.Server{}
+				srv, err = New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(tt.tailscaleClient))
 			} else {
 				srv, err = New(cfg, db, testLogger())
 			}
@@ -364,5 +371,68 @@ func TestServerMode_Logging(t *testing.T) {
 				t.Errorf("expected tailscale=%v, got %v", tt.expectTailscale, hasTailscale)
 			}
 		})
+	}
+}
+
+func TestServer_TailscaleClientWithoutServer_FallsBackToStandardAuth(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := testConfig()
+	cfg.TailscaleEnabled = true
+
+	mockClient := &mockWhoIsClient{
+		profile: &middleware.TailscaleUserProfile{
+			LoginName: "alice@example.com",
+		},
+	}
+
+	// Only provide Tailscale client; without a server we should fall back to standard auth.
+	srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected standard auth (401) when Tailscale server is missing, got %d", rec.Code)
+	}
+}
+
+func TestServer_WithTailscaleServer_EnablesTailscaleAuth(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	cfg := testConfig()
+	cfg.TailscaleEnabled = true
+
+	mockClient := &mockWhoIsClient{
+		profile: &middleware.TailscaleUserProfile{
+			LoginName: "alice@example.com",
+		},
+	}
+
+	tsServer := &tailscale.Server{}
+
+	srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	if srv.TailscaleServer() != tsServer {
+		t.Fatal("expected Tailscale server to be set on Server")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+	rec := httptest.NewRecorder()
+
+	srv.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected Tailscale auth to allow request, got status %d", rec.Code)
 	}
 }

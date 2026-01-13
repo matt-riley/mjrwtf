@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/tailscale"
 )
 
 // Integration tests for Tailscale authentication mode.
@@ -38,6 +39,8 @@ func TestTailscaleMode_PublicRoutesAccessible(t *testing.T) {
 	cfg := testConfig()
 	cfg.TailscaleEnabled = true
 
+	tsServer := &tailscale.Server{}
+
 	mockClient := &mockWhoIsClientForIntegration{
 		Profile: &middleware.TailscaleUserProfile{
 			LoginName:   "alice@example.com",
@@ -46,7 +49,7 @@ func TestTailscaleMode_PublicRoutesAccessible(t *testing.T) {
 		},
 	}
 
-	srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+	srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -92,6 +95,8 @@ func TestTailscaleMode_AdminRoutesProtected(t *testing.T) {
 	cfg := testConfig()
 	cfg.TailscaleEnabled = true
 
+	tsServer := &tailscale.Server{}
+
 	mockClient := &mockWhoIsClientForIntegration{
 		Profile: &middleware.TailscaleUserProfile{
 			LoginName:   "alice@example.com",
@@ -100,7 +105,7 @@ func TestTailscaleMode_AdminRoutesProtected(t *testing.T) {
 		},
 	}
 
-	srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+	srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -210,12 +215,14 @@ func TestTailscaleMode_WhoIsFailure(t *testing.T) {
 	cfg := testConfig()
 	cfg.TailscaleEnabled = true
 
+	tsServer := &tailscale.Server{}
+
 	// Mock WhoIs that always fails
 	mockClient := &mockWhoIsClientForIntegration{
 		Err: errors.New("connection refused"),
 	}
 
-	srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+	srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -281,13 +288,14 @@ func TestBothModesCanCoexistInCodebase(t *testing.T) {
 	// Test 2: Tailscale mode
 	t.Run("tailscale mode", func(t *testing.T) {
 		cfg.TailscaleEnabled = true
+		tsServer := &tailscale.Server{}
 		mockClient := &mockWhoIsClientForIntegration{
 			Profile: &middleware.TailscaleUserProfile{
 				LoginName: "alice@example.com",
 			},
 		}
 
-		srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+		srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 		if err != nil {
 			t.Fatalf("failed to create server in Tailscale mode: %v", err)
 		}
@@ -311,6 +319,7 @@ func TestTailscaleMode_LoginRouteHidden(t *testing.T) {
 
 	cfg := testConfig()
 	cfg.TailscaleEnabled = true
+	tsServer := &tailscale.Server{}
 
 	mockClient := &mockWhoIsClientForIntegration{
 		Profile: &middleware.TailscaleUserProfile{
@@ -318,7 +327,7 @@ func TestTailscaleMode_LoginRouteHidden(t *testing.T) {
 		},
 	}
 
-	srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+	srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -348,6 +357,7 @@ func TestTailscaleMode_UserIdentityInContext(t *testing.T) {
 
 	cfg := testConfig()
 	cfg.TailscaleEnabled = true
+	tsServer := &tailscale.Server{}
 
 	mockClient := &mockWhoIsClientForIntegration{
 		Profile: &middleware.TailscaleUserProfile{
@@ -357,7 +367,7 @@ func TestTailscaleMode_UserIdentityInContext(t *testing.T) {
 		},
 	}
 
-	srv, err := New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+	srv, err := New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
@@ -432,10 +442,11 @@ func TestTailscaleMode_MetricsEndpointUnaffected(t *testing.T) {
 			var err error
 
 			if tc.tailscaleEnabled {
+				tsServer := &tailscale.Server{}
 				mockClient := &mockWhoIsClientForIntegration{
 					Profile: &middleware.TailscaleUserProfile{LoginName: "test@test.com"},
 				}
-				srv, err = New(cfg, db, testLogger(), WithTailscaleClient(mockClient))
+				srv, err = New(cfg, db, testLogger(), WithTailscaleServer(tsServer), WithTailscaleClient(mockClient))
 			} else {
 				srv, err = New(cfg, db, testLogger())
 			}
