@@ -282,9 +282,10 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if tsUser, ok := middleware.GetTailscaleUser(r.Context()); ok && tsUser != nil {
 		tailscaleLogin = tsUser.LoginName
 	}
+	showLogout := tailscaleLogin == "" // logout only applies to session-based auth
 
 	w.WriteHeader(http.StatusOK)
-	if err := pages.Dashboard(resp.URLs, clickCounts, resp.Total, limit, offset, tailscaleLogin, tailscaleLogin == "").Render(r.Context(), w); err != nil {
+	if err := pages.Dashboard(resp.URLs, clickCounts, resp.Total, limit, offset, tailscaleLogin, showLogout).Render(r.Context(), w); err != nil {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write([]byte("Error rendering page"))
 	}
