@@ -593,6 +593,130 @@ func cleanEnv() {
 	os.Unsetenv("URL_STATUS_CHECKER_CONCURRENCY")
 	os.Unsetenv("URL_STATUS_CHECKER_ARCHIVE_LOOKUP_ENABLED")
 	os.Unsetenv("URL_STATUS_CHECKER_ARCHIVE_RECHECK_INTERVAL")
+	// Tailscale
+	os.Unsetenv("TAILSCALE_ENABLED")
+	os.Unsetenv("TAILSCALE_HOSTNAME")
+	os.Unsetenv("TAILSCALE_AUTH_KEY")
+	os.Unsetenv("TAILSCALE_STATE_DIR")
+	os.Unsetenv("TAILSCALE_FUNNEL_ENABLED")
+	os.Unsetenv("TAILSCALE_CONTROL_URL")
+}
+
+func TestLoadConfig_TailscaleDefaults(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.TailscaleEnabled {
+		t.Error("Expected default TailscaleEnabled to be false")
+	}
+	if config.TailscaleHostname != "" {
+		t.Errorf("Expected default TailscaleHostname to be empty, got: %s", config.TailscaleHostname)
+	}
+	if config.TailscaleAuthKey != "" {
+		t.Errorf("Expected default TailscaleAuthKey to be empty, got: %s", config.TailscaleAuthKey)
+	}
+	if config.TailscaleStateDir != "" {
+		t.Errorf("Expected default TailscaleStateDir to be empty, got: %s", config.TailscaleStateDir)
+	}
+	if config.TailscaleFunnelEnabled {
+		t.Error("Expected default TailscaleFunnelEnabled to be false")
+	}
+	if config.TailscaleControlURL != "" {
+		t.Errorf("Expected default TailscaleControlURL to be empty, got: %s", config.TailscaleControlURL)
+	}
+}
+
+func TestLoadConfig_TailscaleEnabled(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("TAILSCALE_ENABLED", "true")
+	os.Setenv("TAILSCALE_HOSTNAME", "mjrwtf")
+	os.Setenv("TAILSCALE_STATE_DIR", "/var/lib/tailscale")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if !config.TailscaleEnabled {
+		t.Error("Expected TailscaleEnabled to be true")
+	}
+	if config.TailscaleHostname != "mjrwtf" {
+		t.Errorf("Expected TailscaleHostname to be 'mjrwtf', got: %s", config.TailscaleHostname)
+	}
+	if config.TailscaleStateDir != "/var/lib/tailscale" {
+		t.Errorf("Expected TailscaleStateDir to be '/var/lib/tailscale', got: %s", config.TailscaleStateDir)
+	}
+}
+
+func TestLoadConfig_TailscaleEnabledMissingHostname(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("TAILSCALE_ENABLED", "true")
+	os.Setenv("TAILSCALE_STATE_DIR", "/var/lib/tailscale")
+	// Missing TAILSCALE_HOSTNAME
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for missing TAILSCALE_HOSTNAME when enabled, got nil")
+	}
+
+	if !errors.Is(err, ErrMissingTailscaleHostname) {
+		t.Fatalf("Expected ErrMissingTailscaleHostname, got: %v", err)
+	}
+}
+
+func TestLoadConfig_TailscaleEnabledMissingStateDir(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("TAILSCALE_ENABLED", "true")
+	os.Setenv("TAILSCALE_HOSTNAME", "mjrwtf")
+	// Missing TAILSCALE_STATE_DIR
+	defer cleanEnv()
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("Expected error for missing TAILSCALE_STATE_DIR when enabled, got nil")
+	}
+
+	if !errors.Is(err, ErrMissingTailscaleStateDir) {
+		t.Fatalf("Expected ErrMissingTailscaleStateDir, got: %v", err)
+	}
+}
+
+func TestLoadConfig_TailscaleWithAuthKeyAndControlURL(t *testing.T) {
+	os.Setenv("DATABASE_URL", "./database.db")
+	os.Setenv("AUTH_TOKEN", "test-token")
+	os.Setenv("TAILSCALE_ENABLED", "true")
+	os.Setenv("TAILSCALE_HOSTNAME", "mjrwtf")
+	os.Setenv("TAILSCALE_STATE_DIR", "/var/lib/tailscale")
+	os.Setenv("TAILSCALE_AUTH_KEY", "tskey-auth-xxx")
+	os.Setenv("TAILSCALE_CONTROL_URL", "https://controlplane.tailscale.com")
+	os.Setenv("TAILSCALE_FUNNEL_ENABLED", "true")
+	defer cleanEnv()
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if config.TailscaleAuthKey != "tskey-auth-xxx" {
+		t.Errorf("Expected TailscaleAuthKey to be 'tskey-auth-xxx', got: %s", config.TailscaleAuthKey)
+	}
+	if config.TailscaleControlURL != "https://controlplane.tailscale.com" {
+		t.Errorf("Expected TailscaleControlURL, got: %s", config.TailscaleControlURL)
+	}
+	if !config.TailscaleFunnelEnabled {
+		t.Error("Expected TailscaleFunnelEnabled to be true")
+	}
 }
 
 func TestLoadConfig_LoggingDefaults(t *testing.T) {

@@ -22,6 +22,11 @@ var (
 	// ErrMissingGeoIPDatabase is returned when GEOIP_ENABLED is true but GEOIP_DATABASE is not set.
 	ErrMissingGeoIPDatabase = errors.New("GEOIP_DATABASE is required when GEOIP_ENABLED is true")
 
+	// ErrMissingTailscaleHostname is returned when TAILSCALE_ENABLED is true but TAILSCALE_HOSTNAME is not set.
+	ErrMissingTailscaleHostname = errors.New("TAILSCALE_HOSTNAME is required when TAILSCALE_ENABLED is true")
+	// ErrMissingTailscaleStateDir is returned when TAILSCALE_ENABLED is true but TAILSCALE_STATE_DIR is not set.
+	ErrMissingTailscaleStateDir = errors.New("TAILSCALE_STATE_DIR is required when TAILSCALE_ENABLED is true")
+
 	// ErrEnvVarEmpty is wrapped when an env var is present but empty.
 	ErrEnvVarEmpty = errors.New("must not be empty")
 	// ErrEnvVarNotInt is wrapped when an env var cannot be parsed as an integer.
