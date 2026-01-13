@@ -68,6 +68,14 @@ type Config struct {
 	URLStatusCheckerConcurrency            int
 	URLStatusCheckerArchiveLookupEnabled   bool
 	URLStatusCheckerArchiveRecheckInterval time.Duration
+
+	// Tailscale configuration
+	TailscaleEnabled       bool   // Enable Tailscale tsnet server (default: false)
+	TailscaleHostname      string // Hostname to register with Tailscale (required when enabled)
+	TailscaleAuthKey       string // Tailscale auth key for automatic authentication (optional)
+	TailscaleStateDir      string // Directory for Tailscale state storage (required when enabled)
+	TailscaleFunnelEnabled bool   // Enable Tailscale Funnel for public HTTPS (default: false)
+	TailscaleControlURL    string // Custom Tailscale control plane URL (optional, for headscale)
 }
 
 // LoadConfig loads configuration from environment variables and .env file
@@ -150,6 +158,16 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	// Tailscale configuration
+	tailscaleEnabled, err := getEnvAsBool("TAILSCALE_ENABLED", false)
+	if err != nil {
+		return nil, err
+	}
+	tailscaleFunnelEnabled, err := getEnvAsBool("TAILSCALE_FUNNEL_ENABLED", false)
+	if err != nil {
+		return nil, err
+	}
+
 	authTokens, err := getEnvAuthTokens()
 	if err != nil {
 		return nil, err
@@ -184,6 +202,13 @@ func LoadConfig() (*Config, error) {
 		URLStatusCheckerConcurrency:            urlStatusCheckerConcurrency,
 		URLStatusCheckerArchiveLookupEnabled:   urlStatusCheckerArchiveLookupEnabled,
 		URLStatusCheckerArchiveRecheckInterval: urlStatusCheckerArchiveRecheckInterval,
+
+		TailscaleEnabled:       tailscaleEnabled,
+		TailscaleHostname:      getEnv("TAILSCALE_HOSTNAME", ""),
+		TailscaleAuthKey:       getEnv("TAILSCALE_AUTH_KEY", ""),
+		TailscaleStateDir:      getEnv("TAILSCALE_STATE_DIR", ""),
+		TailscaleFunnelEnabled: tailscaleFunnelEnabled,
+		TailscaleControlURL:    getEnv("TAILSCALE_CONTROL_URL", ""),
 	}
 
 	// Validate required configuration
@@ -247,6 +272,16 @@ func (c *Config) Validate() error {
 	// If GeoIP is enabled, database path is required
 	if c.GeoIPEnabled && c.GeoIPDatabase == "" {
 		return ErrMissingGeoIPDatabase
+	}
+
+	// Tailscale validation: hostname and state dir required when enabled
+	if c.TailscaleEnabled {
+		if c.TailscaleHostname == "" {
+			return ErrMissingTailscaleHostname
+		}
+		if c.TailscaleStateDir == "" {
+			return ErrMissingTailscaleStateDir
+		}
 	}
 
 	return nil
