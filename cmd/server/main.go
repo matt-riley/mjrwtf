@@ -47,7 +47,6 @@ func main() {
 
 	// Initialize Tailscale server if enabled
 	var tsServer *tailscale.Server
-	var tsWhoIsClient *tailscale.WhoIsClient
 	var serverOpts []server.ServerOption
 
 	if cfg.TailscaleEnabled {
@@ -58,10 +57,6 @@ func main() {
 		}
 
 		serverOpts = append(serverOpts, server.WithTailscaleServer(tsServer))
-
-		// Create WhoIs client for authentication
-		tsWhoIsClient = tailscale.NewWhoIsClient(tsServer, logger)
-		serverOpts = append(serverOpts, server.WithTailscaleClient(tsWhoIsClient))
 
 		logger.Info().
 			Str("hostname", cfg.TailscaleHostname).
