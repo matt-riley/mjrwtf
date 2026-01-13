@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.9.0...mjrwtf-v0.10.0) (2026-01-13)
+
+
+### Features
+
+* **config:** add Tailscale configuration fields ([992e242](https://github.com/matt-riley/mjrwtf/commit/992e2426dd51bc9db743e73cdb4dcb95be7e5833))
+* **config:** add Tailscale configuration fields ([9a03f3d](https://github.com/matt-riley/mjrwtf/commit/9a03f3d76205ecc9e451e3cf0aecd30a096d29d2))
+* **deps:** add Tailscale tsnet and client libraries ([247a0f7](https://github.com/matt-riley/mjrwtf/commit/247a0f7c7fac755064040ea78a4094348f2c6b61))
+* **main:** add Tailscale server initialization and shutdown ([daf02c5](https://github.com/matt-riley/mjrwtf/commit/daf02c5e102e2e5d8b914189fb727c5b8e67909d))
+* **middleware:** add Tailscale WhoIs authentication middleware ([e02946e](https://github.com/matt-riley/mjrwtf/commit/e02946e52e435298dc9182fff09fc9494ef5c110))
+* **server:** add conditional route protection for Tailscale mode ([9486d9b](https://github.com/matt-riley/mjrwtf/commit/9486d9b10a227f280cfcdba749f0ef63a929e6e4))
+* **tailscale:** create Tailscale network layer ([ed72ad1](https://github.com/matt-riley/mjrwtf/commit/ed72ad19e11cc871aa9de3b8cca7639c18b17da5))
+
 ## [0.9.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.8.0...mjrwtf-v0.9.0) (2026-01-02)
 
 
