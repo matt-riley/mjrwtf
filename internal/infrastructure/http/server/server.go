@@ -142,7 +142,7 @@ func New(cfg *config.Config, db *sql.DB, logger zerolog.Logger, opts ...ServerOp
 	}
 
 	// Log which authentication mode is active
-	if server.tailscaleClient != nil && cfg.TailscaleEnabled {
+	if server.tailscaleClient != nil {
 		logger.Info().Msg("server running in Tailscale authentication mode")
 	} else {
 		logger.Info().Msg("server running in standard authentication mode (Bearer/Session)")
