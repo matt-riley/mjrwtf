@@ -320,10 +320,10 @@ func TestServerMode_Logging(t *testing.T) {
 	defer db.Close()
 
 	tests := []struct {
-		name              string
-		tailscaleEnabled  bool
-		tailscaleClient   middleware.WhoIsClient
-		expectTailscale   bool
+		name             string
+		tailscaleEnabled bool
+		tailscaleClient  middleware.WhoIsClient
+		expectTailscale  bool
 	}{
 		{
 			name:             "standard mode when disabled",
