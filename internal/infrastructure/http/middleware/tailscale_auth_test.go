@@ -110,6 +110,31 @@ func TestTailscaleAuth_NilClient(t *testing.T) {
 	}
 }
 
+func TestTailscaleAuth_EmptyLoginName(t *testing.T) {
+	client := &mockWhoIsClient{
+		userProfile: &middleware.TailscaleUserProfile{
+			LoginName:   "", // Empty login name should fail validation
+			DisplayName: "Unknown User",
+			NodeName:    "unknown-node",
+		},
+	}
+	logger := zerolog.Nop()
+
+	handler := middleware.TailscaleAuth(client, logger)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("Handler should not be called when LoginName is empty")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
+	req.RemoteAddr = "100.64.0.1:12345"
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status 401, got: %d", rec.Code)
+	}
+}
+
 func TestGetTailscaleUser_NotSet(t *testing.T) {
 	ctx := context.Background()
 	_, ok := middleware.GetTailscaleUser(ctx)

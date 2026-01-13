@@ -46,7 +46,7 @@ func TestNew_WithTailscaleClient(t *testing.T) {
 		t.Fatal("expected server to be created")
 	}
 
-	if srv.tailscaleClient != mockClient {
+	if srv.TailscaleClient() != mockClient {
 		t.Error("expected tailscale client to be set")
 	}
 }
@@ -67,7 +67,7 @@ func TestNew_WithoutTailscaleClient(t *testing.T) {
 		t.Fatal("expected server to be created")
 	}
 
-	if srv.tailscaleClient != nil {
+	if srv.TailscaleClient() != nil {
 		t.Error("expected tailscale client to be nil")
 	}
 }
