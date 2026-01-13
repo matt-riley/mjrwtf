@@ -15,6 +15,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/database"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/server"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/tailscale"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -44,8 +45,31 @@ func main() {
 
 	logger.Info().Msg("database connection established")
 
+	// Initialize Tailscale server if enabled
+	var tsServer *tailscale.Server
+	var tsWhoIsClient *tailscale.WhoIsClient
+	var serverOpts []server.ServerOption
+
+	if cfg.TailscaleEnabled {
+		var err error
+		tsServer, err = tailscale.NewServer(cfg, logger)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("failed to create Tailscale server")
+		}
+
+		// Create WhoIs client for authentication
+		tsWhoIsClient = tailscale.NewWhoIsClient(tsServer, logger)
+		serverOpts = append(serverOpts, server.WithTailscaleClient(tsWhoIsClient))
+
+		logger.Info().
+			Str("hostname", cfg.TailscaleHostname).
+			Msg("Tailscale mode enabled")
+	} else {
+		logger.Info().Msg("standard HTTP mode enabled (Tailscale disabled)")
+	}
+
 	// Create server
-	srv, err := server.New(cfg, db, logger)
+	srv, err := server.New(cfg, db, logger, serverOpts...)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create server")
 	}
@@ -76,6 +100,13 @@ func main() {
 
 		if err := srv.Shutdown(ctx); err != nil {
 			logger.Fatal().Err(err).Msg("error during shutdown")
+		}
+
+		// Close Tailscale server if it was started
+		if tsServer != nil {
+			if err := tsServer.Close(); err != nil {
+				logger.Error().Err(err).Msg("error closing Tailscale server")
+			}
 		}
 
 		logger.Info().Msg("server shutdown complete")
