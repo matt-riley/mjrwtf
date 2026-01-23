@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.1](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.0...mjrwtf-v0.10.1) (2026-01-23)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/go-chi/chi/v5 to v5.2.4 ([0d546b7](https://github.com/matt-riley/mjrwtf/commit/0d546b706512ce4629ab67ab94f86a41d853a422))
+* **deps:** update module tailscale.com to v1.94.0 ([2dec62a](https://github.com/matt-riley/mjrwtf/commit/2dec62a92eaea7a70a3c96acb781ac25d53d9d4c))
+* **deps:** update module tailscale.com to v1.94.1 ([1809c10](https://github.com/matt-riley/mjrwtf/commit/1809c10e7d15996cf402c37d217f5466fd366064))
+
 ## [0.10.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.9.0...mjrwtf-v0.10.0) (2026-01-13)
 
 
