@@ -68,7 +68,7 @@ jobs:
 
     # Initialize CodeQL tools for scanning
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4
+      uses: github/codeql-action/init@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4
       with:
         languages: ${{ matrix.language }}
         # CodeQL query suites to run
@@ -80,7 +80,7 @@ jobs:
     # Autobuild attempts to build any compiled languages (Go, C/C++, C#, Java, Swift)
     # If this step fails, remove it and uncomment the manual build commands below
     - name: Autobuild
-      uses: github/codeql-action/autobuild@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4
+      uses: github/codeql-action/autobuild@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4
 
     # Manual build steps (use if autobuild fails)
     # - name: Build project
@@ -89,7 +89,7 @@ jobs:
     #     make build-server
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4
+      uses: github/codeql-action/analyze@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4
       with:
         category: "/language:${{matrix.language}}"
         # Upload results even if there are errors (for partial results)
