@@ -12,7 +12,7 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/mattn/go-sqlite3 v1.14.33
+	github.com/mattn/go-sqlite3 v1.14.34
 	github.com/oschwald/geoip2-golang/v2 v2.1.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/pressly/goose/v3 v3.26.0
