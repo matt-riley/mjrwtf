@@ -25,7 +25,7 @@ jobs:
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
         with:
           enablement: true
-      - uses: withastro/action@fc88a7002f0c62327f26fb1b15f2a1d581249278 # v5
+      - uses: withastro/action@15aa0a5a1e067940253e3b259413ab2ae882a740 # v5
         with:
           path: docs-site
           node-version: 22
