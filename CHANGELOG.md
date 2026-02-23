@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.2](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.1...mjrwtf-v0.10.2) (2026-02-23)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/charmbracelet/bubbles to v0.21.1 ([ed1a9e9](https://github.com/matt-riley/mjrwtf/commit/ed1a9e90b3d8b758b8b49231391c34ad511d6006))
+* **deps:** update module github.com/charmbracelet/bubbles to v1 ([1a50ffc](https://github.com/matt-riley/mjrwtf/commit/1a50ffc014010e783c4fbb33cc4d7909d7bd3d4e))
+* **deps:** update module github.com/go-chi/chi/v5 to v5.2.5 ([48f96c7](https://github.com/matt-riley/mjrwtf/commit/48f96c7d91bbbee6bf3fbb88accb533083502eeb))
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.34 ([73398cf](https://github.com/matt-riley/mjrwtf/commit/73398cf60dd35b5bf00bf48fecd7132de0921abb))
+* **deps:** update module github.com/pressly/goose/v3 to v3.27.0 ([c63123c](https://github.com/matt-riley/mjrwtf/commit/c63123c980a30508b2b1351252ab213588116d25))
+* **deps:** update module tailscale.com to v1.94.2 ([582b210](https://github.com/matt-riley/mjrwtf/commit/582b210819ea2becd005a8196165218710055080))
+
 ## [0.10.1](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.0...mjrwtf-v0.10.1) (2026-01-23)
 
 
