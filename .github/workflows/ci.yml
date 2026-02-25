@@ -110,31 +110,25 @@ jobs:
 
   go-ci:
     name: Go CI (shared)
-    uses: matt-riley/matt-riley-ci/.github/workflows/go-ci.yml@683da5beda5e85e646955caa9462556502f28e4c # v1.3.0
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-ci.yml@48547139991729b79263d956c9b11e77c08470d5 # v1.4.0
     with:
       go-version-file: go.mod
       run-race: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       run-vet: true
 
   lint:
-    name: Lint (golangci-lint)
+    name: Lint (shared golangci-lint)
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@48547139991729b79263d956c9b11e77c08470d5 # v1.4.0
+    with:
+      go-version-file: go.mod
+      golangci-version: v2.2.0
+      golangci-args: --timeout=5m
+      continue-on-error: true
+
+  openapi:
+    name: Validate OpenAPI spec
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Set up Go
-        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9
-        with:
-          version: v2.2.0
-          args: --timeout=5m
-        continue-on-error: true      
       - name: Validate OpenAPI spec
         run: |
           npm install -g @apidevtools/swagger-cli
