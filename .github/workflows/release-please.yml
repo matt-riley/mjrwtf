@@ -12,12 +12,9 @@ permissions:
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run Release Please
-        # Release automation is pinned to a commit SHA for deterministic and reproducible releases.
-        # The inline comment documents the corresponding major version tag for maintainability.
-        uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4
-        with:
-          config-file: .release-please-config.json
-          manifest-file: release-please-manifest.json
+    uses: matt-riley/matt-riley-ci/.github/workflows/release-please.yml@v1.3.0
+    with:
+      config-file: .release-please-config.json
+      manifest-file: release-please-manifest.json
+    secrets:
+      token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}

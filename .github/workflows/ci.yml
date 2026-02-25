@@ -108,42 +108,13 @@ jobs:
             exit 1
           fi
 
-  vet:
-    name: Vet
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Set up Go
-        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run go vet
-        run: go vet ./...
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Set up Go
-        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run tests (PR)
-        if: github.event_name == 'pull_request'
-        run: go test ./...
-
-      - name: Run tests with race detector (main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: go test -race ./...
+  go-ci:
+    name: Go CI (shared)
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-ci.yml@v1.3.0
+    with:
+      go-version-file: go.mod
+      run-race: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      run-vet: true
 
   lint:
     name: Lint (golangci-lint)
