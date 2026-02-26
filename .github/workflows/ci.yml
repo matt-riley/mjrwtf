@@ -86,84 +86,30 @@ jobs:
             exit 1
           fi
 
-  fmt:
-    name: Format (gofmt)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Check code formatting
-        run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "Error: Code is not formatted with gofmt"
-            echo "Run 'go fmt ./...' locally and commit the changes"
-            gofmt -l .
-            exit 1
-          fi
-
-  vet:
-    name: Vet
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run go vet
-        run: go vet ./...
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run tests (PR)
-        if: github.event_name == 'pull_request'
-        run: go test ./...
-
-      - name: Run tests with race detector (main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: go test -race ./...
+  go-ci:
+    name: Go checks
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-ci.yml@v1
+    with:
+      go-version-file: go.mod
+      run-race: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      run-vet: true
+      run-fmt: true
 
   lint:
     name: Lint (golangci-lint)
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@v1
+    with:
+      go-version-file: go.mod
+      golangci-version: v2.2.0
+      golangci-args: --timeout=5m
+      continue-on-error: true
+
+  validate-openapi:
+    name: Validate OpenAPI spec
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9
-        with:
-          version: v2.2.0
-          args: --timeout=5m
-        continue-on-error: true      
       - name: Validate OpenAPI spec
         run: |
           npm install -g @apidevtools/swagger-cli
