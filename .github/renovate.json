@@ -1,91 +1,23 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "github>matt-riley/renovate-config",
+    "github>matt-riley/renovate-config:go",
+    "github>matt-riley/renovate-config:docker",
+    "github>matt-riley/renovate-config:github-actions"
   ],
-  "labels": [
-    "dependencies"
-  ],
-  "automergeStrategy": "rebase",
-  "semanticCommits": "enabled",
-  "semanticCommitType": "chore",
-  "timezone": "Europe/London",
-  "schedule": [
-    "before 8am every weekday"
-  ],
-  "automerge": true,
-  "automergeType": "pr",
   "packageRules": [
     {
-      "description": "Discord-related packages",
-      "matchPackageNames": [
-        "github.com/bwmarrin/discordgo"
-      ],
-      "labels": [
-        "discord",
-        "dependencies"
-      ],
-      "reviewers": [
-        "matt-riley"
-      ]
+      "description": "Group templ packages",
+      "groupName": "templ",
+      "matchPackageNames": ["/^github\\.com\\/a-h\\/templ/"],
+      "labels": ["templating", "dependencies"]
     },
     {
-      "description": "String processing and utilities",
-      "matchPackageNames": [
-        "github.com/texttheater/golang-levenshtein/levenshtein"
-      ],
-      "labels": [
-        "utilities",
-        "dependencies"
-      ]
-    },
-    {
-      "description": "Go indirect dependencies",
-      "matchPackageNames": [
-        "github.com/gorilla/websocket",
-        "golang.org/x/crypto",
-        "golang.org/x/sys"
-      ],
-      "labels": [
-        "indirect",
-        "dependencies"
-      ],
-      "automerge": true
-    },
-    {
-      "description": "Go major version updates require review",
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "matchCategories": [
-        "go"
-      ],
-      "automerge": false,
-      "reviewers": [
-        "matt-riley"
-      ],
-      "labels": [
-        "major-update",
-        "dependencies"
-      ]
+      "description": "Group GeoIP packages",
+      "groupName": "GeoIP",
+      "matchPackageNames": ["/^github\\.com\\/oschwald\\//"],
+      "labels": ["geo", "dependencies"]
     }
-  ],
-  "vulnerabilityAlerts": {
-    "enabled": true,
-    "labels": [
-      "security",
-      "dependencies"
-    ],
-    "automerge": false,
-    "reviewers": [
-      "matt-riley"
-    ]
-  },
-  "lockFileMaintenance": {
-    "enabled": true,
-    "automerge": true,
-    "schedule": [
-      "before 6am on monday"
-    ]
-  }
+  ]
 }
