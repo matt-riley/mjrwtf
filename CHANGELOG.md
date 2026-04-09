@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.10.2](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.1...mjrwtf-v0.10.2) (2026-02-23)
+## [0.10.2](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.1...mjrwtf-v0.10.2) (2026-02-25)
 
 
 ### Bug Fixes
