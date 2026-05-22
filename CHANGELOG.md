@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.0...mjrwtf-v0.11.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* gofmt formatting in model.go ([3884c31](https://github.com/matt-riley/mjrwtf/commit/3884c3197df2600724488d7b620c420d1372caf5))
+
 ## [0.11.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.5...mjrwtf-v0.11.0) (2026-05-22)
 
 
