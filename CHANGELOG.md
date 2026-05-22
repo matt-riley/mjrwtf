@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.4](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.3...mjrwtf-v0.10.4) (2026-05-22)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/a-h/templ to v0.3.1020 ([1dad9a3](https://github.com/matt-riley/mjrwtf/commit/1dad9a351b1a838ea0c6efb88dd5d150d0989046))
+* **deps:** update module github.com/charmbracelet/bubbletea to v2 ([d61fa84](https://github.com/matt-riley/mjrwtf/commit/d61fa847fda1b5db38709aef1afd13026ca4c994))
+
 ## [0.10.3](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.2...mjrwtf-v0.10.3) (2026-05-22)
 
 
