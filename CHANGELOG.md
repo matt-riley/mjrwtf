@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.5](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.4...mjrwtf-v0.10.5) (2026-05-22)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/charmbracelet/bubbles to v2 ([2bd4296](https://github.com/matt-riley/mjrwtf/commit/2bd429603dbb60e722fc8f15fc86f7206cc627df))
+* **deps:** update module github.com/charmbracelet/bubbles to v2 ([bef0c9b](https://github.com/matt-riley/mjrwtf/commit/bef0c9b527b703556c3a30b522121508cc8ed2d4))
+* pin reusable workflow refs to SHA and revert bubbles/bubbletea to v1 ([ad05a44](https://github.com/matt-riley/mjrwtf/commit/ad05a44046ad97fd9ac26641f09a7c5fde45fcef))
+
 ## [0.10.4](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.3...mjrwtf-v0.10.4) (2026-05-22)
 
 
