@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.1...mjrwtf-v0.11.2) (2026-05-22)
+
+
+### Bug Fixes
+
+* **docs-site:** upgrade starlight to v0.39 for Astro v6 compatibility ([091195a](https://github.com/matt-riley/mjrwtf/commit/091195a60ff9daa6aaa64fb9f9dab190862553d6))
+
 ## [0.11.1](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.0...mjrwtf-v0.11.1) (2026-05-22)
 
 
