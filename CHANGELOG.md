@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.5...mjrwtf-v0.11.0) (2026-05-22)
+
+
+### Features
+
+* migrate TUI to bubbletea/bubbles/lipgloss v2 ([ded8f74](https://github.com/matt-riley/mjrwtf/commit/ded8f74a4946c892b2540c07688f74cf8345c9f6))
+
 ## [0.10.5](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.10.4...mjrwtf-v0.10.5) (2026-05-22)
 
 
