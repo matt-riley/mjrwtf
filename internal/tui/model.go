@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/table"
 	"github.com/matt-riley/mjrwtf/internal/client"
 	"github.com/matt-riley/mjrwtf/internal/tui/styles"
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
@@ -92,17 +92,17 @@ func newModel(cfg tui_config.Config, warnings []string) model {
 	create := textinput.New()
 	create.Placeholder = "https://example.com"
 	create.CharLimit = 2048
-	create.Width = 80
+	create.SetWidth(80)
 
 	start := textinput.New()
 	start.Placeholder = "2025-11-20T00:00:00Z"
 	start.CharLimit = 64
-	start.Width = 32
+	start.SetWidth(32)
 
 	end := textinput.New()
 	end.Placeholder = "2025-11-22T23:59:59Z"
 	end.CharLimit = 64
-	end.Width = 32
+	end.SetWidth(32)
 
 	m := model{
 		cfg:      cfg,
@@ -143,7 +143,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if w > maxCreateInputWidth {
 				w = maxCreateInputWidth
 			}
-			m.createInput.Width = w
+			m.createInput.SetWidth(w)
 
 			tw := (m.width - analyticsInputsTotalMargin) / 2
 			if tw < minAnalyticsInputWidth {
@@ -152,11 +152,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if tw > maxAnalyticsInputWidth {
 				tw = maxAnalyticsInputWidth
 			}
-			m.analyticsStartInput.Width = tw
-			m.analyticsEndInput.Width = tw
+			m.analyticsStartInput.SetWidth(tw)
+			m.analyticsEndInput.SetWidth(tw)
 		}
 		return m, nil
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -550,7 +550,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
+func (m model) View() tea.View {
 	modeLabel := "Browse"
 	switch m.mode {
 	case modeFiltering:
@@ -585,7 +585,9 @@ func (m model) View() string {
 		m.footer(),
 	}, "\n")
 
-	return body + "\n"
+	v := tea.NewView(body + "\n")
+	v.AltScreen = true
+	return v
 }
 
 func (m model) mainLine() string {

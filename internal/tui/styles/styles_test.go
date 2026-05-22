@@ -1,15 +1,23 @@
 package styles
 
 import (
+	"fmt"
+	"image/color"
 	"testing"
 
-	"github.com/charmbracelet/lipgloss"
+	lipgloss "charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/compat"
 )
+
+func colorHex(c color.Color) string {
+	r, g, b, _ := c.RGBA()
+	return fmt.Sprintf("#%02x%02x%02x", r>>8, g>>8, b>>8)
+}
 
 func TestColorPalette(t *testing.T) {
 	tests := []struct {
 		name          string
-		color         lipgloss.AdaptiveColor
+		color         compat.AdaptiveColor
 		expectedDark  string
 		expectedLight string
 	}{
@@ -35,10 +43,10 @@ func TestColorPalette(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if string(tt.color.Dark) != tt.expectedDark {
+			if colorHex(tt.color.Dark) != tt.expectedDark {
 				t.Errorf("color %s dark = %v, want %v", tt.name, tt.color.Dark, tt.expectedDark)
 			}
-			if string(tt.color.Light) != tt.expectedLight {
+			if colorHex(tt.color.Light) != tt.expectedLight {
 				t.Errorf("color %s light = %v, want %v", tt.name, tt.color.Light, tt.expectedLight)
 			}
 		})

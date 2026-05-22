@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/matt-riley/mjrwtf/internal/client"
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
 )
 
 func TestModel_Update_Quit(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
 	if cmd == nil {
 		t.Fatalf("expected quit cmd")
 	}
@@ -37,7 +37,7 @@ func TestModel_Update_ListURLsMsgSetsStatus(t *testing.T) {
 func TestModel_View_ShowsBaseURL(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	out := m.View()
-	if !strings.Contains(out, "Base URL:") || !strings.Contains(out, "http://example") {
+	if !strings.Contains(out.Content, "Base URL:") || !strings.Contains(out.Content, "http://example") {
 		t.Fatalf("expected base URL line")
 	}
 }
@@ -78,13 +78,13 @@ func TestModel_Update_CreateMode_Cancel(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	m.loading = false
 
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: 'c', Text: "c"})
 	mm := m2.(model)
 	if mm.mode != modeCreating {
 		t.Fatalf("mode=%v", mm.mode)
 	}
 
-	m3, _ := mm.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m3, _ := mm.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	mm2 := m3.(model)
 	if mm2.mode != modeBrowsing {
 		t.Fatalf("mode=%v", mm2.mode)
@@ -95,11 +95,11 @@ func TestModel_Update_CreateMode_InvalidURL(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	m.loading = false
 
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: 'c', Text: "c"})
 	mm := m2.(model)
 	mm.createInput.SetValue("ftp://example.com")
 
-	m3, _ := mm.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3, _ := mm.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	mm2 := m3.(model)
 	if !strings.Contains(mm2.status, "http") {
 		t.Fatalf("status=%q", mm2.status)
@@ -237,10 +237,10 @@ func TestModel_View_EmptyState_OffsetNonZeroNotMisleading(t *testing.T) {
 	m.filtered = nil
 
 	out := m.View()
-	if !strings.Contains(out, "No URLs on this page") {
-		t.Fatalf("expected page empty-state, got:\n%s", out)
+	if !strings.Contains(out.Content, "No URLs on this page") {
+		t.Fatalf("expected page empty-state, got:\n%s", out.Content)
 	}
-	if strings.Contains(out, "No URLs yet") {
+	if strings.Contains(out.Content, "No URLs yet") {
 		t.Fatalf("did not expect global empty-state when offset>0")
 	}
 }
@@ -253,8 +253,8 @@ func TestModel_View_EmptyState_FilterNotMisleading(t *testing.T) {
 	m.filtered = nil
 
 	out := m.View()
-	if !strings.Contains(out, "No matches for filter") {
-		t.Fatalf("expected filter empty-state, got:\n%s", out)
+	if !strings.Contains(out.Content, "No matches for filter") {
+		t.Fatalf("expected filter empty-state, got:\n%s", out.Content)
 	}
 }
 
@@ -304,7 +304,7 @@ func TestModel_Update_OpenAnalytics(t *testing.T) {
 	m.filtered = m.urls
 	m.cursor = 0
 
-	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	m2, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
 	mm := m2.(model)
 	if mm.mode != modeViewingAnalytics {
 		t.Fatalf("mode=%v", mm.mode)
@@ -328,7 +328,7 @@ func TestModel_Update_AnalyticsTimeRange_RequiresBoth(t *testing.T) {
 	m.analyticsStartInput.SetValue("2025-11-20T00:00:00Z")
 	m.analyticsEndInput.SetValue("")
 
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	mm := m2.(model)
 	if mm.mode != modeAnalyticsTimeRange {
 		t.Fatalf("mode=%v", mm.mode)
@@ -346,7 +346,7 @@ func TestModel_Update_AnalyticsTimeRange_EndAfterStart(t *testing.T) {
 	m.analyticsStartInput.SetValue("2025-11-22T23:59:59Z")
 	m.analyticsEndInput.SetValue("2025-11-20T00:00:00Z")
 
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	mm := m2.(model)
 	if mm.mode != modeAnalyticsTimeRange {
 		t.Fatalf("mode=%v", mm.mode)
@@ -364,7 +364,7 @@ func TestModel_Update_AnalyticsTimeRange_SuccessFetches(t *testing.T) {
 	m.analyticsStartInput.SetValue("2025-11-20T00:00:00Z")
 	m.analyticsEndInput.SetValue("2025-11-22T23:59:59Z")
 
-	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	mm := m2.(model)
 	if mm.mode != modeViewingAnalytics {
 		t.Fatalf("mode=%v", mm.mode)
@@ -414,7 +414,7 @@ func TestModel_Update_OpenDeleteConfirm(t *testing.T) {
 	m.filtered = m.urls
 	m.cursor = 0
 
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
 	mm := m2.(model)
 	if mm.mode != modeDeleteConfirm {
 		t.Fatalf("mode=%v", mm.mode)
@@ -433,7 +433,7 @@ func TestModel_Update_DeleteConfirm_Cancel(t *testing.T) {
 	m.deleteConfirmShortCode = "abc123"
 	m.deleteConfirmOriginalURL = "https://example.com"
 
-	m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	mm := m2.(model)
 	if mm.mode != modeBrowsing {
 		t.Fatalf("mode=%v", mm.mode)
@@ -448,7 +448,7 @@ func TestModel_Update_DeleteConfirm_ConfirmStartsDelete(t *testing.T) {
 	m.mode = modeDeleteConfirm
 	m.deleteConfirmShortCode = "abc123"
 
-	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	mm := m2.(model)
 	if !mm.deleteLoading {
 		t.Fatalf("expected deleteLoading=true")

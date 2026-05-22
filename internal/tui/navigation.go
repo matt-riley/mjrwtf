@@ -3,7 +3,7 @@ package tui
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func (m *model) cursorDown() {
@@ -74,7 +74,7 @@ func (m *model) cancelFilter() {
 	m.status = "Filter cleared"
 }
 
-func (m *model) filterInput(k tea.KeyMsg) {
+func (m *model) filterInput(k tea.KeyPressMsg) {
 	s := k.String()
 	switch s {
 	case "backspace":

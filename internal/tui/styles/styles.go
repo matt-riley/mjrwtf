@@ -1,6 +1,6 @@
 package styles
 
-import "github.com/charmbracelet/lipgloss"
+import "charm.land/lipgloss/v2"
 
 // Base Styles using Catppuccin adaptive color palette (Mocha for dark, Latte for light terminals)
 
