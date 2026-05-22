@@ -88,7 +88,7 @@ jobs:
 
   go-ci:
     name: Go checks
-    uses: matt-riley/matt-riley-ci/.github/workflows/go-ci.yml@v1
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-ci.yml@7bf33bf0eef269c4a4b1d85e1668dec14fb8ffff # v1
     with:
       go-version-file: go.mod
       run-race: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -97,7 +97,7 @@ jobs:
 
   lint:
     name: Lint (golangci-lint)
-    uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@v1
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@7bf33bf0eef269c4a4b1d85e1668dec14fb8ffff # v1
     with:
       go-version-file: go.mod
       golangci-version: v2.2.0
