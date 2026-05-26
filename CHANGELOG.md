@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.3](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.2...mjrwtf-v0.11.3) (2026-05-26)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/go-chi/chi/v5 to v5.3.0 ([9209b1f](https://github.com/matt-riley/mjrwtf/commit/9209b1fb176d891cafdb33c8a75e2b8a0aa3ee90))
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.44 ([5795f5f](https://github.com/matt-riley/mjrwtf/commit/5795f5f9c8ffeb66c9e063513d8d34725a1cdd6c))
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.44 ([3113d40](https://github.com/matt-riley/mjrwtf/commit/3113d4063d89e92d71cf9f6ce45d9c8f30d45376))
+* **deps:** update module github.com/pelletier/go-toml/v2 to v2.3.1 ([fd8b43b](https://github.com/matt-riley/mjrwtf/commit/fd8b43bdbc23ececbd5e28fbedf441a35cf003b9))
+* **deps:** update module github.com/pelletier/go-toml/v2 to v2.3.1 ([2181e7a](https://github.com/matt-riley/mjrwtf/commit/2181e7a4d386711596852c5a3289c7872cc5127f))
+* **deps:** update module github.com/pressly/goose/v3 to v3.27.1 ([4316b9a](https://github.com/matt-riley/mjrwtf/commit/4316b9ae013ba3e403ae9761842fd21640174a0a))
+
 ## [0.11.2](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.1...mjrwtf-v0.11.2) (2026-05-22)
 
 
