@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   docker-publish:
-    uses: matt-riley/matt-riley-ci/.github/workflows/docker-ghcr-publish.yml@e25251d8dfed1c4014c608d8310fcdcb83487c22 # v1
+    uses: matt-riley/matt-riley-ci/.github/workflows/docker-ghcr-publish.yml@7fd3aefaab1ae14d063930c85b2d629280c36620 # v2
     with:
       tag-name: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.tag_name || '' }}
     secrets:
