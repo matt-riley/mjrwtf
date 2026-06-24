@@ -14,7 +14,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.47
 	github.com/oschwald/geoip2-golang/v2 v2.2.0
-	github.com/pelletier/go-toml/v2 v2.4.1
+	github.com/pelletier/go-toml/v2 v2.4.2
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.1
