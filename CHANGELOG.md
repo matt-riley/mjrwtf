@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.11.4](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.3...mjrwtf-v0.11.4) (2026-06-25)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @astrojs/starlight to ^0.40.0 ([f5d4839](https://github.com/matt-riley/mjrwtf/commit/f5d483915db0c24de56a93fb66ff15485d19bd06))
+* **deps:** update dependency sharp to ^0.35.0 ([05ead61](https://github.com/matt-riley/mjrwtf/commit/05ead616b23b8c9da08da5640e6c1c87840e788c))
+* **deps:** update dependency sharp to ^0.35.0 ([4f37b9e](https://github.com/matt-riley/mjrwtf/commit/4f37b9eeec3d5b8c89288773f80de1cba869270d))
+* **deps:** update module charm.land/bubbletea/v2 to v2.0.7 ([2addc0e](https://github.com/matt-riley/mjrwtf/commit/2addc0e45a6f2a9718be96e684f2b44ee3f583af))
+* **deps:** update module charm.land/lipgloss/v2 to v2.0.4 ([1eee2d5](https://github.com/matt-riley/mjrwtf/commit/1eee2d54f1c21c32d21e97ad31a9138881011a63))
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.45 ([f4f72e9](https://github.com/matt-riley/mjrwtf/commit/f4f72e9eb5c1b2886c81ae73812f1caeec1bb110))
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.46 ([e2a2f86](https://github.com/matt-riley/mjrwtf/commit/e2a2f867edec2ebfb7ddad1543b89f06012ad10b))
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.47 ([beb6de2](https://github.com/matt-riley/mjrwtf/commit/beb6de20d3b95a756f58855475b177b74a38f1b0))
+* **deps:** update module github.com/oschwald/geoip2-golang/v2 to v2.2.0 ([ef810a3](https://github.com/matt-riley/mjrwtf/commit/ef810a38b1282a48d3c3a526670d9a0c1d4232a0))
+* **deps:** update module github.com/pelletier/go-toml/v2 to v2.4.0 ([c69fd4a](https://github.com/matt-riley/mjrwtf/commit/c69fd4aee8805228869b8cd35356644a68e87283))
+* **deps:** update module github.com/pelletier/go-toml/v2 to v2.4.1 ([dfc1dad](https://github.com/matt-riley/mjrwtf/commit/dfc1dad12aa39fb187a47356c22c7cea917450ed))
+* **deps:** update module github.com/pelletier/go-toml/v2 to v2.4.2 ([17d7d56](https://github.com/matt-riley/mjrwtf/commit/17d7d562ae10b0b449f21c4c30af8d56010c2e8a))
+* **deps:** update module github.com/rs/zerolog to v1.35.1 ([23a8569](https://github.com/matt-riley/mjrwtf/commit/23a8569edf2107918baeb4b889e4d33b0f5cbcf6))
+* **deps:** update module github.com/rs/zerolog to v1.35.1 ([10e8d5e](https://github.com/matt-riley/mjrwtf/commit/10e8d5efeebb3dfd6dd001c1e8f527cd448cb2df))
+* **deps:** update module golang.org/x/time to v0.15.0 ([1a2fe7e](https://github.com/matt-riley/mjrwtf/commit/1a2fe7ecefc10eee73659b1bb3c773dfa9dfcbfe))
+* **deps:** update module golang.org/x/time to v0.15.0 ([3afbed6](https://github.com/matt-riley/mjrwtf/commit/3afbed658bd819dcf244b0b764624a58ae72864a))
+* **deps:** update module tailscale.com to v1.100.0 ([6a01ac8](https://github.com/matt-riley/mjrwtf/commit/6a01ac8cc6bf6d771275f027d155e48ffd5f92f7))
+* **deps:** update module tailscale.com to v1.98.3 ([1483c0e](https://github.com/matt-riley/mjrwtf/commit/1483c0ec0eb31fe6a0ab802b1e9eecc83d6b8485))
+* **deps:** update module tailscale.com to v1.98.3 ([028f505](https://github.com/matt-riley/mjrwtf/commit/028f50508b261691be2dba92543d737321bf6c99))
+* **deps:** update module tailscale.com to v1.98.4 ([eaaa442](https://github.com/matt-riley/mjrwtf/commit/eaaa4424ced99ed1f4fd6373afdfca2a3a9c2c0e))
+* **deps:** update module tailscale.com to v1.98.5 ([f256a83](https://github.com/matt-riley/mjrwtf/commit/f256a831d74d5535c867ec4484c05ebb654cf452))
+
 ## [0.11.3](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.2...mjrwtf-v0.11.3) (2026-05-26)
 
 
