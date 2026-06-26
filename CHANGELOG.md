@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.5](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.4...mjrwtf-v0.11.5) (2026-06-26)
+
+
+### Bug Fixes
+
+* **deps:** update dependency astro to v7 ([dd0a675](https://github.com/matt-riley/mjrwtf/commit/dd0a6759fba1decc9d46e262606a81b48172e50a))
+* **deps:** update dependency astro to v7 ([7ec63f4](https://github.com/matt-riley/mjrwtf/commit/7ec63f40ecadef5e78abc769498807563ec89a8e))
+
 ## [0.11.4](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.3...mjrwtf-v0.11.4) (2026-06-25)
 
 
