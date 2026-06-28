@@ -88,11 +88,10 @@ jobs:
 
   go-ci:
     name: Go checks
-    uses: matt-riley/matt-riley-ci/.github/workflows/go-ci.yml@bcaf4ae43edf7d26421741424b82c842c83e55ce # v2
+    uses: matt-riley/matt-riley-ci/.github/workflows/ci.yml@bcaf4ae43edf7d26421741424b82c842c83e55ce # v2
     with:
-      go-version-file: go.mod
-      run-race: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      run-vet: true
+      install: true
+      test: true
       run-fmt: true
 
   lint:
