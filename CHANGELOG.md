@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.6](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.5...mjrwtf-v0.11.6) (2026-06-28)
+
+
+### Bug Fixes
+
+* port to Universal CI + add mise.toml ([#405](https://github.com/matt-riley/mjrwtf/issues/405)) ([ab9930b](https://github.com/matt-riley/mjrwtf/commit/ab9930bd29317f8bbec3cf78ac1101ac93c44a5c))
+
 ## [0.11.5](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.4...mjrwtf-v0.11.5) (2026-06-26)
 
 
