@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.7](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.6...mjrwtf-v0.11.7) (2026-07-02)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/pressly/goose/v3 to v3.27.2 ([#411](https://github.com/matt-riley/mjrwtf/issues/411)) ([a0989ef](https://github.com/matt-riley/mjrwtf/commit/a0989efe6a2091114a27bc44baae77f0646bb1ea))
+
 ## [0.11.6](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.5...mjrwtf-v0.11.6) (2026-06-28)
 
 
