@@ -88,7 +88,7 @@ jobs:
 
   go-ci:
     name: Go checks
-    uses: matt-riley/matt-riley-ci/.github/workflows/ci.yml@071c2c2bbe410f73126d3cefd0a0b6812b3565f6 # v2
+    uses: matt-riley/matt-riley-ci/.github/workflows/ci.yml@0d1d8e7a149a53fcaaca6e128f62e0e3d8fdf293 # v2
     with:
       install: true
       test: true
@@ -96,7 +96,7 @@ jobs:
 
   lint:
     name: Lint (golangci-lint)
-    uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@071c2c2bbe410f73126d3cefd0a0b6812b3565f6 # v2
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@0d1d8e7a149a53fcaaca6e128f62e0e3d8fdf293 # v2
     with:
       go-version-file: go.mod
       golangci-version: v2.2.0
