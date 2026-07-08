@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.8](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.7...mjrwtf-v0.11.8) (2026-07-08)
+
+
+### Bug Fixes
+
+* **deps:** update module charm.land/bubbles/v2 to v2.1.1 ([c51bd24](https://github.com/matt-riley/mjrwtf/commit/c51bd24cf7b4df93f8c4543ebf0436a74f6a0f09))
+* **deps:** update module charm.land/bubbletea/v2 to v2.0.8 ([51c6a9c](https://github.com/matt-riley/mjrwtf/commit/51c6a9cd9d1aa0cc12b982184bfcd99ed7dfca3b))
+* **deps:** update module charm.land/lipgloss/v2 to v2.0.5 ([d44ef03](https://github.com/matt-riley/mjrwtf/commit/d44ef03cd429c5a81573007610f6c631db30f746))
+
 ## [0.11.7](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.6...mjrwtf-v0.11.7) (2026-07-02)
 
 
