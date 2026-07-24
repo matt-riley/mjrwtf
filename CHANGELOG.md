@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.10](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.9...mjrwtf-v0.11.10) (2026-07-24)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/pressly/goose/v3 to v3.27.3 ([debe1ec](https://github.com/matt-riley/mjrwtf/commit/debe1ec3e4b7f98828dbd4a2e825e137d358ff30))
+* **deps:** update module github.com/prometheus/client_golang to v1.24.0 ([9ccfb20](https://github.com/matt-riley/mjrwtf/commit/9ccfb20bf239b2bd1d62303f6082114c69d8f8ad))
+* **deps:** update module tailscale.com to v1.102.0 ([eb2249d](https://github.com/matt-riley/mjrwtf/commit/eb2249d26a2b489e6b0f92e22d40df7c6de6fba0))
+
 ## [0.11.9](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.8...mjrwtf-v0.11.9) (2026-07-16)
 
 
