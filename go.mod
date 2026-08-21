@@ -1,6 +1,6 @@
 module github.com/matt-riley/mjrwtf
 
-go 1.26.5
+go 1.26.6
 
 require (
 	charm.land/bubbles/v2 v2.1.1
@@ -21,7 +21,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/time v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
-	tailscale.com v1.102.2
+	tailscale.com v1.102.3
 )
 
 require (
