@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.11.10](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.9...mjrwtf-v0.11.10) (2026-09-04)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @astrojs/starlight to ^0.42.0 ([876f338](https://github.com/matt-riley/mjrwtf/commit/876f33804fdc907b9211173b4bece82dc31c6e9f))
+* **deps:** update module charm.land/bubbles/v2 to v2.2.1 ([1af53e6](https://github.com/matt-riley/mjrwtf/commit/1af53e6139b8fe74768a3d63d36601d52130d74e))
+* **deps:** update module charm.land/bubbletea/v2 to v2.0.9 ([3069534](https://github.com/matt-riley/mjrwtf/commit/30695341412291cda0c11a616eaf08b6c8a2d0d7))
+* **deps:** update module charm.land/lipgloss/v2 to v2.0.6 ([e8c4f65](https://github.com/matt-riley/mjrwtf/commit/e8c4f653d9b89ca366fc9aaf2899c8e5513a8604))
+* **deps:** update module github.com/go-chi/chi/v5 to v5.3.2 ([36122ae](https://github.com/matt-riley/mjrwtf/commit/36122ae663c305dacf393d4305f95deff1ee4a07))
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.49 ([73b2c8f](https://github.com/matt-riley/mjrwtf/commit/73b2c8f48d418f42b3c8cd8463307b3c6589ff14))
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.50 ([99e9954](https://github.com/matt-riley/mjrwtf/commit/99e995483fb94f84928c6915999b8ced1c499ae0))
+* **deps:** update module github.com/oschwald/geoip2-golang/v2 to v2.3.0 ([677ca8c](https://github.com/matt-riley/mjrwtf/commit/677ca8ca5f47619219797ddde90ffece1f37a8d6))
+* **deps:** update module github.com/pressly/goose/v3 to v3.27.3 ([debe1ec](https://github.com/matt-riley/mjrwtf/commit/debe1ec3e4b7f98828dbd4a2e825e137d358ff30))
+* **deps:** update module github.com/pressly/goose/v3 to v3.28.0 ([70519ef](https://github.com/matt-riley/mjrwtf/commit/70519efa8580d2edd7ae82e60162820c048b1b72))
+* **deps:** update module github.com/prometheus/client_golang to v1.24.0 ([9ccfb20](https://github.com/matt-riley/mjrwtf/commit/9ccfb20bf239b2bd1d62303f6082114c69d8f8ad))
+* **deps:** update module github.com/prometheus/client_golang to v1.24.1 ([6090435](https://github.com/matt-riley/mjrwtf/commit/609043580bcdd34fea145d148764dbd4d5878d58))
+* **deps:** update module github.com/stretchr/testify to v1.12.0 ([e981ea3](https://github.com/matt-riley/mjrwtf/commit/e981ea343cf8fc6e28d382570cfc885f0123f6ef))
+* **deps:** update module github.com/stretchr/testify to v1.12.1 ([bdd25d7](https://github.com/matt-riley/mjrwtf/commit/bdd25d7a3a79040df3e214608437cfda9ec2c77f))
+* **deps:** update module tailscale.com to v1.102.0 ([eb2249d](https://github.com/matt-riley/mjrwtf/commit/eb2249d26a2b489e6b0f92e22d40df7c6de6fba0))
+* **deps:** update module tailscale.com to v1.102.1 ([a632f22](https://github.com/matt-riley/mjrwtf/commit/a632f22738e50a9b272fd0e83e65e718164680bf))
+* **deps:** update module tailscale.com to v1.102.2 ([041dc90](https://github.com/matt-riley/mjrwtf/commit/041dc906a99f701e32508032a05bfaa71edc9a7d))
+* **deps:** update module tailscale.com to v1.102.3 ([803c2cd](https://github.com/matt-riley/mjrwtf/commit/803c2cd0aae85021f4f1595fb5a3138a3206481f))
+
 ## [0.11.9](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.8...mjrwtf-v0.11.9) (2026-07-16)
 
 
