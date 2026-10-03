@@ -87,16 +87,26 @@ jobs:
           fi
 
   go-ci:
+    permissions:
+      contents: read
+    concurrency:
+      group: ${{ github.workflow }}:${{ github.ref }}:go-ci
+      cancel-in-progress: true
     name: Go checks
-    uses: matt-riley/matt-riley-ci/.github/workflows/ci.yml@4ff76b1a606b1fbba163119a65bf7b05f91ab9b6 # v3
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-ci.yml@cb986078a5bd4775e5fb05348f3618e41fedf4de # v4
     with:
-      install: true
-      test: true
+      run-vet: false
+      run-test: true
       run-fmt: true
 
   lint:
+    permissions:
+      contents: read
+    concurrency:
+      group: ${{ github.workflow }}:${{ github.ref }}:lint
+      cancel-in-progress: true
     name: Lint (golangci-lint)
-    uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@4ff76b1a606b1fbba163119a65bf7b05f91ab9b6 # v3
+    uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@cb986078a5bd4775e5fb05348f3618e41fedf4de # v4
     with:
       go-version-file: go.mod
       golangci-version: v2.2.0
