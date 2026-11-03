@@ -18,7 +18,7 @@ COPY . .
 
 # Generate templ templates
 # Pin to specific version to ensure reproducible builds and reduce supply chain risk
-RUN go install github.com/a-h/templ/cmd/templ@v0.3.960 && \
+RUN go install github.com/a-h/templ/cmd/templ@v0.3.1100 && \
     templ generate
 
 # Build the server binary

@@ -39,12 +39,12 @@ jobs:
           path: |
             ~/go/bin/templ
             ~/.local/bin/sqlc
-          key: ${{ runner.os }}-go-tools-sqlc-1.30.0-templ
+          key: ${{ runner.os }}-go-tools-sqlc-1.30.0-templ-v0.3.1100
 
       - name: Install templ
         run: |
           if [ ! -x "$(go env GOPATH)/bin/templ" ]; then
-            go install github.com/a-h/templ/cmd/templ@v0.3.960
+            go install github.com/a-h/templ/cmd/templ@v0.3.1100
           fi
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
