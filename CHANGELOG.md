@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.11](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.10...mjrwtf-v0.11.11) (2026-11-05)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/a-h/templ to v0.3.1100 ([#564](https://github.com/matt-riley/mjrwtf/issues/564)) ([801ef58](https://github.com/matt-riley/mjrwtf/commit/801ef58df7e4a3f4987591ae8e407af0516e30c4))
+* **deps:** update module tailscale.com to v1.104.4 ([4ee9866](https://github.com/matt-riley/mjrwtf/commit/4ee9866d7d81e7f3516549cdceb9b66d42fd45a0))
+* **deps:** update weekly patch and digest updates ([5c489c4](https://github.com/matt-riley/mjrwtf/commit/5c489c48024ed2b4377d90bec67f2f54f79b4fae))
+
 ## [0.11.10](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.9...mjrwtf-v0.11.10) (2026-10-22)
 
 
