@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.12](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.11...mjrwtf-v0.11.12) (2026-11-13)
+
+
+### Bug Fixes
+
+* **deps:** update weekly patch and digest updates ([e77ea5e](https://github.com/matt-riley/mjrwtf/commit/e77ea5ee50269c4e894c7ea6e2b5203ad98fcb35))
+* **deps:** update weekly patch and digest updates ([ec82f52](https://github.com/matt-riley/mjrwtf/commit/ec82f52fe42d3f21cb44b95730f69740b0084a74))
+
 ## [0.11.11](https://github.com/matt-riley/mjrwtf/compare/mjrwtf-v0.11.10...mjrwtf-v0.11.11) (2026-11-05)
 
 
