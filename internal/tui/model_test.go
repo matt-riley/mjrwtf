@@ -12,6 +12,42 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/tui/tui_config"
 )
 
+func requireModel(t *testing.T, m tea.Model) model {
+	t.Helper()
+	mm, ok := m.(model)
+	if !ok {
+		t.Fatalf("expected model, got %T", m)
+	}
+	return mm
+}
+
+func requireCreateURLMsg(t *testing.T, raw tea.Msg) createURLMsg {
+	t.Helper()
+	msg, ok := raw.(createURLMsg)
+	if !ok {
+		t.Fatalf("expected createURLMsg, got %T", raw)
+	}
+	return msg
+}
+
+func requireListURLsMsg(t *testing.T, raw tea.Msg) listURLsMsg {
+	t.Helper()
+	msg, ok := raw.(listURLsMsg)
+	if !ok {
+		t.Fatalf("expected listURLsMsg, got %T", raw)
+	}
+	return msg
+}
+
+func requireDeleteURLMsg(t *testing.T, raw tea.Msg) deleteURLMsg {
+	t.Helper()
+	msg, ok := raw.(deleteURLMsg)
+	if !ok {
+		t.Fatalf("expected deleteURLMsg, got %T", raw)
+	}
+	return msg
+}
+
 func TestModel_Update_Quit(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	_, cmd := m.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
@@ -25,7 +61,7 @@ func TestModel_Update_ListURLsMsgSetsStatus(t *testing.T) {
 	m.loading = true
 
 	m2, _ := m.Update(listURLsMsg{urls: []tuiURL{}, total: 0})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.loading {
 		t.Fatalf("expected loading=false")
 	}
@@ -79,13 +115,13 @@ func TestModel_Update_CreateMode_Cancel(t *testing.T) {
 	m.loading = false
 
 	m2, _ := m.Update(tea.KeyPressMsg{Code: 'c', Text: "c"})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeCreating {
 		t.Fatalf("mode=%v", mm.mode)
 	}
 
 	m3, _ := mm.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
-	mm2 := m3.(model)
+	mm2 := requireModel(t, m3)
 	if mm2.mode != modeBrowsing {
 		t.Fatalf("mode=%v", mm2.mode)
 	}
@@ -96,11 +132,11 @@ func TestModel_Update_CreateMode_InvalidURL(t *testing.T) {
 	m.loading = false
 
 	m2, _ := m.Update(tea.KeyPressMsg{Code: 'c', Text: "c"})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	mm.createInput.SetValue("ftp://example.com")
 
 	m3, _ := mm.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
-	mm2 := m3.(model)
+	mm2 := requireModel(t, m3)
 	if !strings.Contains(mm2.status, "http") {
 		t.Fatalf("status=%q", mm2.status)
 	}
@@ -130,7 +166,7 @@ func TestCreateURLCmd(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	msg := createURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "https://example.com")().(createURLMsg)
+	msg := requireCreateURLMsg(t, createURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "https://example.com")())
 	if msg.err != nil {
 		t.Fatalf("expected nil err, got %v", msg.err)
 	}
@@ -150,7 +186,7 @@ func TestCreateURLCmd_APIError(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	msg := createURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "https://example.com")().(createURLMsg)
+	msg := requireCreateURLMsg(t, createURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "https://example.com")())
 	if msg.err == nil {
 		t.Fatalf("expected err")
 	}
@@ -173,7 +209,7 @@ func TestModel_Update_CreateURLMsg_ErrorResetsMode(t *testing.T) {
 	m.createInput.SetValue("https://example.com")
 
 	m2, _ := m.Update(createURLMsg{err: &client.APIError{StatusCode: 401, Message: "Unauthorized"}})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeBrowsing {
 		t.Fatalf("mode=%v", mm.mode)
 	}
@@ -202,7 +238,7 @@ func TestModel_Update_CreateURLMsg_SuccessCopiesAndRefreshes(t *testing.T) {
 	m.createInput.SetValue("https://example.com")
 
 	m2, cmd := m.Update(createURLMsg{resp: &client.CreateURLResponse{ShortCode: "abc123", ShortURL: "https://mjr.wtf/abc123", OriginalURL: "https://example.com"}})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeBrowsing {
 		t.Fatalf("mode=%v", mm.mode)
 	}
@@ -277,7 +313,7 @@ func TestListURLsCmd(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	msg := listURLsCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, 20, 40)().(listURLsMsg)
+	msg := requireListURLsMsg(t, listURLsCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, 20, 40)())
 	if msg.err != nil {
 		t.Fatalf("expected nil err, got %v", msg.err)
 	}
@@ -291,7 +327,7 @@ func TestListURLsCmd(t *testing.T) {
 		t.Fatalf("expected created_at")
 	}
 
-	msg = listURLsCmd(tui_config.Config{BaseURL: ""}, 20, 0)().(listURLsMsg)
+	msg = requireListURLsMsg(t, listURLsCmd(tui_config.Config{BaseURL: ""}, 20, 0)())
 	if msg.err == nil {
 		t.Fatalf("expected err for empty baseURL")
 	}
@@ -305,7 +341,7 @@ func TestModel_Update_OpenAnalytics(t *testing.T) {
 	m.cursor = 0
 
 	m2, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeViewingAnalytics {
 		t.Fatalf("mode=%v", mm.mode)
 	}
@@ -329,7 +365,7 @@ func TestModel_Update_AnalyticsTimeRange_RequiresBoth(t *testing.T) {
 	m.analyticsEndInput.SetValue("")
 
 	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeAnalyticsTimeRange {
 		t.Fatalf("mode=%v", mm.mode)
 	}
@@ -347,7 +383,7 @@ func TestModel_Update_AnalyticsTimeRange_EndAfterStart(t *testing.T) {
 	m.analyticsEndInput.SetValue("2025-11-20T00:00:00Z")
 
 	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeAnalyticsTimeRange {
 		t.Fatalf("mode=%v", mm.mode)
 	}
@@ -365,7 +401,7 @@ func TestModel_Update_AnalyticsTimeRange_SuccessFetches(t *testing.T) {
 	m.analyticsEndInput.SetValue("2025-11-22T23:59:59Z")
 
 	m2, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeViewingAnalytics {
 		t.Fatalf("mode=%v", mm.mode)
 	}
@@ -397,7 +433,7 @@ func TestDeleteURLCmd(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	msg := deleteURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "abc123")().(deleteURLMsg)
+	msg := requireDeleteURLMsg(t, deleteURLCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "abc123")())
 	if msg.err != nil {
 		t.Fatalf("expected nil err, got %v", msg.err)
 	}
@@ -415,7 +451,7 @@ func TestModel_Update_OpenDeleteConfirm(t *testing.T) {
 	m.cursor = 0
 
 	m2, _ := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeDeleteConfirm {
 		t.Fatalf("mode=%v", mm.mode)
 	}
@@ -434,7 +470,7 @@ func TestModel_Update_DeleteConfirm_Cancel(t *testing.T) {
 	m.deleteConfirmOriginalURL = "https://example.com"
 
 	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.mode != modeBrowsing {
 		t.Fatalf("mode=%v", mm.mode)
 	}
@@ -449,7 +485,7 @@ func TestModel_Update_DeleteConfirm_ConfirmStartsDelete(t *testing.T) {
 	m.deleteConfirmShortCode = "abc123"
 
 	m2, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if !mm.deleteLoading {
 		t.Fatalf("expected deleteLoading=true")
 	}
@@ -467,7 +503,7 @@ func TestModel_Update_DeleteURLMsg_SuccessRemovesItem(t *testing.T) {
 	m.cursor = 0
 
 	m2, _ := m.Update(deleteURLMsg{shortCode: "abc123"})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if len(mm.urls) != 1 || mm.urls[0].ShortCode != "def456" {
 		t.Fatalf("urls=%v", mm.urls)
 	}
@@ -484,7 +520,7 @@ func TestModel_Update_DeleteURLMsg_NotFoundRefreshes(t *testing.T) {
 	m.loading = false
 
 	m2, cmd := m.Update(deleteURLMsg{shortCode: "abc123", err: &client.APIError{StatusCode: 404, Message: "Not found"}})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if !mm.loading {
 		t.Fatalf("expected loading=true")
 	}
@@ -505,7 +541,7 @@ func TestModel_Update_DeleteURLMsg_APIErrorDoesNotRefresh(t *testing.T) {
 	m.deleteConfirmOriginalURL = "https://example.com"
 
 	m2, cmd := m.Update(deleteURLMsg{shortCode: "abc123", err: &client.APIError{StatusCode: 401, Message: "Unauthorized"}})
-	mm := m2.(model)
+	mm := requireModel(t, m2)
 	if mm.deleteLoading {
 		t.Fatalf("expected deleteLoading=false")
 	}

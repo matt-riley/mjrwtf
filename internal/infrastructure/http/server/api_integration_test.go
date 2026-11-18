@@ -267,8 +267,13 @@ func TestAPIEndpoints_DeleteURL(t *testing.T) {
 	srv.router.ServeHTTP(createRec, createReq)
 
 	var createResp map[string]interface{}
-	json.Unmarshal(createRec.Body.Bytes(), &createResp)
-	shortCode := createResp["short_code"].(string)
+	if err := json.Unmarshal(createRec.Body.Bytes(), &createResp); err != nil {
+		t.Fatalf("failed to unmarshal create response: %v", err)
+	}
+	shortCode, ok := createResp["short_code"].(string)
+	if !ok {
+		t.Fatalf("expected short_code string in create response")
+	}
 
 	tests := []struct {
 		name           string
@@ -365,8 +370,13 @@ func TestAPIEndpoints_FullWorkflow(t *testing.T) {
 	}
 
 	var createResp map[string]interface{}
-	json.Unmarshal(createRec.Body.Bytes(), &createResp)
-	shortCode := createResp["short_code"].(string)
+	if err := json.Unmarshal(createRec.Body.Bytes(), &createResp); err != nil {
+		t.Fatalf("failed to unmarshal create response: %v", err)
+	}
+	shortCode, ok := createResp["short_code"].(string)
+	if !ok {
+		t.Fatalf("expected short_code string in create response")
+	}
 
 	// Step 2: List URLs and verify it's there
 	listReq := httptest.NewRequest(http.MethodGet, "/api/urls", nil)
@@ -379,12 +389,20 @@ func TestAPIEndpoints_FullWorkflow(t *testing.T) {
 	}
 
 	var listResp map[string]interface{}
-	json.Unmarshal(listRec.Body.Bytes(), &listResp)
-	urls := listResp["urls"].([]interface{})
+	if err := json.Unmarshal(listRec.Body.Bytes(), &listResp); err != nil {
+		t.Fatalf("failed to unmarshal list response: %v", err)
+	}
+	urls, ok := listResp["urls"].([]interface{})
+	if !ok {
+		t.Fatalf("expected urls array in list response")
+	}
 
 	found := false
 	for _, urlData := range urls {
-		urlMap := urlData.(map[string]interface{})
+		urlMap, ok := urlData.(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected url object in list response")
+		}
 		if urlMap["short_code"] == shortCode {
 			found = true
 			break

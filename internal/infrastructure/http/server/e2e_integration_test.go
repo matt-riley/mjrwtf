@@ -27,7 +27,7 @@ func TestE2E_FullWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	// Step 1: Create shortened URL with authentication
 	t.Run("create_url", func(t *testing.T) {
@@ -58,7 +58,10 @@ func TestE2E_FullWorkflow(t *testing.T) {
 			t.Errorf("expected original_url to match, got %v", response["original_url"])
 		}
 
-		shortCode := response["short_code"].(string)
+		shortCode, ok := response["short_code"].(string)
+		if !ok {
+			t.Fatalf("expected short_code string in create response")
+		}
 		t.Logf("Created short URL with code: %s", shortCode)
 
 		// Step 2: Perform redirect using short code
@@ -143,7 +146,7 @@ func TestE2E_AuthenticationFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	tests := []struct {
 		name           string
@@ -207,7 +210,7 @@ func TestE2E_ErrorScenarios(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	t.Run("not_found_short_code", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
@@ -285,7 +288,7 @@ func TestE2E_APIEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	var createdShortCode string
 
@@ -308,7 +311,11 @@ func TestE2E_APIEndpoints(t *testing.T) {
 			t.Fatalf("failed to parse response: %v", err)
 		}
 
-		createdShortCode = response["short_code"].(string)
+		code, ok := response["short_code"].(string)
+		if !ok {
+			t.Fatalf("expected short_code string in create response")
+		}
+		createdShortCode = code
 		t.Logf("Created URL with short code: %s", createdShortCode)
 	})
 
@@ -401,7 +408,7 @@ func TestE2E_MultipleClicks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	// Create URL
 	reqBody := `{"original_url":"https://example.com/multi-click"}`
@@ -420,7 +427,10 @@ func TestE2E_MultipleClicks(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
 		t.Fatalf("failed to unmarshal create URL response: %v", err)
 	}
-	shortCode := response["short_code"].(string)
+	shortCode, hasCode := response["short_code"].(string)
+	if !hasCode {
+		t.Fatalf("expected short_code string in create response")
+	}
 
 	// Perform multiple clicks from different sources (sequentially to avoid race conditions)
 	referrers := []string{
@@ -507,7 +517,7 @@ func TestE2E_ConcurrentCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	const numRequests = 10
 	results := make(chan error, numRequests)
@@ -563,7 +573,7 @@ func TestE2E_HealthCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	rec := httptest.NewRecorder()

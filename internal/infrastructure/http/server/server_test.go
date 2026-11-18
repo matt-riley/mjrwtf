@@ -509,7 +509,7 @@ func ExampleServer_Start() {
 
 	// Graceful shutdown on signal...
 	ctx := context.Background()
-	srv.Shutdown(ctx)
+	_ = srv.Shutdown(ctx)
 }
 
 func TestReadyCheckHandler_UnavailableWhenDBNil(t *testing.T) {

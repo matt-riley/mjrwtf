@@ -103,7 +103,7 @@ func TestServer_RedirectEndpoint(t *testing.T) {
 
 			srv, err := New(cfg, db, testLogger())
 			require.NoError(t, err)
-			defer srv.Shutdown(context.Background())
+			t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 			ctx := context.Background()
 
@@ -165,7 +165,7 @@ func TestServer_RedirectWithAnalytics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	// Create a test URL directly via repository
 	urlRepo := repository.NewSQLiteURLRepository(db)
@@ -179,8 +179,8 @@ func TestServer_RedirectWithAnalytics(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	if err := urlRepo.Create(ctx, testURL); err != nil {
-		t.Fatalf("failed to create test URL: %v", err)
+	if createErr := urlRepo.Create(ctx, testURL); createErr != nil {
+		t.Fatalf("failed to create test URL: %v", createErr)
 	}
 
 	// Make redirect request
@@ -250,7 +250,7 @@ func TestServer_RedirectPreservesURL(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create server: %v", err)
 			}
-			defer srv.Shutdown(context.Background())
+			t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 			// Create test URL
 			urlRepo := repository.NewSQLiteURLRepository(db)
@@ -294,7 +294,7 @@ func TestServer_RedirectVsAPIRoutes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer srv.Shutdown(context.Background())
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	tests := []struct {
 		name           string

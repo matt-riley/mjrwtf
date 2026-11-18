@@ -26,12 +26,12 @@ func respondJSON(w http.ResponseWriter, data interface{}, statusCode int) {
 	if err := json.NewEncoder(&buf).Encode(data); err != nil {
 		// Log error and send internal server error
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"failed to encode response"}`))
+		_, _ = w.Write([]byte(`{"error":"failed to encode response"}`))
 		return
 	}
 
 	w.WriteHeader(statusCode)
-	w.Write(buf.Bytes())
+	_, _ = w.Write(buf.Bytes())
 }
 
 // respondError writes a JSON error response

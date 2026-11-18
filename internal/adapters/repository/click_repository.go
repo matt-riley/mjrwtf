@@ -30,11 +30,3 @@ func stringToStringPtr(s string) *string {
 	}
 	return &s
 }
-
-// stringToNullString converts string to sql.NullString
-func stringToNullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{Valid: false}
-	}
-	return sql.NullString{String: s, Valid: true}
-}

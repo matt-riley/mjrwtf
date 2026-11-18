@@ -36,7 +36,11 @@ func TestGetAnalyticsCmd(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	msg := getAnalyticsCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "abc123", &start, &end)().(getAnalyticsMsg)
+	raw := getAnalyticsCmd(tui_config.Config{BaseURL: srv.URL, Token: "t"}, "abc123", &start, &end)()
+	msg, ok := raw.(getAnalyticsMsg)
+	if !ok {
+		t.Fatalf("expected getAnalyticsMsg, got %T", raw)
+	}
 	if msg.err != nil {
 		t.Fatalf("expected nil err, got %v", msg.err)
 	}

@@ -17,7 +17,11 @@ func TestRun_UsesConfigAndStartsProgram(t *testing.T) {
 
 	var got model
 	runProgram = func(m tea.Model) error {
-		got = m.(model)
+		mm, ok := m.(model)
+		if !ok {
+			t.Fatalf("expected model, got %T", m)
+		}
+		got = mm
 		return nil
 	}
 
@@ -42,7 +46,11 @@ func TestRun_FlagsOverrideEnv(t *testing.T) {
 
 	var got model
 	runProgram = func(m tea.Model) error {
-		got = m.(model)
+		mm, ok := m.(model)
+		if !ok {
+			t.Fatalf("expected model, got %T", m)
+		}
+		got = mm
 		return nil
 	}
 

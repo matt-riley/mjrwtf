@@ -182,8 +182,8 @@ func TestServer_TSNetServer_WhenClosed(t *testing.T) {
 	}
 
 	// Close the server first
-	if err := server.Close(); err != nil {
-		t.Fatalf("Close failed: %v", err)
+	if closeErr := server.Close(); closeErr != nil {
+		t.Fatalf("Close failed: %v", closeErr)
 	}
 
 	// TSNetServer should return an error when closed
@@ -207,8 +207,8 @@ func TestServer_Listen_WhenClosed(t *testing.T) {
 	}
 
 	// Close the server first
-	if err := server.Close(); err != nil {
-		t.Fatalf("Close failed: %v", err)
+	if closeErr := server.Close(); closeErr != nil {
+		t.Fatalf("Close failed: %v", closeErr)
 	}
 
 	// Listen should return an error when closed

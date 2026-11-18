@@ -31,7 +31,7 @@ func TestClient_CreateURL_BuildsRequestAndDecodesResponse(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"short_code":"abc123","short_url":"http://localhost:8080/abc123","original_url":"https://example.com"}`))
+		_, _ = w.Write([]byte(`{"short_code":"abc123","short_url":"http://localhost:8080/abc123","original_url":"https://example.com"}`))
 	}))
 	defer ts.Close()
 
@@ -66,7 +66,7 @@ func TestClient_ListURLs_AddsQueryParams(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"urls":[],"total":0,"limit":20,"offset":40}`))
+		_, _ = w.Write([]byte(`{"urls":[],"total":0,"limit":20,"offset":40}`))
 	}))
 	defer ts.Close()
 
@@ -83,7 +83,7 @@ func TestClient_DecodesErrorResponse(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error":"unauthorized"}`))
+		_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
 	}))
 	defer ts.Close()
 
@@ -113,7 +113,7 @@ func TestClient_RateLimit_SurfacesRetryAfter(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Retry-After", "5")
 		w.WriteHeader(http.StatusTooManyRequests)
-		w.Write([]byte(`{"error":"Too Many Requests"}`))
+		_, _ = w.Write([]byte(`{"error":"Too Many Requests"}`))
 	}))
 	defer ts.Close()
 
@@ -176,7 +176,7 @@ func TestClient_GetAnalytics_BuildsRequestAndDecodesResponse(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"short_code":"abc123","original_url":"https://example.com","total_clicks":150,"by_country":{"US":75},"by_referrer":{"direct":60}}`))
+		_, _ = w.Write([]byte(`{"short_code":"abc123","original_url":"https://example.com","total_clicks":150,"by_country":{"US":75},"by_referrer":{"direct":60}}`))
 	}))
 	defer ts.Close()
 

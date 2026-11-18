@@ -31,11 +31,11 @@ func TestSessionBasedAPIAuthentication(t *testing.T) {
 
 	// Run migrations using embedded migrations
 	goose.SetBaseFS(migrations.SQLiteMigrations)
-	if err := goose.SetDialect("sqlite3"); err != nil {
-		t.Fatalf("failed to set dialect: %v", err)
+	if dialectErr := goose.SetDialect("sqlite3"); dialectErr != nil {
+		t.Fatalf("failed to set dialect: %v", dialectErr)
 	}
-	if err := goose.Up(db, "sqlite"); err != nil {
-		t.Fatalf("failed to run migrations: %v", err)
+	if upErr := goose.Up(db, "sqlite"); upErr != nil {
+		t.Fatalf("failed to run migrations: %v", upErr)
 	}
 
 	// Create test config
@@ -57,7 +57,7 @@ func TestSessionBasedAPIAuthentication(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer server.Shutdown(context.Background())
+	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 
 	// Test 1: Create URL with Bearer token (baseline)
 	t.Run("create URL with Bearer token", func(t *testing.T) {
@@ -190,11 +190,11 @@ func TestSessionAndBearerAuthCoexist(t *testing.T) {
 
 	// Run migrations using embedded migrations
 	goose.SetBaseFS(migrations.SQLiteMigrations)
-	if err := goose.SetDialect("sqlite3"); err != nil {
-		t.Fatalf("failed to set dialect: %v", err)
+	if dialectErr := goose.SetDialect("sqlite3"); dialectErr != nil {
+		t.Fatalf("failed to set dialect: %v", dialectErr)
 	}
-	if err := goose.Up(db, "sqlite"); err != nil {
-		t.Fatalf("failed to run migrations: %v", err)
+	if upErr := goose.Up(db, "sqlite"); upErr != nil {
+		t.Fatalf("failed to run migrations: %v", upErr)
 	}
 
 	// Create test config
@@ -216,7 +216,7 @@ func TestSessionAndBearerAuthCoexist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer server.Shutdown(context.Background())
+	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 
 	// Create a session
 	sess, err := server.sessionStore.Create("authenticated-user")

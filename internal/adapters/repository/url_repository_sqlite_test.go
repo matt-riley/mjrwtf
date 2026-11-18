@@ -262,15 +262,21 @@ func TestSQLiteURLRepository_ListByCreatedByAndTimeRange(t *testing.T) {
 	// Create URLs at different times
 	u1, _ := url.NewURL("time1", "https://example.com/1", "user1")
 	u1.CreatedAt = now.Add(-2 * time.Hour)
-	repo.Create(context.Background(), u1)
+	if err := repo.Create(context.Background(), u1); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
 
 	u2, _ := url.NewURL("time2", "https://example.com/2", "user1")
 	u2.CreatedAt = now.Add(-1 * time.Hour)
-	repo.Create(context.Background(), u2)
+	if err := repo.Create(context.Background(), u2); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
 
 	u3, _ := url.NewURL("time3", "https://example.com/3", "user2")
 	u3.CreatedAt = now.Add(-30 * time.Minute)
-	repo.Create(context.Background(), u3)
+	if err := repo.Create(context.Background(), u3); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
 
 	t.Run("filter by user and time range", func(t *testing.T) {
 		startTime := now.Add(-90 * time.Minute)
@@ -324,16 +330,24 @@ func TestSQLiteURLRepository_Count(t *testing.T) {
 
 	// Create test URLs
 	u1, _ := url.NewURL("count1", "https://example.com/1", "user1")
-	repo.Create(context.Background(), u1)
+	if err := repo.Create(context.Background(), u1); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
 
 	u2, _ := url.NewURL("count2", "https://example.com/2", "user1")
-	repo.Create(context.Background(), u2)
+	if err := repo.Create(context.Background(), u2); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
 
 	u3, _ := url.NewURL("count3", "https://example.com/3", "user2")
-	repo.Create(context.Background(), u3)
+	if err := repo.Create(context.Background(), u3); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
 
 	u4, _ := url.NewURL("count4", "https://example.com/4", "user1")
-	repo.Create(context.Background(), u4)
+	if err := repo.Create(context.Background(), u4); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
 
 	t.Run("count all URLs", func(t *testing.T) {
 		count, err := repo.Count(context.Background(), "")

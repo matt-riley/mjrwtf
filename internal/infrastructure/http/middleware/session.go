@@ -25,8 +25,11 @@ func SessionMiddleware(store *session.Store) func(http.Handler) http.Handler {
 				// Validate session
 				sess, exists := store.Get(cookie.Value)
 				if exists {
-					// Refresh session on each request
-					store.Refresh(cookie.Value)
+					// Refresh session on each request (best-effort; invalid session is handled below)
+					if refreshErr := store.Refresh(cookie.Value); refreshErr != nil {
+						next.ServeHTTP(w, r)
+						return
+					}
 
 					// Add user ID to context
 					ctx := context.WithValue(r.Context(), SessionUserIDKey, sess.UserID)

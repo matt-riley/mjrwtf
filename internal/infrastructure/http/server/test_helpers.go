@@ -25,7 +25,10 @@ func setupTestDB(tb testing.TB) *sql.DB {
 	db.SetMaxOpenConns(1)
 
 	// Set SQLite dialect and use embedded migrations
-	goose.SetDialect("sqlite3")
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		db.Close()
+		tb.Fatalf("failed to set goose dialect: %v", err)
+	}
 	goose.SetBaseFS(migrations.SQLiteMigrations)
 
 	if err := goose.Up(db, migrations.SQLiteDir); err != nil {
@@ -45,34 +48,5 @@ func testConfig() *config.Config {
 		AuthToken:      "test-token",
 		AllowedOrigins: "*",
 		DBTimeout:      5 * time.Second,
-	}
-}
-
-// verifyTablesExist checks that required tables exist in the database
-func verifyTablesExist(tb testing.TB, db *sql.DB) {
-	tb.Helper()
-
-	rows, err := db.Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-	if err != nil {
-		tb.Fatalf("failed to query tables: %v", err)
-	}
-	defer rows.Close()
-
-	tables := make(map[string]bool)
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			tb.Fatalf("failed to scan table name: %v", err)
-		}
-		tables[name] = true
-	}
-
-	tb.Logf("Tables found: %v", tables)
-
-	if !tables["urls"] {
-		tb.Fatal("urls table not found")
-	}
-	if !tables["clicks"] {
-		tb.Fatal("clicks table not found")
 	}
 }

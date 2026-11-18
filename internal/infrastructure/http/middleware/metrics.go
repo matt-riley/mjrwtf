@@ -113,7 +113,7 @@ func normalizePath(path string) string {
 		// Check if it looks like a short code (alphanumeric)
 		isShortCode := true
 		for _, c := range path[1:] {
-			if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+			if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '-' && c != '_' {
 				isShortCode = false
 				break
 			}

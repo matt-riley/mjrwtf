@@ -133,7 +133,7 @@ func TestRequireSession_ValidSession(t *testing.T) {
 	// Create test handler
 	handler := sessionMiddleware(requireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("protected content"))
+		_, _ = w.Write([]byte("protected content"))
 	})))
 
 	// Create request with session cookie
@@ -166,7 +166,7 @@ func TestRequireSession_NoSession(t *testing.T) {
 	// Create test handler
 	handler := sessionMiddleware(requireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("protected content"))
+		_, _ = w.Write([]byte("protected content"))
 	})))
 
 	// Create request without session cookie
