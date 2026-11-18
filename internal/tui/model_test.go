@@ -127,6 +127,22 @@ func TestModel_Update_CreateMode_Cancel(t *testing.T) {
 	}
 }
 
+func TestModel_Update_CreateMode_ValidationStatusShowsErrorPrefix(t *testing.T) {
+	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
+	m.loading = false
+
+	m2, _ := m.Update(tea.KeyPressMsg{Code: 'c', Text: "c"})
+	mm := requireModel(t, m2)
+	mm.createInput.SetValue("   ")
+
+	m3, _ := mm.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	mm2 := requireModel(t, m3)
+	want := "Error: original URL is required"
+	if mm2.status != want {
+		t.Fatalf("status=%q want %q", mm2.status, want)
+	}
+}
+
 func TestModel_Update_CreateMode_InvalidURL(t *testing.T) {
 	m := newModel(tui_config.Config{BaseURL: "http://example", Token: "abcdef"}, nil)
 	m.loading = false
@@ -137,7 +153,7 @@ func TestModel_Update_CreateMode_InvalidURL(t *testing.T) {
 
 	m3, _ := mm.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	mm2 := requireModel(t, m3)
-	if !strings.Contains(mm2.status, "http") {
+	if mm2.status != "Error: original URL must start with http:// or https://" {
 		t.Fatalf("status=%q", mm2.status)
 	}
 	if mm2.createLoading {

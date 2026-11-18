@@ -176,7 +176,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				original := strings.TrimSpace(m.createInput.Value())
 				if err := validateHTTPURL(original); err != nil {
-					m.status = err.Error()
+					m.status = "Error: " + err.Error()
 					return m, nil
 				}
 				m.createLoading = true
