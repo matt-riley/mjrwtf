@@ -10,6 +10,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/session"
 )
 
@@ -44,8 +45,9 @@ func (h *PageHandler) Home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := pages.Home().Render(r.Context(), w); err != nil {
-		// Status already written; plain-text fallback is best effort only
-		_, _ = w.Write([]byte("Error rendering page"))
+		// 200 was already sent; do not append a fallback body (unlike error pages below).
+		logger := logging.FromContext(r.Context())
+		logger.Error().Err(err).Msg("failed to render home page")
 	}
 }
 
