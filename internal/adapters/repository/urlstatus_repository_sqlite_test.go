@@ -35,8 +35,8 @@ func TestSQLiteURLStatusRepository_Upsert_And_GetByURLID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewURL() error = %v", err)
 	}
-	if err := urlRepo.Create(context.Background(), u); err != nil {
-		t.Fatalf("Create() error = %v", err)
+	if createErr := urlRepo.Create(context.Background(), u); createErr != nil {
+		t.Fatalf("Create() error = %v", createErr)
 	}
 
 	now := time.Now().UTC().Truncate(time.Second)
@@ -50,8 +50,8 @@ func TestSQLiteURLStatusRepository_Upsert_And_GetByURLID(t *testing.T) {
 		ArchiveURL:       &archive,
 		ArchiveCheckedAt: &now,
 	}
-	if err := statusRepo.Upsert(context.Background(), in); err != nil {
-		t.Fatalf("Upsert() error = %v", err)
+	if upsertErr := statusRepo.Upsert(context.Background(), in); upsertErr != nil {
+		t.Fatalf("Upsert() error = %v", upsertErr)
 	}
 
 	out, err := statusRepo.GetByURLID(context.Background(), u.ID)
@@ -86,8 +86,8 @@ func TestSQLiteURLStatusRepository_ListDueForStatusCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewURL() error = %v", err)
 	}
-	if err := urlRepo.Create(context.Background(), u); err != nil {
-		t.Fatalf("Create() error = %v", err)
+	if createErr := urlRepo.Create(context.Background(), u); createErr != nil {
+		t.Fatalf("Create() error = %v", createErr)
 	}
 
 	aliveCutoff := time.Now().Add(-1 * time.Hour)

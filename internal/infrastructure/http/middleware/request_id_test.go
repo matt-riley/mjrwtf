@@ -62,9 +62,8 @@ func TestInjectLogger_AddsLoggerToContext(t *testing.T) {
 	handler := RequestID(InjectLogger(logger)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := logging.FromContext(r.Context())
 		// Logger should not be nil
-		if ctxLogger.GetLevel() == zerolog.Disabled {
-			// This is expected for Nop logger - just verify it doesn't panic
-		}
+		// Nop logger reports as disabled; assert we can read it without panicking.
+		_ = ctxLogger.GetLevel()
 	})))
 
 	req := httptest.NewRequest(http.MethodGet, "/test-path", nil)

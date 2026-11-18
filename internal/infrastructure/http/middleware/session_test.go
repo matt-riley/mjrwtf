@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,46 @@ import (
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/session"
 )
+
+type stubSessionStore struct {
+	userID     string
+	refreshErr error
+}
+
+func (s *stubSessionStore) Get(sessionID string) (*session.Session, bool) {
+	if sessionID == "" {
+		return nil, false
+	}
+	return &session.Session{ID: sessionID, UserID: s.userID}, true
+}
+
+func (s *stubSessionStore) Refresh(sessionID string) error {
+	return s.refreshErr
+}
+
+func TestSessionMiddleware_RefreshFailureTreatsAsNoSession(t *testing.T) {
+	store := &stubSessionStore{
+		userID:     "test-user",
+		refreshErr: errors.New("refresh failed"),
+	}
+
+	handler := SessionMiddleware(store)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := GetSessionUserID(r.Context()); ok {
+			t.Error("expected no session user after refresh failure")
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: "sess-1"})
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rr.Code)
+	}
+}
 
 func TestSessionMiddleware_ValidSession(t *testing.T) {
 	store := session.NewStore(24 * time.Hour)
@@ -133,7 +174,7 @@ func TestRequireSession_ValidSession(t *testing.T) {
 	// Create test handler
 	handler := sessionMiddleware(requireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("protected content"))
+		_, _ = w.Write([]byte("protected content"))
 	})))
 
 	// Create request with session cookie
@@ -166,7 +207,7 @@ func TestRequireSession_NoSession(t *testing.T) {
 	// Create test handler
 	handler := sessionMiddleware(requireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("protected content"))
+		_, _ = w.Write([]byte("protected content"))
 	})))
 
 	// Create request without session cookie

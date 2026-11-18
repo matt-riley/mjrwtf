@@ -7,7 +7,7 @@ import (
 
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
 	"github.com/rs/zerolog"
-	"tailscale.com/client/tailscale"
+	"tailscale.com/client/local"
 )
 
 // WhoIsClient implements middleware.WhoIsClient using a Tailscale local client.
@@ -60,7 +60,7 @@ func (c *WhoIsClient) WhoIs(ctx context.Context, remoteAddr string) (*middleware
 }
 
 // getLocalClient returns the Tailscale LocalClient for API calls.
-func (c *WhoIsClient) getLocalClient() (*tailscale.LocalClient, error) {
+func (c *WhoIsClient) getLocalClient() (*local.Client, error) {
 	tsServer, err := c.server.TSNetServer()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tsnet server: %w", err)
@@ -79,6 +79,6 @@ var _ middleware.WhoIsClient = (*WhoIsClient)(nil)
 
 // LocalClientForTesting returns the underlying tailscale client for testing.
 // This is used by integration tests that need to create listeners.
-func (c *WhoIsClient) LocalClientForTesting() (*tailscale.LocalClient, error) {
+func (c *WhoIsClient) LocalClientForTesting() (*local.Client, error) {
 	return c.getLocalClient()
 }

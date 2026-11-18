@@ -90,11 +90,19 @@ func TestLogger_StructuredOutput(t *testing.T) {
 	if logEntry["path"] != "/api/test" {
 		t.Errorf("expected path /api/test, got %v", logEntry["path"])
 	}
-	if logEntry["status"].(float64) != 200 {
-		t.Errorf("expected status 200, got %v", logEntry["status"])
+	status, ok := logEntry["status"].(float64)
+	if !ok {
+		t.Fatalf("expected status as float64, got %T", logEntry["status"])
 	}
-	if logEntry["size"].(float64) != 5 {
-		t.Errorf("expected size 5, got %v", logEntry["size"])
+	if status != 200 {
+		t.Errorf("expected status 200, got %v", status)
+	}
+	size, ok := logEntry["size"].(float64)
+	if !ok {
+		t.Fatalf("expected size as float64, got %T", logEntry["size"])
+	}
+	if size != 5 {
+		t.Errorf("expected size 5, got %v", size)
 	}
 	if _, ok := logEntry["duration"]; !ok {
 		t.Error("expected duration field in log")

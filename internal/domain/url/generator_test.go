@@ -287,11 +287,13 @@ func TestGenerator_GenerateUniqueShortCode(t *testing.T) {
 		// Pre-populate repository with some codes to simulate collisions
 		existingCodes := []string{"abc", "def", "ghi", "jkl", "mno"}
 		for _, code := range existingCodes {
-			url, err := NewURL(code, "https://example.com", "system")
-			if err != nil {
-				t.Fatalf("NewURL() error = %v", err)
+			u, urlErr := NewURL(code, "https://example.com", "system")
+			if urlErr != nil {
+				t.Fatalf("NewURL() error = %v", urlErr)
 			}
-			repo.Create(context.Background(), url)
+			if createErr := repo.Create(context.Background(), u); createErr != nil {
+				t.Fatalf("Create() error = %v", createErr)
+			}
 		}
 
 		// Try to generate unique code - should succeed after some retries
@@ -608,7 +610,9 @@ func BenchmarkGenerator_GenerateUniqueShortCode(b *testing.B) {
 		if err != nil {
 			b.Fatalf("NewURL() error = %v", err)
 		}
-		repo.Create(context.Background(), url)
+		if createErr := repo.Create(context.Background(), url); createErr != nil {
+			b.Fatalf("Create() error = %v", createErr)
+		}
 	}
 }
 

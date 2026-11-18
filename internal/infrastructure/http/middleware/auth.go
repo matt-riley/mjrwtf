@@ -77,7 +77,7 @@ func respondJSONError(w http.ResponseWriter, message string, statusCode int) {
 	response := errorResponse{Error: message}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		// Fallback to plain text if JSON encoding fails
-		w.Write([]byte(`{"error":"internal server error"}`))
+		_, _ = w.Write([]byte(`{"error":"internal server error"}`))
 	}
 }
 

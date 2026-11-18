@@ -104,7 +104,7 @@ func TestStyleComposition(t *testing.T) {
 			}
 		}()
 
-		composedStyle := TitleStyle.Copy().
+		composedStyle := TitleStyle.
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(Overlay0).
 			Padding(1, 2)
@@ -122,7 +122,7 @@ func TestStyleComposition(t *testing.T) {
 			}
 		}()
 
-		successStatus := StatusBarStyle.Copy().
+		successStatus := StatusBarStyle.
 			Foreground(Green)
 
 		result := successStatus.Render("Operation successful")
@@ -136,7 +136,7 @@ func TestStyleImmutability(t *testing.T) {
 	// Test that using Copy() creates independent styles
 	t.Run("CopyDoesNotModifyOriginal", func(t *testing.T) {
 		original := TitleStyle
-		modified := TitleStyle.Copy().Foreground(Red)
+		modified := TitleStyle.Foreground(Red)
 
 		// Render both to ensure they're different
 		originalText := original.Render("Original")

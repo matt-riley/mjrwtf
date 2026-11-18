@@ -78,8 +78,8 @@ func (uc *ListURLsUseCase) Execute(ctx context.Context, req ListURLsRequest) (*L
 	urlResponses := make([]URLResponse, len(urls))
 	for i, u := range urls {
 		// Fetch click count for this URL
-		clickCount, err := uc.clickRepo.GetTotalClickCount(ctx, u.ID)
-		if err != nil {
+		clickCount, countErr := uc.clickRepo.GetTotalClickCount(ctx, u.ID)
+		if countErr != nil {
 			// Default to 0 if we can't get the count
 			clickCount = 0
 		}

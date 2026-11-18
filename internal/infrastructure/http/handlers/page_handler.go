@@ -10,6 +10,7 @@ import (
 	"github.com/matt-riley/mjrwtf/internal/application"
 	"github.com/matt-riley/mjrwtf/internal/domain/url"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/http/middleware"
+	"github.com/matt-riley/mjrwtf/internal/infrastructure/logging"
 	"github.com/matt-riley/mjrwtf/internal/infrastructure/session"
 )
 
@@ -44,8 +45,9 @@ func (h *PageHandler) Home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := pages.Home().Render(r.Context(), w); err != nil {
-		// Note: Status already written, just log the error
-		// Template rendering errors are rare and indicate a serious issue
+		// 200 was already sent; do not append a fallback body (unlike error pages below).
+		logger := logging.FromContext(r.Context())
+		logger.Error().Err(err).Msg("failed to render home page")
 	}
 }
 
@@ -55,7 +57,7 @@ func (h *PageHandler) NotFound(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	if err := pages.NotFound().Render(r.Context(), w); err != nil {
 		// Fallback to plain text if template fails
-		w.Write([]byte("Error rendering page"))
+		_, _ = w.Write([]byte("Error rendering page"))
 	}
 }
 
@@ -65,7 +67,7 @@ func (h *PageHandler) InternalError(w http.ResponseWriter, r *http.Request, mess
 	w.WriteHeader(http.StatusInternalServerError)
 	if err := pages.InternalError(message).Render(r.Context(), w); err != nil {
 		// Fallback to plain text if template fails
-		w.Write([]byte(message))
+		_, _ = w.Write([]byte(message))
 	}
 }
 
@@ -77,7 +79,7 @@ func (h *PageHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		w.WriteHeader(http.StatusOK)
 		if err := pages.Create().Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -98,7 +100,7 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := pages.CreateWithError("Invalid form data").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -111,7 +113,7 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 	if originalURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := pages.CreateWithError("URL is required").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -119,7 +121,7 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 	if authToken == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := pages.CreateWithError("Authentication token is required").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -130,14 +132,14 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 	if !configured {
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := pages.CreateWithError("Server authentication configuration error").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
 	if !match {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.CreateWithError("Invalid authentication token").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -161,7 +163,7 @@ func (h *PageHandler) handleCreateURLForm(w http.ResponseWriter, r *http.Request
 	// Render success page with result
 	w.WriteHeader(http.StatusOK)
 	if err := pages.CreateWithResult(resp.ShortCode, resp.ShortURL, resp.OriginalURL).Render(r.Context(), w); err != nil {
-		w.Write([]byte("Error rendering page"))
+		_, _ = w.Write([]byte("Error rendering page"))
 	}
 }
 
@@ -200,7 +202,7 @@ func (h *PageHandler) renderErrorPage(w http.ResponseWriter, r *http.Request, er
 
 	w.WriteHeader(statusCode)
 	if err := pages.CreateWithError(errorMsg).Render(r.Context(), w); err != nil {
-		w.Write([]byte("Error rendering page"))
+		_, _ = w.Write([]byte("Error rendering page"))
 	}
 }
 
@@ -230,7 +232,7 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		if err := pages.DashboardWithError("Invalid pagination parameters").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -250,7 +252,7 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		// This shouldn't happen if auth middleware is applied
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.DashboardWithError("Authentication required").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -266,7 +268,7 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := pages.DashboardWithError("Failed to load URLs").Render(r.Context(), w); err != nil {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -287,7 +289,7 @@ func (h *PageHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := pages.Dashboard(resp.URLs, clickCounts, resp.Total, limit, offset, tailscaleLogin, showLogout).Render(r.Context(), w); err != nil {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Write([]byte("Error rendering page"))
+		_, _ = w.Write([]byte("Error rendering page"))
 	}
 }
 
@@ -299,7 +301,7 @@ func (h *PageHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		w.WriteHeader(http.StatusOK)
 		if err := pages.Login("").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -320,7 +322,7 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := pages.Login("Invalid form data").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -332,7 +334,7 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if authToken == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := pages.Login("Authentication token is required").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -343,14 +345,14 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if !configured {
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := pages.Login("Authentication is not properly configured").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
 	if !match {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := pages.Login("Invalid authentication token").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}
@@ -367,7 +369,7 @@ func (h *PageHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := pages.Login("Failed to create session").Render(r.Context(), w); err != nil {
-			w.Write([]byte("Error rendering page"))
+			_, _ = w.Write([]byte("Error rendering page"))
 		}
 		return
 	}

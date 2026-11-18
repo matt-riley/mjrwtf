@@ -33,7 +33,7 @@ func TestServer_AuthMiddlewareIntegration(t *testing.T) {
 				t.Errorf("expected user ID %q, got %q", "authenticated-user", userID)
 			}
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("access granted"))
+			_, _ = w.Write([]byte("access granted"))
 		})
 	})
 

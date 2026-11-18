@@ -15,20 +15,20 @@ var BorderStyle = lipgloss.NewStyle().
 	BorderForeground(Overlay0)
 
 // PanelStyle - Standard bordered panel with consistent padding
-var PanelStyle = BorderStyle.Copy().
+var PanelStyle = BorderStyle.
 	Padding(1, 2)
 
 // WarningPanelStyle - Warning-colored bordered panel (e.g. delete confirmation)
-var WarningPanelStyle = BorderStyle.Copy().
+var WarningPanelStyle = BorderStyle.
 	BorderForeground(Peach).
 	Padding(1, 2)
 
 // InputBoxStyle - Border+padding wrapper for text inputs when not focused
-var InputBoxStyle = BorderStyle.Copy().
+var InputBoxStyle = BorderStyle.
 	Padding(0, 1)
 
 // InputBoxFocusedStyle - Border+padding wrapper for focused text inputs
-var InputBoxFocusedStyle = BorderStyle.Copy().
+var InputBoxFocusedStyle = BorderStyle.
 	BorderForeground(Mauve).
 	Padding(0, 1)
 

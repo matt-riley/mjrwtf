@@ -1,31 +1,47 @@
-# golangci-lint configuration
-# Note: typecheck linter disabled due to false positives with external package imports
-# The code compiles correctly but golangci-lint's typecheck has issues recognizing
-# imports from goose, chi, sqlite3, geoip2, and sqlc-generated packages
+# golangci-lint configuration (v2)
+# Note: typecheck is not a configurable linter in v2; see golangci-lint FAQ for typecheck issues.
+# The code compiles correctly; historically typecheck had false positives with imports from
+# goose, chi, sqlite3, geoip2, and sqlc-generated packages.
 
+version: "2"
 run:
-  timeout: 5m
   tests: true
-  skip-dirs:
-    - internal/adapters/repository/sqlc  # Skip sqlc-generated code
-
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
+  settings:
+    errcheck:
+      check-type-assertions: true
+    govet:
+      enable:
+        - shadow
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - internal/adapters/repository/sqlc
+formatters:
+  enable:
     - gofmt
     - goimports
-  disable:
-    - typecheck  # Disabled due to false positives
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  govet:
-    check-shadowing: true
-  gofmt:
-    simplify: true
+  settings:
+    gofmt:
+      simplify: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - internal/adapters/repository/sqlc

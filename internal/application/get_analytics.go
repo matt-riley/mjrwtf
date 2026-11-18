@@ -68,9 +68,9 @@ func (uc *GetAnalyticsUseCase) Execute(ctx context.Context, req GetAnalyticsRequ
 	// Check if time range is specified
 	if req.StartTime != nil && req.EndTime != nil {
 		// Get time range statistics
-		stats, err := uc.clickRepo.GetStatsByURLAndTimeRange(ctx, foundURL.ID, *req.StartTime, *req.EndTime)
-		if err != nil {
-			return nil, err
+		stats, statsErr := uc.clickRepo.GetStatsByURLAndTimeRange(ctx, foundURL.ID, *req.StartTime, *req.EndTime)
+		if statsErr != nil {
+			return nil, statsErr
 		}
 
 		return &GetAnalyticsResponse{

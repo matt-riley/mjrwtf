@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/matt-riley/mjrwtf/internal/adapters/repository/sqlc/sqlite"
+	sqliterepo "github.com/matt-riley/mjrwtf/internal/adapters/repository/sqlc/sqlite"
 	"github.com/matt-riley/mjrwtf/internal/domain/urlstatus"
 )
 

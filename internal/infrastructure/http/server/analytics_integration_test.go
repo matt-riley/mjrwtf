@@ -30,11 +30,11 @@ func TestAnalyticsIntegration(t *testing.T) {
 
 	// Apply migrations
 	goose.SetBaseFS(migrations.SQLiteMigrations)
-	if err := goose.SetDialect("sqlite3"); err != nil {
-		t.Fatalf("failed to set dialect: %v", err)
+	if dialectErr := goose.SetDialect("sqlite3"); dialectErr != nil {
+		t.Fatalf("failed to set dialect: %v", dialectErr)
 	}
-	if err := goose.Up(db, "sqlite"); err != nil {
-		t.Fatalf("failed to apply migrations: %v", err)
+	if upErr := goose.Up(db, "sqlite"); upErr != nil {
+		t.Fatalf("failed to apply migrations: %v", upErr)
 	}
 
 	// Setup server
@@ -44,7 +44,7 @@ func TestAnalyticsIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer server.Shutdown(context.Background())
+	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 
 	// Create test data
 	urlRepo := repository.NewSQLiteURLRepository(db)

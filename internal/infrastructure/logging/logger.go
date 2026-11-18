@@ -46,7 +46,7 @@ func New(level, format string, opts ...Option) zerolog.Logger {
 		opt(cfg)
 	}
 
-	var output io.Writer = cfg.output
+	output := cfg.output
 
 	// Set pretty format for development
 	if format == "pretty" {

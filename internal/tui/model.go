@@ -176,7 +176,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				original := strings.TrimSpace(m.createInput.Value())
 				if err := validateHTTPURL(original); err != nil {
-					m.status = err.Error()
+					m.status = "Error: " + err.Error()
 					return m, nil
 				}
 				m.createLoading = true
@@ -429,7 +429,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if !(m.loading || m.createLoading || m.analyticsLoading || m.deleteLoading) {
+		if !m.loading && !m.createLoading && !m.analyticsLoading && !m.deleteLoading {
 			return m, nil
 		}
 		var cmd tea.Cmd
@@ -649,9 +649,10 @@ func (m model) mainLine() string {
 			Wrap(false).
 			StyleFunc(func(row, col int) lipgloss.Style {
 				cell := styles.UnselectedRowStyle
-				if row == table.HeaderRow {
+				switch row {
+				case table.HeaderRow:
 					cell = styles.TitleStyle
-				} else if row == m.cursor {
+				case m.cursor:
 					cell = styles.SelectedRowStyle
 				}
 				cell = cell.Padding(0, 1)
@@ -688,7 +689,7 @@ func (m model) createView() string {
 }
 
 func (m model) deleteConfirmView() string {
-	shortCode := styles.TitleStyle.Copy().Foreground(styles.Lavender).Render(m.deleteConfirmShortCode)
+	shortCode := styles.TitleStyle.Foreground(styles.Lavender).Render(m.deleteConfirmShortCode)
 	maxURL := maxDetailURLWidth
 	if m.width > 0 {
 		maxURL = m.width - detailURLWidthMargin
@@ -812,14 +813,14 @@ func (m model) analyticsTimeRangeView() string {
 	startLabel := styles.MutedStyle.Render("start_time:")
 	if m.analyticsStartInput.Focused() {
 		startBox = styles.InputBoxFocusedStyle
-		startLabel = styles.TitleStyle.Copy().Bold(false).Render("start_time:")
+		startLabel = styles.TitleStyle.Bold(false).Render("start_time:")
 	}
 
 	endBox := styles.InputBoxStyle
 	endLabel := styles.MutedStyle.Render("end_time:")
 	if m.analyticsEndInput.Focused() {
 		endBox = styles.InputBoxFocusedStyle
-		endLabel = styles.TitleStyle.Copy().Bold(false).Render("end_time:")
+		endLabel = styles.TitleStyle.Bold(false).Render("end_time:")
 	}
 
 	lines := []string{
@@ -870,7 +871,7 @@ func (m model) analyticsView() string {
 	view := lines[start:end]
 	if len(lines) > visible {
 		indicator := fmt.Sprintf("Scroll: %d-%d of %d", start+1, end, len(lines))
-		view = append(view, styles.TitleStyle.Copy().Bold(false).Render(indicator))
+		view = append(view, styles.TitleStyle.Bold(false).Render(indicator))
 	}
 	return strings.Join(view, "\n")
 }
@@ -880,7 +881,7 @@ func (m model) analyticsLines() []string {
 		return nil
 	}
 
-	shortCode := styles.TitleStyle.Copy().Foreground(styles.Lavender).Bold(false).Render(m.analytics.ShortCode)
+	shortCode := styles.TitleStyle.Foreground(styles.Lavender).Bold(false).Render(m.analytics.ShortCode)
 	maxURL := maxDetailURLWidth
 	if m.width > 0 {
 		maxURL = m.width - detailURLWidthMargin
@@ -889,7 +890,7 @@ func (m model) analyticsLines() []string {
 		}
 	}
 	originalURL := styles.LinkStyle.Render(truncate(m.analytics.OriginalURL, maxURL))
-	totalClicks := styles.SuccessStyle.Copy().Bold(true).Render(fmt.Sprintf("%d", m.analytics.TotalClicks))
+	totalClicks := styles.SuccessStyle.Bold(true).Render(fmt.Sprintf("%d", m.analytics.TotalClicks))
 
 	rangeLabel := "Time range: all-time"
 	if m.analyticsStartTime != nil && m.analyticsEndTime != nil {
@@ -904,7 +905,7 @@ func (m model) analyticsLines() []string {
 		fmt.Sprintf("%s %s", styles.MutedStyle.Render("Total clicks:"), totalClicks),
 		styles.MutedStyle.Render(rangeLabel),
 	}
-	box := styles.BorderStyle.Copy().BorderForeground(styles.Mauve).Padding(1, 2).Render(strings.Join(headerLines, "\n"))
+	box := styles.BorderStyle.BorderForeground(styles.Mauve).Padding(1, 2).Render(strings.Join(headerLines, "\n"))
 
 	lines := splitRenderedLines(box)
 	lines = append(lines, "")
@@ -933,10 +934,10 @@ func splitRenderedLines(s string) []string {
 }
 
 func formatTopMapSection(title string, in map[string]int64, maxItems int) []string {
-	inner := []string{styles.TitleStyle.Copy().Bold(true).Render(title), ""}
+	inner := []string{styles.TitleStyle.Bold(true).Render(title), ""}
 	if len(in) == 0 {
 		inner = append(inner, styles.MutedStyle.Render("(none)"))
-		return splitRenderedLines(styles.BorderStyle.Copy().Padding(1, 2).Render(strings.Join(inner, "\n")))
+		return splitRenderedLines(styles.BorderStyle.Padding(1, 2).Render(strings.Join(inner, "\n")))
 	}
 
 	items := make([]kv, 0, len(in))
@@ -969,14 +970,14 @@ func formatTopMapSection(title string, in map[string]int64, maxItems int) []stri
 		inner = append(inner, styles.MutedStyle.Render(fmt.Sprintf("…and %d more", len(items)-len(shown))))
 	}
 
-	return splitRenderedLines(styles.BorderStyle.Copy().Padding(1, 2).Render(strings.Join(inner, "\n")))
+	return splitRenderedLines(styles.BorderStyle.Padding(1, 2).Render(strings.Join(inner, "\n")))
 }
 
 func formatDateMapSection(title string, in map[string]int64, maxItems int) []string {
-	inner := []string{styles.TitleStyle.Copy().Bold(true).Render(title), ""}
+	inner := []string{styles.TitleStyle.Bold(true).Render(title), ""}
 	if len(in) == 0 {
 		inner = append(inner, styles.MutedStyle.Render("(none)"))
-		return splitRenderedLines(styles.BorderStyle.Copy().Padding(1, 2).Render(strings.Join(inner, "\n")))
+		return splitRenderedLines(styles.BorderStyle.Padding(1, 2).Render(strings.Join(inner, "\n")))
 	}
 
 	keys := make([]string, 0, len(in))
@@ -998,5 +999,5 @@ func formatDateMapSection(title string, in map[string]int64, maxItems int) []str
 	if len(shown) < len(keys) {
 		inner = append(inner, styles.MutedStyle.Render(fmt.Sprintf("…and %d more", len(keys)-len(shown))))
 	}
-	return splitRenderedLines(styles.BorderStyle.Copy().Padding(1, 2).Render(strings.Join(inner, "\n")))
+	return splitRenderedLines(styles.BorderStyle.Padding(1, 2).Render(strings.Join(inner, "\n")))
 }

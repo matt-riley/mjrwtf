@@ -15,8 +15,14 @@ const (
 	SessionUserIDKey contextKey = "sessionUserID"
 )
 
+// sessionStore is the storage surface SessionMiddleware needs (implemented by *session.Store).
+type sessionStore interface {
+	Get(sessionID string) (*session.Session, bool)
+	Refresh(sessionID string) error
+}
+
 // SessionMiddleware creates a middleware that manages user sessions
-func SessionMiddleware(store *session.Store) func(http.Handler) http.Handler {
+func SessionMiddleware(store sessionStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Try to get session cookie
@@ -25,8 +31,11 @@ func SessionMiddleware(store *session.Store) func(http.Handler) http.Handler {
 				// Validate session
 				sess, exists := store.Get(cookie.Value)
 				if exists {
-					// Refresh session on each request
-					store.Refresh(cookie.Value)
+					// Extend TTL; if refresh fails, treat the request as having no session.
+					if refreshErr := store.Refresh(cookie.Value); refreshErr != nil {
+						next.ServeHTTP(w, r)
+						return
+					}
 
 					// Add user ID to context
 					ctx := context.WithValue(r.Context(), SessionUserIDKey, sess.UserID)

@@ -10,15 +10,6 @@ import (
 	"time"
 )
 
-// mockHTTPClient is a mock HTTP client for testing
-type mockHTTPClient struct {
-	doFunc func(req *http.Request) (*http.Response, error)
-}
-
-func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	return m.doFunc(req)
-}
-
 func TestNewDiscordNotifier(t *testing.T) {
 	webhookURL := "https://discord.com/api/webhooks/test"
 	notifier := NewDiscordNotifier(webhookURL)
@@ -125,7 +116,10 @@ func TestDiscordNotifier_NotifyError_SendsSuccessfully(t *testing.T) {
 		t.Fatal("expected embeds in payload")
 	}
 
-	embed := embeds[0].(map[string]interface{})
+	embed, ok := embeds[0].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected embed map in payload")
+	}
 	if embed["title"] != "🚨 Critical Error Detected" {
 		t.Errorf("unexpected embed title: %v", embed["title"])
 	}

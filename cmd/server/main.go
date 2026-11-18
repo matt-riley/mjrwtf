@@ -50,7 +50,6 @@ func main() {
 	var serverOpts []server.ServerOption
 
 	if cfg.TailscaleEnabled {
-		var err error
 		tsServer, err = tailscale.NewServer(cfg, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create Tailscale server")
