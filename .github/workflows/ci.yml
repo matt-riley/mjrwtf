@@ -109,9 +109,8 @@ jobs:
     uses: matt-riley/matt-riley-ci/.github/workflows/go-lint.yml@e802c1e932579d1e840f6dd4f8316458d1f96983 # v4
     with:
       go-version-file: go.mod
-      golangci-version: v2.2.0
+      golangci-version: v2.15.0
       golangci-args: --timeout=5m
-      continue-on-error: true
 
   validate-openapi:
     name: Validate OpenAPI spec
